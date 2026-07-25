@@ -9,6 +9,8 @@ type User = {
     leetcode_username: string;
 };
 
+const KEEP_ALIVE_INTERVAL_MS = 10 * 60 * 1000;
+
 export default function App() {
     const [user, setUser] = useState<User | null>(null);
     const [isLoadingSession, setIsLoadingSession] = useState(true);
@@ -29,6 +31,25 @@ export default function App() {
                 setUser(null);
             })
             .finally(() => setIsLoadingSession(false));
+    }, []);
+
+    useEffect(() => {
+        function pingBackend() {
+            apiRequest<{ status: string }>("/health").catch(() => {
+                // Keep-alive should never interrupt the UI.
+            });
+        }
+
+        pingBackend();
+
+        const intervalId = window.setInterval(
+            pingBackend,
+            KEEP_ALIVE_INTERVAL_MS,
+        );
+
+        return () => {
+            window.clearInterval(intervalId);
+        };
     }, []);
 
     useEffect(() => {
