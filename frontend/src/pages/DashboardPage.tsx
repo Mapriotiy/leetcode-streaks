@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Flame, UserCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Flame, UserCircle } from "lucide-react";
 import { apiRequest } from "../api/client";
 
 type User = {
@@ -15,6 +15,19 @@ type DashboardData = {
     today_active: boolean;
     longest_streak: number;
     active_days_count: number;
+    today_submissions: {
+        title: string;
+        title_slug: string;
+        url: string;
+        submitted_at: string;
+        language: string | null;
+    }[];
+    activity_calendar: ActivityCalendarDay[];
+};
+
+type ActivityCalendarDay = {
+    date: string;
+    count: number;
 };
 
 type CreateInviteResponse = {
@@ -53,27 +66,32 @@ function FriendFlame({
     count,
     state,
     ignite = false,
+    size = "md",
 }: {
     count: number;
     state: "lit" | "pending" | "broken";
     ignite?: boolean;
+    size?: "md" | "lg";
 }) {
     const isLit = state === "lit";
+    const outerSize = size === "lg" ? "h-20 w-20" : "h-16 w-16";
+    const glowSize = size === "lg" ? "h-16 w-16" : "h-12 w-12";
+    const iconSize = size === "lg" ? 48 : 38;
 
     return (
         <div
-            className={`relative grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full border transition ${
+            className={`relative grid ${outerSize} shrink-0 place-items-center overflow-hidden rounded-full border transition ${
                 isLit
                     ? "border-[#ffa116]/50 bg-[#ffa116]/15 shadow-lg shadow-[#ffa116]/10"
                     : "border-[#3a3a3a] bg-[#303030]"
             }`}
         >
             {isLit ? (
-                <div className="flame-glow absolute h-12 w-12 rounded-full bg-[#ffa116]/25 blur-md" />
+                <div className={`flame-glow absolute ${glowSize} rounded-full bg-[#ffa116]/25 blur-md`} />
             ) : null}
 
             <Flame
-                size={38}
+                size={iconSize}
                 strokeWidth={2.4}
                 className={`relative transition ${
                     isLit
@@ -83,7 +101,9 @@ function FriendFlame({
             />
 
             <span
-                className={`absolute text-sm font-bold tabular-nums ${
+                className={`absolute font-bold tabular-nums ${
+                    size === "lg" ? "text-base" : "text-sm"
+                } ${
                     isLit ? "text-[#111111]" : "text-[#d6d6d6]"
                 }`}
             >
@@ -103,6 +123,85 @@ function usePrevious<T>(value: T) {
     return previous;
 }
 
+function getHeatmapCellClass(count: number) {
+    if (count <= 0) {
+        return "bg-[#333333]";
+    }
+
+    if (count === 1) {
+        return "bg-[#5c431c]";
+    }
+
+    if (count <= 3) {
+        return "bg-[#8f641f]";
+    }
+
+    if (count <= 6) {
+        return "bg-[#c9861b]";
+    }
+
+    return "bg-[#ffa116]";
+}
+
+function formatMonthLabel(monthDate: Date) {
+    return monthDate.toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+    });
+}
+
+function getMonthStart(date: Date) {
+    return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function getMonthEnd(date: Date) {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+}
+
+function addMonths(date: Date, months: number) {
+    return new Date(date.getFullYear(), date.getMonth() + months, 1);
+}
+
+function toDateKey(date: Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+function buildMonthHeatmapDays(
+    selectedMonth: Date,
+    activityCalendar: ActivityCalendarDay[],
+) {
+    const countsByDate = new Map(
+        activityCalendar.map((day) => [day.date, day.count]),
+    );
+    const monthStart = getMonthStart(selectedMonth);
+    const monthEnd = getMonthEnd(selectedMonth);
+    const gridStart = new Date(monthStart);
+    gridStart.setDate(monthStart.getDate() - monthStart.getDay());
+    const gridEnd = new Date(monthEnd);
+    gridEnd.setDate(monthEnd.getDate() + (6 - monthEnd.getDay()));
+
+    const days = [];
+    const cursor = new Date(gridStart);
+
+    while (cursor <= gridEnd) {
+        const dateKey = toDateKey(cursor);
+
+        days.push({
+            date: dateKey,
+            count: countsByDate.get(dateKey) ?? 0,
+            isCurrentMonth: cursor.getMonth() === selectedMonth.getMonth(),
+        });
+
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return days;
+}
+
 export function DashboardPage({ user, refreshKey, onLogout }: DashboardPageProps) {
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
     const [friends, setFriends] = useState<FriendResponse[]>([]);
@@ -111,6 +210,9 @@ export function DashboardPage({ user, refreshKey, onLogout }: DashboardPageProps
     const [isCreatingInvite, setIsCreatingInvite] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [copyMessage, setCopyMessage] = useState<string | null>(null);
+    const [selectedCalendarMonth, setSelectedCalendarMonth] = useState(() =>
+        getMonthStart(new Date()),
+    );
     const currentStreakState = dashboardData?.current_streak_state ?? "broken";
     const isCurrentStreakLit = currentStreakState === "lit";
     const currentStreakHint =
@@ -122,6 +224,15 @@ export function DashboardPage({ user, refreshKey, onLogout }: DashboardPageProps
     const previousCurrentStreakState = usePrevious(currentStreakState);
     const shouldIgniteCurrentStreak =
         currentStreakState === "lit" && previousCurrentStreakState !== "lit";
+    const calendarDays = buildMonthHeatmapDays(
+        selectedCalendarMonth,
+        dashboardData?.activity_calendar ?? [],
+    );
+    const calendarWeekCount = Math.ceil(calendarDays.length / 7);
+    const currentMonthStart = getMonthStart(new Date());
+    const isCurrentCalendarMonth =
+        selectedCalendarMonth.getFullYear() === currentMonthStart.getFullYear() &&
+        selectedCalendarMonth.getMonth() === currentMonthStart.getMonth();
 
     useEffect(() => {
         async function loadDashboard() {
@@ -231,52 +342,149 @@ export function DashboardPage({ user, refreshKey, onLogout }: DashboardPageProps
                                     : "border-[#3a3a3a] bg-[#262626]"
                             }`}
                         >
-                            <div className="flex items-start justify-between gap-4">
-                                <div>
-                                    <p className="text-sm font-medium text-[#a3a3a3]">
-                                        Current streak
-                                    </p>
+                            <div className="flex h-full flex-col">
+                                <p className="self-start text-sm font-medium text-[#a3a3a3]">
+                                    Current streak
+                                </p>
+
+                                <div className="flex flex-1 flex-col items-center justify-center text-center">
+                                    <FriendFlame
+                                        count={dashboardData?.current_streak ?? 0}
+                                        state={currentStreakState}
+                                        ignite={shouldIgniteCurrentStreak}
+                                        size="lg"
+                                    />
+
                                     <p
-                                        className={`mt-3 text-4xl font-semibold ${
-                                            isCurrentStreakLit ? "text-[#ffa116]" : "text-[#b3b3b3]"
-                                        }`}
-                                    >
-                                        {dashboardData?.current_streak ?? 0}
-                                    </p>
-                                    <p className="mt-2 text-sm text-[#8a8a8a]">days</p>
-                                    <p
-                                        className={`mt-2 text-xs ${
+                                        className={`mt-4 text-xs ${
                                             isCurrentStreakLit ? "text-[#ffa116]" : "text-[#8a8a8a]"
                                         }`}
                                     >
                                         {currentStreakHint}
                                     </p>
                                 </div>
+                            </div>
+                        </article>
 
-                                <FriendFlame
-                                    count={dashboardData?.current_streak ?? 0}
-                                    state={currentStreakState}
-                                    ignite={shouldIgniteCurrentStreak}
-                                />
+                        <article className="flex flex-col rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <p className="text-sm font-medium text-[#a3a3a3]">
+                                        Today's solved
+                                    </p>
+                                    <p className="mt-1 text-xs text-[#8a8a8a]">
+                                        Unique accepted problems
+                                    </p>
+                                </div>
+
+                                <span className="rounded-full bg-[#333333] px-2.5 py-1 text-xs font-semibold text-[#ffa116]">
+                                    {dashboardData?.today_submissions.length ?? 0}
+                                </span>
+                            </div>
+
+                            <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
+                                {!dashboardData?.today_submissions.length ? (
+                                    <p className="text-sm text-[#8a8a8a]">
+                                        No accepted submissions yet.
+                                    </p>
+                                ) : (
+                                    <ul className="grid gap-2">
+                                        {dashboardData.today_submissions.map((submission) => (
+                                            <li key={submission.title_slug}>
+                                                <a
+                                                    href={submission.url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="block rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm text-[#eff1f6] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                                                >
+                                                    <span className="block truncate">
+                                                        {submission.title}
+                                                    </span>
+                                                    {submission.language ? (
+                                                        <span className="mt-1 block text-xs text-[#8a8a8a]">
+                                                            {submission.language}
+                                                        </span>
+                                                    ) : null}
+                                                </a>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
                             </div>
                         </article>
 
                         <article className="rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
-                            <p className="text-sm font-medium text-[#a3a3a3]">
-                                Longest streak
-                            </p>
-                            <p className="mt-3 text-4xl font-semibold">
-                                {dashboardData?.longest_streak ?? 0}
-                            </p>
-                            <p className="mt-2 text-sm text-[#8a8a8a]">days</p>
-                        </article>
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <p className="text-sm font-medium text-[#a3a3a3]">
+                                        Activity
+                                    </p>
+                                    <p className="mt-1 text-xs text-[#8a8a8a]">
+                                        {dashboardData?.active_days_count ?? 0} active days
+                                    </p>
+                                </div>
 
-                        <article className="rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
-                            <p className="text-sm font-medium text-[#a3a3a3]">Active days</p>
-                            <p className="mt-3 text-4xl font-semibold">
-                                {dashboardData?.active_days_count ?? 0}
-                            </p>
-                            <p className="mt-2 text-sm text-[#8a8a8a]">total</p>
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setSelectedCalendarMonth((month) => addMonths(month, -1))
+                                        }
+                                        className="grid h-7 w-7 place-items-center rounded-md border border-[#3a3a3a] bg-[#333333] text-[#b3b3b3] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                                        aria-label="Previous month"
+                                    >
+                                        <ChevronLeft size={16} />
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setSelectedCalendarMonth((month) => addMonths(month, 1))
+                                        }
+                                        disabled={isCurrentCalendarMonth}
+                                        className="grid h-7 w-7 place-items-center rounded-md border border-[#3a3a3a] bg-[#333333] text-[#b3b3b3] transition hover:border-[#ffa116]/60 hover:text-[#ffa116] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[#3a3a3a] disabled:hover:text-[#b3b3b3]"
+                                        aria-label="Next month"
+                                    >
+                                        <ChevronRight size={16} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 overflow-x-auto pb-1">
+                                <p className="mb-3 text-center text-xs font-medium text-[#a3a3a3]">
+                                    {formatMonthLabel(selectedCalendarMonth)}
+                                </p>
+
+                                <div
+                                    className="mx-auto grid w-fit grid-flow-col grid-rows-7 gap-1.5"
+                                    style={{
+                                        gridTemplateColumns: `repeat(${calendarWeekCount}, 1.25rem)`,
+                                    }}
+                                >
+                                    {calendarDays.map((day) => (
+                                        <div
+                                            key={day.date}
+                                            title={`${day.date}: ${day.count} submissions`}
+                                            className={`h-4 w-4 rounded-[4px] ${
+                                                day.isCurrentMonth
+                                                    ? getHeatmapCellClass(day.count)
+                                                    : "bg-[#202020]"
+                                            }`}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="mt-4 flex items-center justify-end gap-1 text-[11px] text-[#8a8a8a]">
+                                <span className="mr-1">Less</span>
+                                {[0, 1, 3, 6, 7].map((count) => (
+                                    <span
+                                        key={count}
+                                        className={`h-2.5 w-2.5 rounded-[2px] ${getHeatmapCellClass(count)}`}
+                                    />
+                                ))}
+                                <span className="ml-1">More</span>
+                            </div>
                         </article>
                     </section>
                 )}

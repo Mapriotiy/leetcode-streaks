@@ -15,3 +15,11 @@ class LeetCodeProfileResponse(BaseModel):
     ranking: int | None = None
     solved: SolvedStats
     submission_calendar: dict[str, int]
+
+
+class RecentAcceptedSubmission(BaseModel):
+    title: str
+    title_slug: str
+    url: str
+    submitted_at: str
+    language: str | None = None
