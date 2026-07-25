@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiRequest } from "./api/client";
+import { InviteModal } from "./components/InviteModal";
 import { AuthPage } from "./pages/AuthPage";
 import { DashboardPage } from "./pages/DashboardPage";
 
@@ -11,6 +12,14 @@ type User = {
 export default function App() {
     const [user, setUser] = useState<User | null>(null);
     const [isLoadingSession, setIsLoadingSession] = useState(true);
+    const [inviteToken, setInviteToken] = useState<string | null>(null);
+    const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
+
+    function clearInviteUrl() {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("invite");
+        window.history.replaceState(null, "", `${url.pathname}${url.search}`);
+    }
 
     useEffect(() => {
         apiRequest<User>("/auth/me")
@@ -22,6 +31,22 @@ export default function App() {
             .finally(() => setIsLoadingSession(false));
     }, []);
 
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const tokenFromUrl = params.get("invite");
+        const pendingInviteToken = localStorage.getItem("pendingInviteToken");
+
+        if (tokenFromUrl) {
+            setInviteToken(tokenFromUrl);
+            localStorage.setItem("pendingInviteToken", tokenFromUrl);
+            return;
+        }
+
+        if (pendingInviteToken) {
+            setInviteToken(pendingInviteToken);
+        }
+    }, []);
+
     if (isLoadingSession) {
         return (
             <main className="min-h-screen bg-slate-50 p-6 text-slate-950">
@@ -31,16 +56,77 @@ export default function App() {
     }
 
     if (!user) {
-        return <AuthPage onAuthenticated={setUser} />;
+        return (
+            <>
+                <AuthPage
+                    onAuthenticated={(authenticatedUser) => {
+                        setUser(authenticatedUser);
+
+                        const pendingInviteToken =
+                            localStorage.getItem("pendingInviteToken");
+                        if (pendingInviteToken) {
+                            setInviteToken(pendingInviteToken);
+                        }
+                    }}
+                />
+
+                {inviteToken ? (
+                    <InviteModal
+                        token={inviteToken}
+                        user={user}
+                        onClose={() => {
+                            localStorage.removeItem("pendingInviteToken");
+                            setInviteToken(null);
+                            clearInviteUrl();
+                        }}
+                        onAccepted={() => {
+                            localStorage.removeItem("pendingInviteToken");
+                            setInviteToken(null);
+                            clearInviteUrl();
+                            setDashboardRefreshKey((key) => key + 1);
+                        }}
+                        onNeedAuth={() => {
+                            setInviteToken(null);
+                            clearInviteUrl();
+                        }}
+                    />
+                ) : null}
+            </>
+        );
     }
 
     return (
-        <DashboardPage
-            user={user}
-            onLogout={() => {
-                localStorage.removeItem("accessToken");
-                setUser(null);
-            }}
-        />
+        <>
+            <DashboardPage
+                user={user}
+                refreshKey={dashboardRefreshKey}
+                onLogout={() => {
+                    localStorage.removeItem("accessToken");
+                    setUser(null);
+                }}
+            />
+
+            {inviteToken ? (
+                <InviteModal
+                    token={inviteToken}
+                    user={user}
+                    onClose={() => {
+                        localStorage.removeItem("pendingInviteToken");
+                        setInviteToken(null);
+                        clearInviteUrl();
+                    }}
+                    onAccepted={() => {
+                        localStorage.removeItem("pendingInviteToken");
+                        setInviteToken(null);
+                        clearInviteUrl();
+                        setDashboardRefreshKey((key) => key + 1);
+                    }}
+                    onNeedAuth={() => {
+                        setInviteToken(null);
+                        clearInviteUrl();
+                    }}
+                />
+            ) : null}
+        </>
     );
 }

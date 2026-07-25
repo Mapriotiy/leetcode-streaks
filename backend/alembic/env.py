@@ -21,6 +21,8 @@ if config.config_file_name is not None:
 from app.db.base import Base
 from app.models.user import User
 from app.models.daily_activity import DailyActivity
+from app.models.friend_invite import FriendInvite
+from app.models.friendship import Friendship
 
 target_metadata = Base.metadata
 

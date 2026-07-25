@@ -1,10 +1,12 @@
-from fastapi import Depends
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
+from app.schemas.leetcode import LeetCodeProfileResponse
 from app.services.activity_sync import sync_user_daily_activity
+from app.services.leetcode_client import LeetCodeClient
 
 router = APIRouter()
 
