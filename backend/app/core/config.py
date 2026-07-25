@@ -9,5 +9,13 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
 
+    def model_post_init(self, __context: object) -> None:
+        if self.database_url.startswith("postgres://"):
+            self.database_url = self.database_url.replace(
+                "postgres://",
+                "postgresql+psycopg://",
+                1,
+            )
+
 
 settings = Settings()
