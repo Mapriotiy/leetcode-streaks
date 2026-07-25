@@ -32,19 +32,25 @@ query userPublicProfile($username: String!) {
 
 class LeetCodeClient:
     async def get_user_profile(self, username: str) -> LeetCodeProfileResponse:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.post(
-                LEETCODE_GRAPHQL_URL,
-                json={
-                    "query": USER_PUBLIC_PROFILE_QUERY,
-                    "variables": {"username": username},
-                },
-                headers={
-                    "Content-Type": "application/json",
-                    "Referer": "https://leetcode.com",
-                    "User-Agent": "leetcode-streaks-dev",
-                },
-            )
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(
+                    LEETCODE_GRAPHQL_URL,
+                    json={
+                        "query": USER_PUBLIC_PROFILE_QUERY,
+                        "variables": {"username": username},
+                    },
+                    headers={
+                        "Content-Type": "application/json",
+                        "Referer": "https://leetcode.com",
+                        "User-Agent": "leetcode-streaks-dev",
+                    },
+                )
+        except httpx.HTTPError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Could not connect to LeetCode API",
+            ) from exc
 
         if response.status_code != status.HTTP_200_OK:
             raise HTTPException(
@@ -52,7 +58,13 @@ class LeetCodeClient:
                 detail="LeetCode API request failed",
             )
 
-        payload = response.json()
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="LeetCode API returned invalid JSON",
+            ) from exc
 
         if payload.get("errors"):
             raise HTTPException(

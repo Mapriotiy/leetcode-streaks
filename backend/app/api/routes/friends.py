@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import or_
@@ -16,7 +16,12 @@ from app.schemas.friends import (
     FriendResponse,
     FriendUserResponse,
     InviteResponse,
+    FriendStreakResponse,
+    TodayFriendStatusResponse,
 )
+
+from app.services.activity_sync import sync_user_daily_activity
+from app.services.streaks import calculate_friend_streak, get_active_dates
 
 router = APIRouter()
 
@@ -35,6 +40,13 @@ def user_to_friend_response(user: User) -> FriendUserResponse:
 def build_invite_url(request: Request, token: str) -> str:
     frontend_origin = request.headers.get("origin") or "http://localhost:5173"
     return f"{frontend_origin}/?invite={token}"
+
+
+async def sync_user_activity_if_available(user: User, db: Session) -> None:
+    try:
+        await sync_user_daily_activity(user, db)
+    except HTTPException:
+        return
 
 
 @router.post("/invites", response_model=CreateInviteResponse)
@@ -162,7 +174,7 @@ def accept_invite(
 
 
 @router.get("/", response_model=list[FriendResponse])
-def list_friends(
+async def list_friends(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db),
 ):
@@ -179,6 +191,10 @@ def list_friends(
 
     result: list[FriendResponse] = []
 
+    await sync_user_activity_if_available(current_user, db)
+    current_user_dates = get_active_dates(current_user, db)
+    today = date.today()
+
     for friendship in friendships:
         friend_id = (
             friendship.user_b_id
@@ -190,10 +206,32 @@ def list_friends(
         if friend is None:
             continue
 
+        await sync_user_activity_if_available(friend, db)
+        friend_dates = get_active_dates(friend, db)
+
+        streak = calculate_friend_streak(
+            user_dates=current_user_dates,
+            friend_dates=friend_dates,
+            start_date=friendship.created_at.date(),
+            today=today,
+        )
         result.append(
             FriendResponse(
                 friendship_id=friendship.id,
                 friend=user_to_friend_response(friend),
+                streak=FriendStreakResponse(
+                    display_count=streak.display_count,
+                    current_count=streak.current_count,
+                    longest_count=streak.longest_count,
+                    state=streak.state,
+                    last_shared_active_date=streak.last_shared_active_date,
+                    started_at=streak.started_at,
+                    today=TodayFriendStatusResponse(
+                        you_active=streak.today.you_active,
+                        friend_active=streak.today.friend_active,
+                        shared_active=streak.today.shared_active,
+                    ),
+                ),
             )
         )
 

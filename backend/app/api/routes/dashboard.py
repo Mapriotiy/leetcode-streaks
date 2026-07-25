@@ -1,6 +1,6 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -22,7 +22,10 @@ async def get_dashboard(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db),
 ):
-    await sync_user_daily_activity(current_user, db)
+    try:
+        await sync_user_daily_activity(current_user, db)
+    except HTTPException:
+        pass
 
     active_dates = get_active_dates(current_user, db)
 

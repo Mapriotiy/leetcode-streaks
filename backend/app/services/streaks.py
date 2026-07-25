@@ -1,9 +1,28 @@
+from dataclasses import dataclass
 from datetime import date, timedelta
 
 from sqlalchemy.orm import Session
 
 from app.models.daily_activity import DailyActivity
 from app.models.user import User
+
+
+@dataclass
+class TodayFriendStatus:
+    you_active: bool
+    friend_active: bool
+    shared_active: bool
+
+
+@dataclass
+class FriendStreakStats:
+    display_count: int
+    current_count: int
+    longest_count: int
+    state: str
+    last_shared_active_date: date | None
+    started_at: date
+    today: TodayFriendStatus
 
 
 def get_active_dates(user: User, db: Session) -> set[date]:
@@ -19,18 +38,22 @@ def get_active_dates(user: User, db: Session) -> set[date]:
     return {row.date for row in rows}
 
 
-def calculate_current_streak(active_dates: set[date], today: date | None = None) -> int:
-    if today is None:
-        today = date.today()
-
-    current_date = today
+def calculate_streak_ending_at(active_dates: set[date], end_date: date) -> int:
     streak = 0
+    current_date = end_date
 
     while current_date in active_dates:
         streak += 1
         current_date -= timedelta(days=1)
 
     return streak
+
+
+def calculate_current_streak(active_dates: set[date], today: date | None = None) -> int:
+    if today is None:
+        today = date.today()
+
+    return calculate_streak_ending_at(active_dates, today)
 
 
 def calculate_longest_streak(active_dates: set[date]) -> int:
@@ -51,3 +74,52 @@ def calculate_longest_streak(active_dates: set[date]) -> int:
         previous_date = active_date
 
     return longest
+
+
+def calculate_friend_streak(
+        user_dates: set[date],
+        friend_dates: set[date],
+        start_date: date,
+        today: date | None = None,
+) -> FriendStreakStats:
+    if today is None:
+        today = date.today()
+
+    shared_dates = {
+        active_date
+        for active_date in user_dates & friend_dates
+        if active_date >= start_date
+    }
+
+    today_shared = today in shared_dates
+    yesterday = today - timedelta(days=1)
+
+    if today_shared:
+        current_count = calculate_streak_ending_at(shared_dates, today)
+        display_count = current_count
+        state = "lit"
+    else:
+        yesterday_count = calculate_streak_ending_at(shared_dates, yesterday)
+
+        if yesterday_count > 0:
+            current_count = yesterday_count
+            display_count = yesterday_count
+            state = "pending"
+        else:
+            current_count = 0
+            display_count = 0
+            state = "broken"
+
+    return FriendStreakStats(
+        display_count=display_count,
+        current_count=current_count,
+        longest_count=calculate_longest_streak(shared_dates),
+        state=state,
+        last_shared_active_date=max(shared_dates) if shared_dates else None,
+        started_at=start_date,
+        today=TodayFriendStatus(
+            you_active=today >= start_date and today in user_dates,
+            friend_active=today >= start_date and today in friend_dates,
+            shared_active=today_shared,
+        ),
+    )

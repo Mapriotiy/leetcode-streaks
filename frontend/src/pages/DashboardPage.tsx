@@ -24,6 +24,19 @@ type FriendResponse = {
         id: number;
         leetcode_username: string;
     };
+    streak: {
+        display_count: number;
+        current_count: number;
+        longest_count: number;
+        state: "lit" | "pending" | "broken";
+        last_shared_active_date: string | null;
+        started_at: string;
+        today: {
+            you_active: boolean;
+            friend_active: boolean;
+            shared_active: boolean;
+        };
+    };
 };
 
 type DashboardPageProps = {
@@ -31,6 +44,34 @@ type DashboardPageProps = {
     refreshKey: number;
     onLogout: () => void;
 };
+
+
+function FriendFlame({
+                         count,
+                         state,
+                     }: {
+    count: number;
+    state: "lit" | "pending" | "broken";
+}) {
+    const isLit = state === "lit";
+
+    return (
+        <div
+            className={`relative grid h-16 w-16 shrink-0 place-items-center rounded-full border transition ${
+                isLit
+                    ? "border-orange-200 bg-orange-100 text-orange-700"
+                    : "border-slate-200 bg-slate-100 text-slate-500"
+            }`}
+        >
+            <div className={`text-4xl ${isLit ? "animate-pulse" : "grayscale"}`}>
+                🔥
+            </div>
+
+            <span className="absolute text-sm font-bold">{count}</span>
+        </div>
+    );
+}
+
 
 export function DashboardPage({ user, refreshKey, onLogout }: DashboardPageProps) {
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
@@ -212,17 +253,45 @@ export function DashboardPage({ user, refreshKey, onLogout }: DashboardPageProps
                             <p className="mt-2 text-sm text-slate-500">No friends yet.</p>
                         ) : (
                             <ul className="mt-3 grid gap-2">
-                                {friends.map((item) => (
-                                    <li
-                                        key={item.friendship_id}
-                                        className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2 text-sm"
-                                    >
-                                        <span>{item.friend.leetcode_username}</span>
-                                        <span className="text-slate-500">
-                      Friend streak coming next
-                    </span>
-                                    </li>
-                                ))}
+                                {friends.map((item) => {
+                                    const statusText =
+                                        item.streak.state === "lit"
+                                            ? "Both solved today"
+                                            : item.streak.state === "pending"
+                                                ? "Waiting for both of you today"
+                                                : "Solve today to start a shared streak";
+
+                                    return (
+                                        <li
+                                            key={item.friendship_id}
+                                            className="flex items-center justify-between gap-4 rounded-md border border-slate-200 px-4 py-3 text-sm"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <FriendFlame
+                                                    count={item.streak.display_count}
+                                                    state={item.streak.state}
+                                                />
+
+                                                <div>
+                                                    <p className="font-semibold text-slate-950">
+                                                        {item.friend.leetcode_username}
+                                                    </p>
+                                                    <p className="mt-1 text-slate-600">{statusText}</p>
+                                                    <p className="mt-1 text-xs text-slate-500">
+                                                        Longest shared streak: {item.streak.longest_count} days
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="text-right text-xs text-slate-500">
+                                                <p>You: {item.streak.today.you_active ? "done" : "pending"}</p>
+                                                <p>
+                                                    Friend: {item.streak.today.friend_active ? "done" : "pending"}
+                                                </p>
+                                            </div>
+                                        </li>
+                                    );
+                                })}
                             </ul>
                         )}
                     </div>
