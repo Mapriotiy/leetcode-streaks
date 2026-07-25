@@ -49,7 +49,7 @@ export default function App() {
 
     if (isLoadingSession) {
         return (
-            <main className="min-h-screen bg-slate-50 p-6 text-slate-950">
+            <main className="min-h-screen bg-[#1a1a1a] p-6 text-white">
                 Loading...
             </main>
         );

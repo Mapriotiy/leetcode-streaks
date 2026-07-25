@@ -55,29 +55,29 @@ export function AuthPage({ onAuthenticated }: AuthPageProps) {
     }
 
     return (
-        <main className="min-h-screen bg-slate-50 text-slate-950">
+        <main className="min-h-screen bg-[#1a1a1a] text-white">
             <div className="mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center px-6 py-10">
-                <section className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+                <section className="w-full max-w-md rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
                     <div className="mb-6">
-                        <p className="mb-2 text-sm font-medium text-orange-600">
+                        <p className="mb-2 text-sm font-medium text-[#ffa116]">
                             LeetCode Streaks
                         </p>
                         <h1 className="text-2xl font-semibold tracking-tight">
                             {mode === "login" ? "Welcome back" : "Create your account"}
                         </h1>
-                        <p className="mt-2 text-sm text-slate-600">
+                        <p className="mt-2 text-sm text-[#b3b3b3]">
                             Track a shared coding streak with your friends.
                         </p>
                     </div>
 
-                    <div className="mb-6 grid grid-cols-2 gap-2 rounded-lg bg-slate-100 p-1">
+                    <div className="mb-6 grid grid-cols-2 gap-2 rounded-lg bg-[#1f1f1f] p-1">
                         <button
                             type="button"
                             onClick={() => setMode("login")}
                             className={`rounded-md px-3 py-2 text-sm font-medium transition ${
                                 mode === "login"
-                                    ? "bg-white text-slate-950 shadow-sm"
-                                    : "text-slate-600 hover:text-slate-950"
+                                    ? "bg-[#3a3a3a] text-white shadow-sm"
+                                    : "text-[#b3b3b3] hover:text-white"
                             }`}
                         >
                             Login
@@ -88,8 +88,8 @@ export function AuthPage({ onAuthenticated }: AuthPageProps) {
                             onClick={() => setMode("register")}
                             className={`rounded-md px-3 py-2 text-sm font-medium transition ${
                                 mode === "register"
-                                    ? "bg-white text-slate-950 shadow-sm"
-                                    : "text-slate-600 hover:text-slate-950"
+                                    ? "bg-[#3a3a3a] text-white shadow-sm"
+                                    : "text-[#b3b3b3] hover:text-white"
                             }`}
                         >
                             Register
@@ -105,7 +105,7 @@ export function AuthPage({ onAuthenticated }: AuthPageProps) {
                                 type="text"
                                 autoComplete="username"
                                 required
-                                className="rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                                className="rounded-md border border-[#3a3a3a] bg-[#1a1a1a] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#777777] focus:border-[#ffa116] focus:ring-2 focus:ring-[#ffa116]/20"
                             />
                         </label>
 
@@ -120,12 +120,12 @@ export function AuthPage({ onAuthenticated }: AuthPageProps) {
                                 }
                                 required
                                 minLength={8}
-                                className="rounded-md border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                                className="rounded-md border border-[#3a3a3a] bg-[#1a1a1a] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#777777] focus:border-[#ffa116] focus:ring-2 focus:ring-[#ffa116]/20"
                             />
                         </label>
 
                         {errorMessage ? (
-                            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                            <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
                                 {errorMessage}
                             </p>
                         ) : null}
@@ -133,7 +133,7 @@ export function AuthPage({ onAuthenticated }: AuthPageProps) {
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="mt-2 rounded-md bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:cursor-not-allowed disabled:bg-orange-300"
+                            className="mt-2 rounded-md bg-[#ffa116] px-4 py-2.5 text-sm font-semibold text-[#111111] transition hover:bg-[#ffb84d] disabled:cursor-not-allowed disabled:bg-[#3a3a3a] disabled:text-[#777777]"
                         >
                             {isSubmitting
                                 ? "Please wait..."

@@ -4,14 +4,13 @@ from sqlalchemy.orm import Session
 
 from app.models.daily_activity import DailyActivity
 from app.models.user import User
+from app.schemas.leetcode import LeetCodeProfileResponse
 from app.services.leetcode_client import LeetCodeClient
 
 
-async def sync_user_daily_activity(user: User, db: Session) -> int:
+async def sync_user_daily_activity(user: User, db: Session) -> LeetCodeProfileResponse:
     client = LeetCodeClient()
     profile = await client.get_user_profile(user.leetcode_username)
-
-    synced_count = 0
 
     for date_string, submissions_count in profile.submission_calendar.items():
         activity_date = date.fromisoformat(date_string)
@@ -36,7 +35,5 @@ async def sync_user_daily_activity(user: User, db: Session) -> int:
                 )
             )
 
-        synced_count += 1
-
     db.commit()
-    return synced_count
+    return profile

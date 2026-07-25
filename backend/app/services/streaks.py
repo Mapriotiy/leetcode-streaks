@@ -25,6 +25,13 @@ class FriendStreakStats:
     today: TodayFriendStatus
 
 
+@dataclass
+class PersonalStreakStats:
+    display_count: int
+    state: str
+    today_active: bool
+
+
 def get_active_dates(user: User, db: Session) -> set[date]:
     rows = (
         db.query(DailyActivity.date)
@@ -54,6 +61,39 @@ def calculate_current_streak(active_dates: set[date], today: date | None = None)
         today = date.today()
 
     return calculate_streak_ending_at(active_dates, today)
+
+
+def calculate_personal_streak(
+        active_dates: set[date],
+        today: date | None = None,
+) -> PersonalStreakStats:
+    if today is None:
+        today = date.today()
+
+    if today in active_dates:
+        return PersonalStreakStats(
+            display_count=calculate_streak_ending_at(active_dates, today),
+            state="lit",
+            today_active=True,
+        )
+
+    yesterday_count = calculate_streak_ending_at(
+        active_dates,
+        today - timedelta(days=1),
+    )
+
+    if yesterday_count > 0:
+        return PersonalStreakStats(
+            display_count=yesterday_count,
+            state="pending",
+            today_active=False,
+        )
+
+    return PersonalStreakStats(
+        display_count=0,
+        state="broken",
+        today_active=False,
+    )
 
 
 def calculate_longest_streak(active_dates: set[date]) -> int:

@@ -2,4 +2,46 @@
 
 body {
     margin: 0;
+    background: #1a1a1a;
+}
+
+@keyframes flame-ignite {
+    0% {
+        opacity: 0.55;
+        transform: scale(0.72);
+        filter: saturate(0.4);
+    }
+    38% {
+        opacity: 1;
+        transform: scale(1.2);
+        filter: saturate(1.55);
+    }
+    62% {
+        transform: scale(0.94);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        filter: saturate(1);
+    }
+}
+
+@keyframes flame-glow {
+    0%,
+    100% {
+        opacity: 0.55;
+        transform: scale(0.92);
+    }
+    50% {
+        opacity: 0.95;
+        transform: scale(1.08);
+    }
+}
+
+.flame-ignite {
+    animation: flame-ignite 720ms cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.flame-glow {
+    animation: flame-glow 1.6s ease-in-out infinite;
 }
