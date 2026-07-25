@@ -1,11 +1,12 @@
 import secrets
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.core.config import settings
 from app.db.session import get_db
 from app.models.friend_invite import FriendInvite
 from app.models.friendship import Friendship
@@ -37,9 +38,9 @@ def user_to_friend_response(user: User) -> FriendUserResponse:
     )
 
 
-def build_invite_url(request: Request, token: str) -> str:
-    frontend_origin = request.headers.get("origin") or "http://localhost:5173"
-    return f"{frontend_origin}/?invite={token}"
+def build_invite_url(token: str) -> str:
+    frontend_url = settings.frontend_url.rstrip("/")
+    return f"{frontend_url}/?invite={token}"
 
 
 async def sync_user_activity_if_available(user: User, db: Session) -> None:
@@ -51,7 +52,6 @@ async def sync_user_activity_if_available(user: User, db: Session) -> None:
 
 @router.post("/invites", response_model=CreateInviteResponse)
 def create_invite(
-        request: Request,
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db),
 ):
@@ -69,7 +69,7 @@ def create_invite(
 
     return CreateInviteResponse(
         token=invite.token,
-        invite_url=build_invite_url(request, invite.token),
+        invite_url=build_invite_url(invite.token),
     )
 
 
