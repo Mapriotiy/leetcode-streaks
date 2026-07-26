@@ -21,5 +21,15 @@ export async function apiRequest<T>(
         throw new Error(message);
     }
 
-    return response.json();
+    if (response.status === 204) {
+        return undefined as T;
+    }
+
+    const responseText = await response.text();
+
+    if (!responseText) {
+        return undefined as T;
+    }
+
+    return JSON.parse(responseText) as T;
 }

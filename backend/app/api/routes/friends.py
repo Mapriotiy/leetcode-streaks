@@ -236,3 +236,27 @@ async def list_friends(
         )
 
     return result
+
+
+@router.delete("/{friendship_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_friend(
+        friendship_id: int,
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db),
+):
+    friendship = db.get(Friendship, friendship_id)
+
+    if friendship is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Friendship not found",
+        )
+
+    if current_user.id not in (friendship.user_a_id, friendship.user_b_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You cannot delete this friendship",
+        )
+
+    db.delete(friendship)
+    db.commit()

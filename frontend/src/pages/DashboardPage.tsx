@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Flame, UserCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Flame, Trash2, UserCircle } from "lucide-react";
 import { apiRequest } from "../api/client";
 
 type User = {
@@ -208,6 +208,7 @@ export function DashboardPage({ user, refreshKey, onLogout }: DashboardPageProps
     const [inviteUrl, setInviteUrl] = useState<string | null>(null);
     const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
     const [isCreatingInvite, setIsCreatingInvite] = useState(false);
+    const [deletingFriendshipId, setDeletingFriendshipId] = useState<number | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [copyMessage, setCopyMessage] = useState<string | null>(null);
     const [selectedCalendarMonth, setSelectedCalendarMonth] = useState(() =>
@@ -285,6 +286,35 @@ export function DashboardPage({ user, refreshKey, onLogout }: DashboardPageProps
 
         await navigator.clipboard.writeText(inviteUrl);
         setCopyMessage("Invite link copied");
+    }
+
+    async function handleDeleteFriend(friendshipId: number, friendUsername: string) {
+        const shouldDelete = window.confirm(
+            `Remove ${friendUsername} and reset this friend streak?`,
+        );
+
+        if (!shouldDelete) {
+            return;
+        }
+
+        setDeletingFriendshipId(friendshipId);
+        setErrorMessage(null);
+
+        try {
+            await apiRequest<void>(`/friends/${friendshipId}`, {
+                method: "DELETE",
+            });
+
+            setFriends((currentFriends) =>
+                currentFriends.filter((friend) => friend.friendship_id !== friendshipId),
+            );
+        } catch (error) {
+            setErrorMessage(
+                error instanceof Error ? error.message : "Failed to remove friend",
+            );
+        } finally {
+            setDeletingFriendshipId(null);
+        }
     }
 
     return (
@@ -574,11 +604,29 @@ export function DashboardPage({ user, refreshKey, onLogout }: DashboardPageProps
                                                 </div>
                                             </div>
 
-                                            <div className="text-right text-xs text-[#8a8a8a]">
-                                                <p>You: {item.streak.today.you_active ? "done" : "pending"}</p>
-                                                <p>
-                                                    Friend: {item.streak.today.friend_active ? "done" : "pending"}
-                                                </p>
+                                            <div className="flex items-center gap-4">
+                                                <div className="text-right text-xs text-[#8a8a8a]">
+                                                    <p>You: {item.streak.today.you_active ? "done" : "pending"}</p>
+                                                    <p>
+                                                        Friend: {item.streak.today.friend_active ? "done" : "pending"}
+                                                    </p>
+                                                </div>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleDeleteFriend(
+                                                            item.friendship_id,
+                                                            item.friend.leetcode_username,
+                                                        )
+                                                    }
+                                                    disabled={deletingFriendshipId === item.friendship_id}
+                                                    className="grid h-9 w-9 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#8a8a8a] transition hover:border-red-500/60 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+                                                    aria-label={`Remove ${item.friend.leetcode_username}`}
+                                                    title={`Remove ${item.friend.leetcode_username}`}
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </div>
                                         </li>
                                     );
