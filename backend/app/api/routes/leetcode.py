@@ -22,7 +22,7 @@ async def sync_my_leetcode_activity(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db),
 ):
-    profile = await sync_user_daily_activity(current_user, db)
+    profile, _ = await sync_user_daily_activity(current_user, db)
 
     return {
         "synced_days": len(profile.submission_calendar),

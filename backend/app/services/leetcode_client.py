@@ -1,5 +1,8 @@
+import asyncio
 import json
+import time
 from datetime import datetime, timezone
+from typing import Any
 
 import httpx
 from fastapi import HTTPException, status
@@ -44,9 +47,52 @@ query recentAcSubmissions($username: String!, $limit: Int!) {
 }
 """
 
+_HEADERS = {
+    "Content-Type": "application/json",
+    "Referer": "https://leetcode.com",
+    "User-Agent": "leetcode-streaks-dev",
+}
+
+_client: httpx.AsyncClient | None = None
+_client_lock = asyncio.Lock()
+
+
+async def _get_client() -> httpx.AsyncClient:
+    global _client
+    if _client is None or _client.is_closed:
+        async with _client_lock:
+            if _client is None or _client.is_closed:
+                _client = httpx.AsyncClient(timeout=10.0)
+    return _client
+
+
+_cache: dict[str, tuple[float, Any]] = {}
+_PROFILE_TTL = 300   # 5 min — avatar, calendar, historical data
+_SUBS_TTL = 60       # 1 min — recent submissions should refresh quickly
+
+
+def _cache_get(key: str, ttl: float) -> Any | None:
+    entry = _cache.get(key)
+    if entry is None:
+        return None
+    ts, value = entry
+    if time.monotonic() - ts > ttl:
+        _cache.pop(key, None)
+        return None
+    return value
+
+
+def _cache_set(key: str, value: Any) -> None:
+    _cache[key] = (time.monotonic(), value)
+
 
 class LeetCodeClient:
     async def get_user_profile(self, username: str) -> LeetCodeProfileResponse:
+        cache_key = f"profile:{username}"
+        cached = _cache_get(cache_key, _PROFILE_TTL)
+        if cached is not None:
+            return cached
+
         payload = await self._post_graphql(
             query=USER_PUBLIC_PROFILE_QUERY,
             variables={"username": username},
@@ -59,13 +105,20 @@ class LeetCodeClient:
                 detail="LeetCode user not found",
             )
 
-        return self._normalize_profile(matched_user)
+        result = self._normalize_profile(matched_user)
+        _cache_set(cache_key, result)
+        return result
 
     async def get_recent_accepted_submissions(
             self,
             username: str,
             limit: int = 20,
     ) -> list[RecentAcceptedSubmission]:
+        cache_key = f"subs:{username}:{limit}"
+        cached = _cache_get(cache_key, _SUBS_TTL)
+        if cached is not None:
+            return cached
+
         payload = await self._post_graphql(
             query=RECENT_ACCEPTED_SUBMISSIONS_QUERY,
             variables={"username": username, "limit": limit},
@@ -96,23 +149,30 @@ class LeetCodeClient:
                 )
             )
 
+        _cache_set(cache_key, result)
         return result
 
+    async def fetch_profile_and_submissions(
+        self,
+        username: str,
+        limit: int = 30,
+    ) -> tuple[LeetCodeProfileResponse, list[RecentAcceptedSubmission]]:
+        profile_task = self.get_user_profile(username)
+        subs_task = self.get_recent_accepted_submissions(username, limit=limit)
+        profile, submissions = await asyncio.gather(profile_task, subs_task)
+        return profile, submissions
+
     async def _post_graphql(self, query: str, variables: dict) -> dict:
+        client = await _get_client()
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.post(
-                    LEETCODE_GRAPHQL_URL,
-                    json={
-                        "query": query,
-                        "variables": variables,
-                    },
-                    headers={
-                        "Content-Type": "application/json",
-                        "Referer": "https://leetcode.com",
-                        "User-Agent": "leetcode-streaks-dev",
-                    },
-                )
+            response = await client.post(
+                LEETCODE_GRAPHQL_URL,
+                json={
+                    "query": query,
+                    "variables": variables,
+                },
+                headers=_HEADERS,
+            )
         except httpx.HTTPError as exc:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,

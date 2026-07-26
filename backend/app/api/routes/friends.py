@@ -1,3 +1,4 @@
+import asyncio
 import secrets
 from datetime import date, datetime
 
@@ -189,24 +190,39 @@ async def list_friends(
         .all()
     )
 
-    result: list[FriendResponse] = []
+    friend_ids = [
+        friendship.user_b_id
+        if friendship.user_a_id == current_user.id
+        else friendship.user_a_id
+        for friendship in friendships
+    ]
 
-    await sync_user_activity_if_available(current_user, db)
+    friends = {
+        u.id: u
+        for u in db.query(User).filter(User.id.in_(friend_ids)).all()
+    }
+
+    sync_tasks = [sync_user_activity_if_available(current_user, db)]
+    for fid in friend_ids:
+        if fid in friends:
+            sync_tasks.append(sync_user_activity_if_available(friends[fid], db))
+    await asyncio.gather(*sync_tasks)
+
     current_user_dates = get_active_dates(current_user, db)
     today = date.today()
 
+    result: list[FriendResponse] = []
+
     for friendship in friendships:
-        friend_id = (
+        friend = friends.get(
             friendship.user_b_id
             if friendship.user_a_id == current_user.id
             else friendship.user_a_id
         )
-        friend = db.get(User, friend_id)
 
         if friend is None:
             continue
 
-        await sync_user_activity_if_available(friend, db)
         friend_dates = get_active_dates(friend, db)
 
         streak = calculate_friend_streak(

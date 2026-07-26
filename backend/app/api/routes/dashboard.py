@@ -14,7 +14,6 @@ from app.services.streaks import (
     get_active_dates,
 )
 from app.services.activity_sync import sync_user_daily_activity
-from app.services.leetcode_client import LeetCodeClient
 
 router = APIRouter()
 
@@ -54,46 +53,39 @@ async def get_dashboard(
         db: Session = Depends(get_db),
 ):
     avatar_url = None
-    today_submissions = []
+    recent_submissions = []
     today = date.today()
 
     try:
-        profile = await sync_user_daily_activity(current_user, db)
+        profile, recent_submissions = await sync_user_daily_activity(current_user, db)
         avatar_url = profile.avatar_url
     except HTTPException:
         pass
 
-    try:
-        client = LeetCodeClient()
-        recent_submissions = await client.get_recent_accepted_submissions(
-            current_user.leetcode_username,
-            limit=30,
-        )
-        seen_problem_slugs: set[str] = set()
+    seen_problem_slugs: set[str] = set()
+    today_submissions = []
 
-        for submission in recent_submissions:
-            submitted_date = datetime.fromisoformat(
-                submission.submitted_at,
-            ).astimezone().date()
+    for submission in recent_submissions:
+        submitted_date = datetime.fromisoformat(
+            submission.submitted_at,
+        ).astimezone().date()
 
-            if submitted_date != today:
-                continue
+        if submitted_date != today:
+            continue
 
-            if submission.title_slug in seen_problem_slugs:
-                continue
+        if submission.title_slug in seen_problem_slugs:
+            continue
 
-            seen_problem_slugs.add(submission.title_slug)
-            today_submissions.append(
-                TodaySubmissionResponse(
-                    title=submission.title,
-                    title_slug=submission.title_slug,
-                    url=submission.url,
-                    submitted_at=submission.submitted_at,
-                    language=submission.language,
-                )
+        seen_problem_slugs.add(submission.title_slug)
+        today_submissions.append(
+            TodaySubmissionResponse(
+                title=submission.title,
+                title_slug=submission.title_slug,
+                url=submission.url,
+                submitted_at=submission.submitted_at,
+                language=submission.language,
             )
-    except HTTPException:
-        pass
+        )
 
     active_dates = get_active_dates(current_user, db)
     personal_streak = calculate_personal_streak(active_dates, today=today)
