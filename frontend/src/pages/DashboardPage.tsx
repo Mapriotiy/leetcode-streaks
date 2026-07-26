@@ -74,9 +74,9 @@ function FriendFlame({
     size?: "md" | "lg";
 }) {
     const isLit = state === "lit";
-    const outerSize = size === "lg" ? "h-20 w-20" : "h-16 w-16";
-    const glowSize = size === "lg" ? "h-16 w-16" : "h-12 w-12";
-    const iconSize = size === "lg" ? 48 : 38;
+    const outerSize = size === "lg" ? "h-36 w-36" : "h-16 w-16";
+    const glowSize = size === "lg" ? "h-28 w-28" : "h-12 w-12";
+    const iconSize = size === "lg" ? 88 : 44;
 
     return (
         <div
@@ -102,7 +102,7 @@ function FriendFlame({
 
             <span
                 className={`absolute font-bold tabular-nums ${
-                    size === "lg" ? "text-base" : "text-sm"
+                    size === "lg" ? "text-xl" : "text-sm"
                 } ${
                     isLit ? "text-[#111111]" : "text-[#d6d6d6]"
                 }`}
