@@ -45,3 +45,13 @@ body {
 .flame-glow {
     animation: flame-glow 1.6s ease-in-out infinite;
 }
+
+.map-region path {
+    transition: opacity 0.2s ease, fill-opacity 0.2s ease;
+    cursor: pointer;
+}
+
+.map-region:hover path {
+    opacity: 0.7;
+    fill-opacity: 1;
+}

@@ -3,6 +3,7 @@ import { apiRequest } from "./api/client";
 import { InviteModal } from "./components/InviteModal";
 import { AuthPage } from "./pages/AuthPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { MapPage } from "./pages/MapPage";
 
 type User = {
     id: number;
@@ -16,6 +17,10 @@ export default function App() {
     const [isLoadingSession, setIsLoadingSession] = useState(true);
     const [inviteToken, setInviteToken] = useState<string | null>(null);
     const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
+    const [activeMapFriendship, setActiveMapFriendship] = useState<{
+        friendshipId: number;
+        friendUsername: string;
+    } | null>(null);
 
     function clearInviteUrl() {
         const url = new URL(window.location.href);
@@ -118,14 +123,25 @@ export default function App() {
 
     return (
         <>
-            <DashboardPage
-                user={user}
-                refreshKey={dashboardRefreshKey}
-                onLogout={() => {
-                    localStorage.removeItem("accessToken");
-                    setUser(null);
-                }}
-            />
+            {activeMapFriendship ? (
+                <MapPage
+                    friendshipId={activeMapFriendship.friendshipId}
+                    friendUsername={activeMapFriendship.friendUsername}
+                    onBack={() => setActiveMapFriendship(null)}
+                />
+            ) : (
+                <DashboardPage
+                    user={user}
+                    refreshKey={dashboardRefreshKey}
+                    onLogout={() => {
+                        localStorage.removeItem("accessToken");
+                        setUser(null);
+                    }}
+                    onOpenMap={(friendshipId, friendUsername) =>
+                        setActiveMapFriendship({ friendshipId, friendUsername })
+                    }
+                />
+            )}
 
             {inviteToken ? (
                 <InviteModal

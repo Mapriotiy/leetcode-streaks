@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Flame, Trash2, UserCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Flame, Map as MapIcon, Trash2, UserCircle } from "lucide-react";
 import { apiRequest } from "../api/client";
 
 type User = {
@@ -60,6 +60,7 @@ type DashboardPageProps = {
     user: User;
     refreshKey: number;
     onLogout: () => void;
+    onOpenMap: (friendshipId: number, friendUsername: string) => void;
 };
 
 function FriendFlame({
@@ -202,7 +203,7 @@ function buildMonthHeatmapDays(
     return days;
 }
 
-export function DashboardPage({ user, refreshKey, onLogout }: DashboardPageProps) {
+export function DashboardPage({ user, refreshKey, onLogout, onOpenMap }: DashboardPageProps) {
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
     const [friends, setFriends] = useState<FriendResponse[]>([]);
     const [inviteUrl, setInviteUrl] = useState<string | null>(null);
@@ -604,13 +605,21 @@ export function DashboardPage({ user, refreshKey, onLogout }: DashboardPageProps
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-4">
-                                                <div className="text-right text-xs text-[#8a8a8a]">
-                                                    <p>You: {item.streak.today.you_active ? "done" : "pending"}</p>
-                                                    <p>
-                                                        Friend: {item.streak.today.friend_active ? "done" : "pending"}
-                                                    </p>
-                                                </div>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        onOpenMap(
+                                                            item.friendship_id,
+                                                            item.friend.leetcode_username,
+                                                        )
+                                                    }
+                                                    className="grid h-9 w-9 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#8a8a8a] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                                                    aria-label={`Open map vs ${item.friend.leetcode_username}`}
+                                                    title={`Map vs ${item.friend.leetcode_username}`}
+                                                >
+                                                    <MapIcon size={16} />
+                                                </button>
 
                                                 <button
                                                     type="button"
