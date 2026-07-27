@@ -96,7 +96,7 @@ function FriendFlame({
                 strokeWidth={2.4}
                 className={`relative transition ${
                     isLit
-                        ? "fill-[#ffa116] text-[#ffd27a] drop-shadow-[0_0_10px_rgba(255,161,22,0.55)]"
+                        ? "fill-[#ffa116] text-[#ffd27a]  drop-shadow-[0_0_10px_rgba(255,161,22,0.55)]"
                         : "fill-[#6b6b6b] text-[#8a8a8a]"
                 } ${ignite ? "flame-ignite" : ""}`}
             />

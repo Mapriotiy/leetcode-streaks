@@ -1,0 +1,174 @@
+import { useRef, useEffect } from 'react';
+import { mapSvgString } from '../mapSvgString';
+
+const SVGNS = 'http://www.w3.org/2000/svg';
+const R = 4;
+
+const COLORS: Record<string, string> = {
+    player: '#00e5ff',
+    enemy: '#ff2d55',
+};
+
+type Marker = {
+    g: SVGGElement;
+    ring: SVGCircleElement;
+    icon: SVGGElement;
+};
+
+type ProvinceMapProps = {
+    captured: Map<string, string>;
+    onSelect: (id: string, pos: { x: number; y: number }) => void;
+};
+
+function parseScale(transform: string | null): number {
+    if (!transform) return 1;
+    const m = transform.match(/scale\(\s*([\d.e+-]+)\s*\)/);
+    return m ? parseFloat(m[1]) : 1;
+}
+
+function createMarkerGroup(cx: number, cy: number): {
+    g: SVGGElement;
+    ring: SVGCircleElement;
+    icon: SVGGElement;
+} {
+    const g = document.createElementNS(SVGNS, 'g') as SVGGElement;
+    g.setAttribute('transform', `translate(${cx},${cy})`);
+    g.style.pointerEvents = 'none';
+
+    const shadow = document.createElementNS(SVGNS, 'circle') as SVGCircleElement;
+    shadow.setAttribute('r', String(R));
+    shadow.setAttribute('fill', 'rgba(0,0,0,0.3)');
+    shadow.setAttribute('cy', '0.6');
+    g.appendChild(shadow);
+
+    const ring = document.createElementNS(SVGNS, 'circle') as SVGCircleElement;
+    ring.setAttribute('r', String(R));
+    ring.setAttribute('fill', 'rgba(20,20,20,0.85)');
+    ring.setAttribute('stroke', '#777');
+    ring.setAttribute('stroke-width', '0.5');
+    g.appendChild(ring);
+
+    const icon = document.createElementNS(SVGNS, 'g') as SVGGElement;
+    g.appendChild(icon);
+
+    const dot = document.createElementNS(SVGNS, 'circle') as SVGCircleElement;
+    dot.setAttribute('r', String(R * 0.22));
+    dot.setAttribute('fill', '#777');
+    icon.appendChild(dot);
+
+    return { g, ring, icon };
+}
+
+function setIconDot(icon: SVGGElement) {
+    icon.innerHTML = '';
+    const dot = document.createElementNS(SVGNS, 'circle') as SVGCircleElement;
+    dot.setAttribute('r', String(R * 0.22));
+    dot.setAttribute('fill', '#777');
+    icon.appendChild(dot);
+}
+
+function setIconFlag(icon: SVGGElement, color: string) {
+    icon.innerHTML = '';
+    const pole = document.createElementNS(SVGNS, 'path') as SVGPathElement;
+    pole.setAttribute('d', 'M-0.8,-2.5 L-0.8,2.5');
+    pole.setAttribute('stroke', color);
+    pole.setAttribute('stroke-width', '0.6');
+    pole.setAttribute('stroke-linecap', 'round');
+    icon.appendChild(pole);
+    const flag = document.createElementNS(SVGNS, 'path') as SVGPathElement;
+    flag.setAttribute('d', 'M-0.8,-2.5 L2.2,-1.5 L-0.8,-0.5 Z');
+    flag.setAttribute('fill', color);
+    icon.appendChild(flag);
+}
+
+function applyCaptured(path: SVGPathElement, color: string) {
+    path.style.stroke = color;
+    path.style.strokeWidth = '5';
+    path.style.fill = color + '59';
+    path.style.filter = `drop-shadow(0 0 6px ${color}) drop-shadow(0 0 12px ${color})`;
+}
+
+export default function ProvinceMap({ captured, onSelect }: ProvinceMapProps) {
+    const svgWrapRef = useRef<HTMLDivElement>(null);
+    const markersRef = useRef<Map<string, Marker>>(new Map());
+    const pathStylesRef = useRef<Map<string, string>>(new Map());
+
+    useEffect(() => {
+        const el = svgWrapRef.current;
+        if (!el || el.querySelector('svg')) return;
+
+        el.innerHTML = mapSvgString;
+        const svg = el.querySelector('svg');
+        if (!svg) return;
+
+        svg.querySelectorAll<SVGPathElement>('.prov').forEach((path) => {
+            if (markersRef.current.has(path.id)) return;
+
+            pathStylesRef.current.set(path.id, path.getAttribute('style') || '');
+
+            const pathBbox = path.getBBox();
+            const s = parseScale(path.getAttribute('transform'));
+            const cx = (pathBbox.x + pathBbox.width / 2) * s;
+            const cy = (pathBbox.y + pathBbox.height / 2) * s;
+
+            const { g, ring, icon } = createMarkerGroup(cx, cy);
+            path.parentNode?.insertBefore(g, path.nextSibling);
+            markersRef.current.set(path.id, { g, ring, icon });
+        });
+
+        svg.addEventListener('click', (e: Event) => {
+            const target = e.target as Element;
+            const path = target.closest<SVGPathElement>('.prov');
+            if (!path) return;
+            const marker = markersRef.current.get(path.id);
+            if (!marker) return;
+
+            const rect = marker.g.getBoundingClientRect();
+            onSelect(path.id, {
+                x: rect.left + rect.width / 2,
+                y: rect.top + rect.height / 2,
+            });
+        });
+    }, []);
+
+    useEffect(() => {
+        const svg = svgWrapRef.current?.querySelector('svg');
+        if (!svg) return;
+
+        svg.querySelectorAll<SVGPathElement>('.prov').forEach((path) => {
+            const marker = markersRef.current.get(path.id);
+            const owner = captured.get(path.id);
+
+            if (owner && COLORS[owner]) {
+                const color = COLORS[owner];
+                applyCaptured(path, color);
+                if (marker) {
+                    marker.ring.setAttribute('stroke', color);
+                    marker.ring.setAttribute('stroke-width', '1');
+                    setIconFlag(marker.icon, color);
+                }
+            } else {
+                path.setAttribute('style', pathStylesRef.current.get(path.id) || '');
+                if (marker) {
+                    marker.ring.setAttribute('stroke', '#777');
+                    marker.ring.setAttribute('stroke-width', '0.5');
+                    setIconDot(marker.icon);
+                }
+            }
+        });
+    }, [captured]);
+
+    return (
+        <div
+            className="relative w-full max-w-3xl overflow-hidden rounded-2xl shadow-2xl border border-white/10"
+            style={{ aspectRatio: '1321 / 900' }}
+        >
+            <img
+                src={`${import.meta.env.BASE_URL}leet_background.png`}
+                alt="Background"
+                className="absolute inset-0 w-full h-full object-fill"
+            />
+            <div ref={svgWrapRef} className="absolute inset-0 w-full h-full" />
+        </div>
+    );
+}
