@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import random
 from datetime import date, datetime, timedelta, timezone
@@ -65,6 +66,8 @@ async def get_or_create_weekly_map(
     user_a_id: int,
     user_b_id: int,
     db: Session,
+    leetcode_username_a: str | None = None,
+    leetcode_username_b: str | None = None,
 ) -> WeeklyMap:
     week_start = get_week_start()
 
@@ -80,6 +83,20 @@ async def get_or_create_weekly_map(
         return existing
 
     await ensure_catalog(db)
+
+    if leetcode_username_a and leetcode_username_b:
+        client = LeetCodeClient()
+        try:
+            subs_a, subs_b = await asyncio.gather(
+                client.get_recent_accepted_submissions(leetcode_username_a, limit=100),
+                client.get_recent_accepted_submissions(leetcode_username_b, limit=100),
+            )
+            if subs_a:
+                update_solved(user_a_id, [(s.title_slug, s.submitted_at) for s in subs_a], db)
+            if subs_b:
+                update_solved(user_b_id, [(s.title_slug, s.submitted_at) for s in subs_b], db)
+        except Exception:
+            logger.warning("Failed to fetch recent submissions for map exclusion", exc_info=True)
 
     solved_a = get_solved_slugs_with_timestamps(user_a_id, db)
     solved_b = get_solved_slugs_with_timestamps(user_b_id, db)

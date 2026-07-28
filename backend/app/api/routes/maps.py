@@ -163,6 +163,8 @@ async def get_map(
         friendship_id=friendship.id,
         user_a_id=current_user.id,
         user_b_id=friend.id,
+        leetcode_username_a=current_user.leetcode_username,
+        leetcode_username_b=friend.leetcode_username,
         db=db,
     )
     return _build_map_response(weekly_map, db)
@@ -198,8 +200,9 @@ async def sync_map(
             friendship_id=friendship.id,
             user_a_id=user_a.id,
             user_b_id=user_b.id,
-
-        db=db,
+            leetcode_username_a=user_a.leetcode_username,
+            leetcode_username_b=user_b.leetcode_username,
+            db=db,
         )
 
     captured_count = await check_captures(

@@ -1,8 +1,6 @@
-import asyncio
 import logging
 from datetime import datetime, timezone
 
-import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -110,13 +108,12 @@ async def refresh_catalog(db: Session) -> int:
         if skip >= total or len(questions) < PROBLEMSET_PAGE_SIZE:
             break
 
-    if total_seen > 0:
-        logger.info("refresh_catalog: processed %d problems", total_seen)
-    else:
-        logger.warning("GraphQL returned no problems — seeding fallback")
+    if total_seen < 200:
+        logger.warning("GraphQL returned only %d — adding fallback seed", total_seen)
         _seed_fallback_problems(db)
         total_seen = 80
 
+    logger.info("refresh_catalog: %d problems in catalog", total_seen)
     return total_seen
 
 
