@@ -2,11 +2,13 @@ import { useState, useCallback, useMemo } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import ProvinceMap from '../components/ProvinceMap';
 import ProvincePopup, { type Owner } from '../components/ProvincePopup';
+import { EventLogPanel } from '../components/map/EventLogPanel';
 import { MapLegend } from '../components/map/MapLegend';
 import { ScoreBar } from '../components/map/ScoreBar';
 import { LastWeekBanner } from '../components/map/LastWeekBanner';
+import { useMapEvents } from '../hooks/useMapEvents';
 import { useMapSync } from '../hooks/useMapSync';
-import { LEFT_REGIONS, REGIONS, RIGHT_REGIONS } from '../mapRegions';
+import { REGIONS } from '../mapRegions';
 
 type MapPageProps = {
     currentUserId: number;
@@ -32,8 +34,10 @@ export function MapPage({
         friendAvatarUrl,
         lastWeekResult,
         loading,
+        syncTick,
         reset,
     } = useMapSync(friendshipId);
+    const { events } = useMapEvents(friendshipId, syncTick);
 
     const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
     const [popPos, setPopPos] = useState<{ x: number; y: number } | null>(null);
@@ -64,15 +68,6 @@ export function MapPage({
     const selectedProvinceData = selectedProvince
         ? provincesData.find((p) => p.province_id === selectedProvince) ?? null
         : null;
-
-    const leftItems = useMemo(
-        () => REGIONS.filter((r) => LEFT_REGIONS.includes(r.id)),
-        [],
-    );
-    const rightItems = useMemo(
-        () => REGIONS.filter((r) => RIGHT_REGIONS.includes(r.id)),
-        [],
-    );
 
     return (
         <main className="min-h-screen bg-[#1a1a1a] p-6 text-white">
@@ -132,14 +127,14 @@ export function MapPage({
                             Loading map...
                         </div>
                     ) : (
-                        <div className="flex items-start justify-center gap-3">
+                        <div className="flex items-stretch justify-center gap-3">
                             <MapLegend
-                                regions={leftItems}
+                                regions={REGIONS}
                                 onHover={setHoveredProvinces}
                                 className="hidden w-40 shrink-0 list-none space-y-2 md:flex md:flex-col"
                             />
 
-                            <div className="min-w-0 flex-1">
+                            <div className="min-w-0 flex-1 self-start">
                                 <ProvinceMap
                                     captured={captured}
                                     onSelect={handleSelect}
@@ -147,20 +142,27 @@ export function MapPage({
                                 />
                             </div>
 
-                            <MapLegend
-                                regions={rightItems}
-                                onHover={setHoveredProvinces}
-                                className="hidden w-40 shrink-0 list-none space-y-2 md:flex md:flex-col"
+                            <EventLogPanel
+                                events={events}
+                                currentUserId={currentUserId}
+                                className="hidden w-72 shrink-0 max-h-[560px] md:flex"
                             />
                         </div>
                     )}
 
                     {provincesData.length > 0 && (
-                        <MapLegend
-                            regions={REGIONS}
-                            onHover={setHoveredProvinces}
-                            className="mt-4 flex list-none flex-col gap-2 md:hidden"
-                        />
+                        <>
+                            <EventLogPanel
+                                events={events}
+                                currentUserId={currentUserId}
+                                className="mt-4 max-h-72 md:hidden"
+                            />
+                            <MapLegend
+                                regions={REGIONS}
+                                onHover={setHoveredProvinces}
+                                className="mt-4 flex list-none flex-col gap-2 md:hidden"
+                            />
+                        </>
                     )}
                 </section>
 

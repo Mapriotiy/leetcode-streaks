@@ -15,9 +15,6 @@ export const REGIONS: Region[] = [
     { id: 'region4', color: '#ff0842', name: 'Stacks', provinces: ['path83', 'path86', 'path87', 'path89', 'path91'] },
 ];
 
-export const LEFT_REGIONS = ['isle1', 'isle2', 'region1', 'region2'];
-export const RIGHT_REGIONS = ['isle3', 'region3', 'region4'];
-
 export const PROVINCE_NAMES: Record<string, string> = {
     path34: 'Sylvan Canopy', path36: 'Rootveil Hollow',
     path44: 'Pivot Peak', path48: 'Midpoint Mesa', path49: 'Bisect Bluffs',

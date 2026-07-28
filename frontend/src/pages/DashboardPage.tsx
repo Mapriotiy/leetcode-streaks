@@ -4,6 +4,7 @@ import { apiRequest } from "../api/client";
 import { ActivityCalendar } from "../components/dashboard/ActivityCalendar";
 import { FriendFlame } from "../components/dashboard/FriendFlame";
 import { FriendsList } from "../components/dashboard/FriendsList";
+import { NotificationsBell } from "../components/dashboard/NotificationsBell";
 import { DIFFICULTY_COLORS } from "../mapRegions";
 import type { DashboardData, FriendResponse } from "../types/dashboard";
 
@@ -95,13 +96,21 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenMap }: Dashboa
                         </div>
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={onLogout}
-                        className="rounded-md border border-[#4a4a4a] bg-[#333333] px-4 py-2 text-sm font-medium text-[#d7d7d7] transition hover:bg-[#3d3d3d]"
-                    >
-                        Logout
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <NotificationsBell
+                            userId={user.id}
+                            refreshKey={refreshKey}
+                            onOpenMap={onOpenMap}
+                        />
+
+                        <button
+                            type="button"
+                            onClick={onLogout}
+                            className="rounded-md border border-[#4a4a4a] bg-[#333333] px-4 py-2 text-sm font-medium text-[#d7d7d7] transition hover:bg-[#3d3d3d]"
+                        >
+                            Logout
+                        </button>
+                    </div>
                 </header>
 
                 {errorMessage ? (
