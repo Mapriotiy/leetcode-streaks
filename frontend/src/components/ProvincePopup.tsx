@@ -1,4 +1,5 @@
 import { DIFFICULTY_COLORS, PROVINCE_NAMES } from '../mapRegions';
+import { firstCaptureBonus, flagPoints } from '../scoring';
 
 export type Owner = 'player' | 'enemy';
 
@@ -17,6 +18,7 @@ type ProvincePopupProps = {
     problem: ProblemInfo | null;
     submissionUrl: string | null;
     capturerLeetcodeUsername: string | null;
+    firstCaptureOwner?: Owner;
     onClose: () => void;
 };
 
@@ -28,6 +30,7 @@ export default function ProvincePopup({
     problem,
     submissionUrl,
     capturerLeetcodeUsername,
+    firstCaptureOwner,
     onClose,
 }: ProvincePopupProps) {
     if (!provinceId || !pos) return null;
@@ -82,15 +85,33 @@ export default function ProvincePopup({
                         <span className="block truncate font-medium">
                             {problem.title}
                         </span>
-                        <span
-                            className="mt-1 inline-block text-xs font-medium"
-                            style={{
-                                color: DIFFICULTY_COLORS[problem.difficulty] ?? '#aaa',
-                            }}
-                        >
-                            {problem.difficulty}
+                        <span className="mt-1 flex items-center justify-between text-xs font-medium">
+                            <span
+                                style={{
+                                    color: DIFFICULTY_COLORS[problem.difficulty] ?? '#aaa',
+                                }}
+                            >
+                                {problem.difficulty}
+                            </span>
+                            <span className="text-[#ffa116]">
+                                +{flagPoints(problem.difficulty)}
+                            </span>
                         </span>
                     </a>
+                )}
+
+                {firstCaptureOwner && (
+                    <div
+                        className="mt-2 rounded-md border px-3 py-1.5 text-center text-xs font-medium"
+                        style={{
+                            borderColor:
+                                (firstCaptureOwner === 'player' ? '#00e5ff' : '#ff2d55') + '4d',
+                            color: firstCaptureOwner === 'player' ? '#00e5ff' : '#ff2d55',
+                        }}
+                    >
+                        First capture +{firstCaptureBonus(problem?.difficulty)}
+                        {firstCaptureOwner === 'player' ? ' (yours)' : ''}
+                    </div>
                 )}
 
                 {owner && submissionUrl && (

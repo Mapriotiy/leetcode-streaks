@@ -172,6 +172,13 @@ export function MapPage({
                     problem={selectedProvinceData?.problem ?? null}
                     submissionUrl={selectedProvinceData?.captured_submission_url ?? null}
                     capturerLeetcodeUsername={selectedProvinceData?.capturer_leetcode_username ?? null}
+                    firstCaptureOwner={
+                        selectedProvinceData?.first_captured_by === currentUserId
+                            ? 'player'
+                            : selectedProvinceData?.first_captured_by === friendId
+                              ? 'enemy'
+                              : undefined
+                    }
                     onClose={handleClose}
                 />
             </div>

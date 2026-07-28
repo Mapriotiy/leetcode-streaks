@@ -15,6 +15,8 @@ export type ProvinceApiData = {
     captured_at: string | null;
     captured_submission_url: string | null;
     capturer_leetcode_username: string | null;
+    first_captured_by: number | null;
+    first_captured_at: string | null;
 };
 
 export type ScoreApiData = {
@@ -25,6 +27,12 @@ export type ScoreApiData = {
     player_regions: number;
     friend_regions: number;
     total_regions: number;
+    player_points: number;
+    friend_points: number;
+    player_base_points: number;
+    friend_base_points: number;
+    player_bonus_points: number;
+    friend_bonus_points: number;
 };
 
 export type LastWeekResultApiData = {
