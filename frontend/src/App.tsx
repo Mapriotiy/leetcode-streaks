@@ -19,6 +19,7 @@ export default function App() {
     const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
     const [activeMapFriendship, setActiveMapFriendship] = useState<{
         friendshipId: number;
+        friendId: number;
         friendUsername: string;
     } | null>(null);
 
@@ -125,7 +126,9 @@ export default function App() {
         <>
             {activeMapFriendship ? (
                 <MapPage
+                    currentUserId={user.id}
                     friendshipId={activeMapFriendship.friendshipId}
+                    friendId={activeMapFriendship.friendId}
                     friendUsername={activeMapFriendship.friendUsername}
                     onBack={() => setActiveMapFriendship(null)}
                 />
@@ -137,8 +140,8 @@ export default function App() {
                         localStorage.removeItem("accessToken");
                         setUser(null);
                     }}
-                    onOpenMap={(friendshipId, friendUsername) =>
-                        setActiveMapFriendship({ friendshipId, friendUsername })
+                    onOpenMap={(friendshipId, friendId, friendUsername) =>
+                        setActiveMapFriendship({ friendshipId, friendId, friendUsername })
                     }
                 />
             )}

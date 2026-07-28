@@ -60,7 +60,7 @@ type DashboardPageProps = {
     user: User;
     refreshKey: number;
     onLogout: () => void;
-    onOpenMap: (friendshipId: number, friendUsername: string) => void;
+    onOpenMap: (friendshipId: number, friendId: number, friendUsername: string) => void;
 };
 
 function FriendFlame({
@@ -611,6 +611,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenMap }: Dashboa
                                                     onClick={() =>
                                                         onOpenMap(
                                                             item.friendship_id,
+                                                            item.friend.id,
                                                             item.friend.leetcode_username,
                                                         )
                                                     }

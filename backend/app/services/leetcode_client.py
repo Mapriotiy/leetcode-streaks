@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import time
 from datetime import datetime, timezone
 from typing import Any
@@ -12,6 +13,9 @@ from app.schemas.leetcode import (
     RecentAcceptedSubmission,
     SolvedStats,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 LEETCODE_GRAPHQL_URL = "https://leetcode.com/graphql"
@@ -43,6 +47,29 @@ query recentAcSubmissions($username: String!, $limit: Int!) {
     titleSlug
     timestamp
     lang
+  }
+}
+"""
+
+PROBLEMSET_LIST_QUERY = """
+query problemsetQuestionList($categorySlug: String, $skip: Int, $limit: Int, $filters: QuestionListFilterInput) {
+  problemsetQuestionList: questionList(
+    categorySlug: $categorySlug
+    skip: $skip
+    limit: $limit
+    filters: $filters
+  ) {
+    total: totalNum
+    questions: data {
+      questionId
+      title
+      titleSlug
+      difficulty
+      topicTags {
+        name
+        slug
+      }
+    }
   }
 }
 """
@@ -162,14 +189,63 @@ class LeetCodeClient:
         return result
 
     async def fetch_profile_and_submissions(
-        self,
-        username: str,
-        limit: int = 30,
+            self,
+            username: str,
+            limit: int = 30,
     ) -> tuple[LeetCodeProfileResponse, list[RecentAcceptedSubmission]]:
         profile_task = self.get_user_profile(username)
         subs_task = self.get_recent_accepted_submissions(username, limit=limit)
         profile, submissions = await asyncio.gather(profile_task, subs_task)
         return profile, submissions
+
+    async def get_problemset_list(
+            self,
+            skip: int = 0,
+            limit: int = 50,
+            category_slug: str = "all-code-essentials",
+    ) -> tuple[int, list[dict]]:
+        cache_key = f"problemset:{skip}:{limit}:{category_slug}"
+        cached = _cache_get(cache_key, _SUBS_TTL)
+        if cached is not None:
+            return cached
+
+        try:
+            payload = await self._post_graphql(
+                query=PROBLEMSET_LIST_QUERY,
+                variables={
+                    "categorySlug": category_slug,
+                    "skip": skip,
+                    "limit": limit,
+                    "filters": {},
+                },
+            )
+        except HTTPException as exc:
+            logger.warning("get_problemset_list failed at skip=%d: %s", skip, exc.detail)
+            return 0, []
+
+        problemset = payload.get("data", {}).get("problemsetQuestionList") or {}
+        total = problemset.get("total") or 0
+        questions = problemset.get("questions") or []
+
+        result: list[dict] = []
+        for q in questions:
+            frontend_id = q.get("questionId")
+            if frontend_id is None:
+                continue
+
+            tags_raw = q.get("topicTags") or []
+            topic_tags = [t.get("name", "") for t in tags_raw if t.get("name")]
+
+            result.append({
+                "frontend_id": int(frontend_id),
+                "title": q.get("title", ""),
+                "title_slug": q.get("titleSlug", ""),
+                "difficulty": q.get("difficulty", ""),
+                "topic_tags": topic_tags,
+            })
+
+        _cache_set(cache_key, (total, result))
+        return total, result
 
     async def _post_graphql(self, query: str, variables: dict) -> dict:
         client = await _get_client()
@@ -189,20 +265,27 @@ class LeetCodeClient:
             ) from exc
 
         if response.status_code != status.HTTP_200_OK:
+            logger.warning(
+                "LeetCode API returned %s for query %s",
+                response.status_code,
+                query.split("(")[0] if "(" in query else query[:60],
+            )
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="LeetCode API request failed",
+                detail=f"LeetCode API returned status {response.status_code}",
             )
 
         try:
             payload = response.json()
         except ValueError as exc:
+            logger.warning("LeetCode API returned invalid JSON: %s", response.text[:200])
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="LeetCode API returned invalid JSON",
             ) from exc
 
         if payload.get("errors"):
+            logger.warning("LeetCode API returned errors: %s", payload["errors"])
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="LeetCode API returned an error",

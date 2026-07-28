@@ -13,34 +13,53 @@ const PROVINCE_NAMES: Record<string, string> = {
     path91: 'Region 4-4',
 };
 
-const BTN: Record<Owner, { label: string; color: string }> = {
-    player: { label: 'Capture', color: '#00e5ff' },
-    enemy: { label: 'Enemy Capture', color: '#ff2d55' },
+const DIFFICULTY_COLORS: Record<string, string> = {
+    Easy: '#00b8a3',
+    Medium: '#ffc01e',
+    Hard: '#ff375f',
+};
+
+type ProblemInfo = {
+    title: string;
+    title_slug: string;
+    difficulty: string;
+    url: string;
 };
 
 type ProvincePopupProps = {
     provinceId: string | null;
     pos: { x: number; y: number } | null;
     owner: Owner | undefined;
+    capturedByUsername: string | undefined;
+    problem: ProblemInfo | null;
     onClose: () => void;
-    onCapture: (id: string, owner: Owner) => void;
 };
 
 export default function ProvincePopup({
     provinceId,
     pos,
     owner,
+    capturedByUsername,
+    problem,
     onClose,
-    onCapture,
 }: ProvincePopupProps) {
     if (!provinceId || !pos) return null;
 
-    const accent = owner ? BTN[owner].color : '#666';
+    const accent = owner === 'player' ? '#00e5ff' : owner === 'enemy' ? '#ff2d55' : '#666';
+
+    const statusText =
+        owner === 'player'
+            ? 'Yours'
+            : owner === 'enemy'
+              ? capturedByUsername
+                ? `${capturedByUsername}'s`
+                : "Enemy's"
+              : 'Free';
 
     return (
         <div className="fixed inset-0 z-50" onClick={onClose}>
             <div
-                className="absolute bg-neutral-900 border rounded-lg p-3 shadow-2xl w-48"
+                className="absolute bg-neutral-900 border rounded-lg p-3 shadow-2xl w-56"
                 style={{
                     left: pos.x,
                     top: pos.y - 14,
@@ -63,37 +82,28 @@ export default function ProvincePopup({
 
                 <div className="flex items-center justify-between text-xs mb-2.5">
                     <span className="text-gray-400">Status</span>
-                    <span style={{ color: accent }}>
-                        {owner === 'player'
-                            ? 'Yours'
-                            : owner === 'enemy'
-                              ? "Enemy's"
-                              : 'Free'}
-                    </span>
+                    <span style={{ color: accent }}>{statusText}</span>
                 </div>
 
-                {owner ? (
-                    <button
-                        onClick={() => onCapture(provinceId, owner)}
-                        className="w-full py-1.5 rounded-md text-sm font-medium transition-colors text-gray-400 bg-white/5 hover:bg-white/10"
+                {problem && (
+                    <a
+                        href={problem.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm text-[#eff1f6] transition hover:border-white/30"
                     >
-                        Release
-                    </button>
-                ) : (
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => onCapture(provinceId, 'player')}
-                            className="flex-1 py-1.5 rounded-md text-xs font-medium transition-colors text-[#00e5ff] bg-[#00e5ff]/15 hover:bg-[#00e5ff]/25"
+                        <span className="block truncate font-medium">
+                            {problem.title}
+                        </span>
+                        <span
+                            className="mt-1 inline-block text-xs font-medium"
+                            style={{
+                                color: DIFFICULTY_COLORS[problem.difficulty] ?? '#aaa',
+                            }}
                         >
-                            Capture
-                        </button>
-                        <button
-                            onClick={() => onCapture(provinceId, 'enemy')}
-                            className="flex-1 py-1.5 rounded-md text-xs font-medium transition-colors text-[#ff2d55] bg-[#ff2d55]/15 hover:bg-[#ff2d55]/25"
-                        >
-                            Enemy
-                        </button>
-                    </div>
+                            {problem.difficulty}
+                        </span>
+                    </a>
                 )}
 
                 <div

@@ -1,10 +1,41 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { apiRequest } from '../api/client';
 import ProvinceMap from '../components/ProvinceMap';
 import ProvincePopup, { type Owner } from '../components/ProvincePopup';
 
+type ProblemApiData = {
+    title: string;
+    title_slug: string;
+    difficulty: string;
+    url: string;
+};
+
+type ProvinceApiData = {
+    province_id: string;
+    region_id: string;
+    region_name: string;
+    problem: ProblemApiData | null;
+    captured_by: number | null;
+    captured_by_username: string | null;
+    captured_at: string | null;
+};
+
+type WeeklyMapApiResponse = {
+    week_start: string;
+    friendship_id: number;
+    provinces: ProvinceApiData[];
+};
+
+type SyncApiResponse = {
+    captured_count: number;
+    provinces: ProvinceApiData[];
+};
+
 type MapPageProps = {
+    currentUserId: number;
     friendshipId: number;
+    friendId: number;
     friendUsername: string;
     onBack: () => void;
 };
@@ -29,6 +60,8 @@ const REGIONS: Region[] = [
 const LEFT_REGIONS = ['isle1', 'isle2', 'region1', 'region2'];
 const RIGHT_REGIONS = ['isle3', 'region3', 'region4'];
 
+const POLL_INTERVAL_MS = 60_000;
+
 function LegendItem({
     region,
     onHover,
@@ -52,26 +85,51 @@ function LegendItem({
 }
 
 export function MapPage({
-    friendshipId: _friendshipId,
+    currentUserId,
+    friendshipId,
+    friendId,
     friendUsername,
     onBack,
 }: MapPageProps) {
-    const [captured, setCaptured] = useState<Map<string, Owner>>(new Map());
+    const [provincesData, setProvincesData] = useState<ProvinceApiData[]>([]);
+    const [loading, setLoading] = useState(true);
     const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
     const [popPos, setPopPos] = useState<{ x: number; y: number } | null>(null);
     const [hoveredProvinces, setHoveredProvinces] = useState<string[] | null>(null);
 
-    const handleCapture = useCallback((id: string, owner: Owner) => {
-        setCaptured((prev) => {
-            const next = new Map(prev);
-            if (next.get(id) === owner) {
-                next.delete(id);
-            } else {
-                next.set(id, owner);
+    useEffect(() => {
+        setLoading(true);
+        apiRequest<WeeklyMapApiResponse>(`/maps/${friendshipId}`)
+            .then((data) => setProvincesData(data.provinces))
+            .catch(console.error)
+            .finally(() => setLoading(false));
+    }, [friendshipId]);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            apiRequest<SyncApiResponse>(`/maps/${friendshipId}/sync`, { method: 'POST' })
+                .then((data) => {
+                    if (data.provinces.length > 0) {
+                        setProvincesData(data.provinces);
+                    }
+                })
+                .catch(() => {});
+        }, POLL_INTERVAL_MS);
+
+        return () => clearInterval(interval);
+    }, [friendshipId]);
+
+    const captured = useMemo(() => {
+        const map = new Map<string, Owner>();
+        for (const p of provincesData) {
+            if (p.captured_by === currentUserId) {
+                map.set(p.province_id, 'player');
+            } else if (p.captured_by === friendId) {
+                map.set(p.province_id, 'enemy');
             }
-            return next;
-        });
-    }, []);
+        }
+        return map;
+    }, [provincesData, currentUserId, friendId]);
 
     const handleSelect = useCallback((id: string, pos: { x: number; y: number }) => {
         setSelectedProvince(id);
@@ -82,6 +140,10 @@ export function MapPage({
         setSelectedProvince(null);
         setPopPos(null);
     }, []);
+
+    const selectedProvinceData = selectedProvince
+        ? provincesData.find((p) => p.province_id === selectedProvince) ?? null
+        : null;
 
     const leftItems = useMemo(
         () => REGIONS.filter((r) => LEFT_REGIONS.includes(r.id)),
@@ -115,27 +177,45 @@ export function MapPage({
                 </header>
 
                 <section className="mt-6 overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#262626] p-4 shadow-xl shadow-black/20">
-                    <div className="flex items-start justify-center gap-3">
-                        <ul className="hidden w-40 shrink-0 list-none space-y-2 md:flex md:flex-col">
-                            {leftItems.map((region) => (
-                                <LegendItem
-                                    key={region.id}
-                                    region={region}
-                                    onHover={setHoveredProvinces}
-                                />
-                            ))}
-                        </ul>
-
-                        <div className="min-w-0 flex-1">
-                            <ProvinceMap
-                                captured={captured}
-                                onSelect={handleSelect}
-                                highlightedProvinces={hoveredProvinces}
-                            />
+                    {loading ? (
+                        <div className="flex items-center justify-center py-20 text-[#8a8a8a]">
+                            Loading map...
                         </div>
+                    ) : (
+                        <div className="flex items-start justify-center gap-3">
+                            <ul className="hidden w-40 shrink-0 list-none space-y-2 md:flex md:flex-col">
+                                {leftItems.map((region) => (
+                                    <LegendItem
+                                        key={region.id}
+                                        region={region}
+                                        onHover={setHoveredProvinces}
+                                    />
+                                ))}
+                            </ul>
 
-                        <ul className="hidden w-40 shrink-0 list-none space-y-2 md:flex md:flex-col">
-                            {rightItems.map((region) => (
+                            <div className="min-w-0 flex-1">
+                                <ProvinceMap
+                                    captured={captured}
+                                    onSelect={handleSelect}
+                                    highlightedProvinces={hoveredProvinces}
+                                />
+                            </div>
+
+                            <ul className="hidden w-40 shrink-0 list-none space-y-2 md:flex md:flex-col">
+                                {rightItems.map((region) => (
+                                    <LegendItem
+                                        key={region.id}
+                                        region={region}
+                                        onHover={setHoveredProvinces}
+                                    />
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    {provincesData.length > 0 && (
+                        <ul className="mt-4 flex list-none flex-col gap-2 md:hidden">
+                            {REGIONS.map((region) => (
                                 <LegendItem
                                     key={region.id}
                                     region={region}
@@ -143,25 +223,16 @@ export function MapPage({
                                 />
                             ))}
                         </ul>
-                    </div>
-
-                    <ul className="mt-4 flex list-none flex-col gap-2 md:hidden">
-                        {REGIONS.map((region) => (
-                            <LegendItem
-                                key={region.id}
-                                region={region}
-                                onHover={setHoveredProvinces}
-                            />
-                        ))}
-                    </ul>
+                    )}
                 </section>
 
                 <ProvincePopup
                     provinceId={selectedProvince}
                     pos={popPos}
-                    owner={selectedProvince ? captured.get(selectedProvince) : undefined}
+                    owner={selectedProvinceData ? captured.get(selectedProvinceData.province_id) : undefined}
+                    capturedByUsername={selectedProvinceData?.captured_by_username ?? undefined}
+                    problem={selectedProvinceData?.problem ?? null}
                     onClose={handleClose}
-                    onCapture={handleCapture}
                 />
             </div>
         </main>
