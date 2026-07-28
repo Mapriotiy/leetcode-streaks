@@ -71,7 +71,7 @@ export function MapPage({
 
     return (
         <main className="min-h-screen bg-[#1a1a1a] p-6 text-white">
-            <div className="mx-auto max-w-5xl">
+            <div className="mx-auto max-w-7xl">
                 <header className="flex items-center gap-4">
                     <button
                         type="button"
@@ -121,43 +121,53 @@ export function MapPage({
                     />
                 )}
 
-                <section className="mt-6 overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#262626] p-4 shadow-xl shadow-black/20">
-                    {loading ? (
-                        <div className="flex items-center justify-center py-20 text-[#8a8a8a]">
-                            Loading map...
-                        </div>
-                    ) : (
-                        <div className="flex items-start justify-center gap-3">
+                <div className="mt-6 flex items-stretch gap-6">
+                    <section className="min-w-0 flex-1 overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#262626] p-4 shadow-xl shadow-black/20">
+                        {loading ? (
+                            <div className="flex items-center justify-center py-20 text-[#8a8a8a]">
+                                Loading map...
+                            </div>
+                        ) : (
+                            <div className="flex items-start justify-center gap-3">
+                                <MapLegend
+                                    regions={REGIONS}
+                                    onHover={setHoveredProvinces}
+                                    className="hidden w-40 shrink-0 list-none space-y-2 md:flex md:flex-col"
+                                />
+
+                                <div className="min-w-0 flex-1">
+                                    <ProvinceMap
+                                        captured={captured}
+                                        onSelect={handleSelect}
+                                        highlightedProvinces={hoveredProvinces}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {provincesData.length > 0 && (
                             <MapLegend
                                 regions={REGIONS}
                                 onHover={setHoveredProvinces}
-                                className="hidden w-40 shrink-0 list-none space-y-2 md:flex md:flex-col"
+                                className="mt-4 flex list-none flex-col gap-2 md:hidden"
                             />
+                        )}
+                    </section>
 
-                            <div className="min-w-0 flex-1">
-                                <ProvinceMap
-                                    captured={captured}
-                                    onSelect={handleSelect}
-                                    highlightedProvinces={hoveredProvinces}
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    {provincesData.length > 0 && (
-                        <MapLegend
-                            regions={REGIONS}
-                            onHover={setHoveredProvinces}
-                            className="mt-4 flex list-none flex-col gap-2 md:hidden"
+                    {!loading && (
+                        <EventLogPanel
+                            events={events}
+                            currentUserId={currentUserId}
+                            className="hidden w-80 shrink-0 max-h-[640px] lg:flex"
                         />
                     )}
-                </section>
+                </div>
 
                 {!loading && (
                     <EventLogPanel
                         events={events}
                         currentUserId={currentUserId}
-                        className="mt-6 max-h-80"
+                        className="mt-6 max-h-80 lg:hidden"
                     />
                 )}
 
