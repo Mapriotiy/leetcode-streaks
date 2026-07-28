@@ -63,10 +63,12 @@ async def refresh_catalog(db: Session) -> int:
         logger.warning("Fetched only %d problems — keeping existing catalog", len(all_rows))
         return 0 if not db.query(LeetCodeProblem).count() else len(all_rows)
 
-    db.query(LeetCodeProblem).delete()
-    db.commit()
-
+    new_slugs = {r["title_slug"] for r in all_rows}
     _bulk_upsert(db, all_rows)
+    db.query(LeetCodeProblem).filter(
+        ~LeetCodeProblem.title_slug.in_(new_slugs)
+    ).delete(synchronize_session=False)
+    db.commit()
 
     logger.info("refresh_catalog: %d problems", len(all_rows))
     return len(all_rows)
