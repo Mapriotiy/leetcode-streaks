@@ -15,6 +15,7 @@ export type ProvinceApiData = {
     captured_at: string | null;
     captured_submission_url: string | null;
     capturer_leetcode_username: string | null;
+    captured_runtime_ms: number | null;
     first_captured_by: number | null;
     first_captured_at: string | null;
 };
@@ -56,6 +57,7 @@ export type WeeklyMapApiResponse = {
 
 export type SyncApiResponse = {
     captured_count: number;
+    recaptured_count: number;
     provinces: ProvinceApiData[];
     score: ScoreApiData;
     player_avatar_url: string | null;
