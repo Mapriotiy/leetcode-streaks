@@ -1,64 +1,12 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { apiRequest } from '../api/client';
 import ProvinceMap from '../components/ProvinceMap';
 import ProvincePopup, { type Owner } from '../components/ProvincePopup';
-
-type ProblemApiData = {
-    title: string;
-    title_slug: string;
-    difficulty: string;
-    url: string;
-};
-
-type ProvinceApiData = {
-    province_id: string;
-    region_id: string;
-    region_name: string;
-    problem: ProblemApiData | null;
-    captured_by: number | null;
-    captured_by_username: string | null;
-    captured_at: string | null;
-    captured_submission_url: string | null;
-    capturer_leetcode_username: string | null;
-};
-
-type ScoreApiData = {
-    player_provinces: number;
-    friend_provinces: number;
-    neutral_provinces: number;
-    total_provinces: number;
-    player_regions: number;
-    friend_regions: number;
-    total_regions: number;
-};
-
-type LastWeekResultApiData = {
-    week_start: string;
-    winner_user_id: number | null;
-    winner_username: string | null;
-    player_regions: number;
-    friend_regions: number;
-    total_regions: number;
-};
-
-type WeeklyMapApiResponse = {
-    week_start: string;
-    friendship_id: number;
-    provinces: ProvinceApiData[];
-    score: ScoreApiData;
-    player_avatar_url: string | null;
-    friend_avatar_url: string | null;
-    last_week_result: LastWeekResultApiData | null;
-};
-
-type SyncApiResponse = {
-    captured_count: number;
-    provinces: ProvinceApiData[];
-    score: ScoreApiData;
-    player_avatar_url: string | null;
-    friend_avatar_url: string | null;
-};
+import { MapLegend } from '../components/map/MapLegend';
+import { ScoreBar } from '../components/map/ScoreBar';
+import { LastWeekBanner } from '../components/map/LastWeekBanner';
+import { useMapSync } from '../hooks/useMapSync';
+import { LEFT_REGIONS, REGIONS, RIGHT_REGIONS } from '../mapRegions';
 
 type MapPageProps = {
     currentUserId: number;
@@ -69,50 +17,6 @@ type MapPageProps = {
     onBack: () => void;
 };
 
-type Region = {
-    id: string;
-    color: string;
-    name: string;
-    provinces: string[];
-};
-
-const REGIONS: Region[] = [
-    { id: 'isle1', color: '#d500ff', name: 'Trees and Graphs', provinces: ['path34', 'path36'] },
-    { id: 'isle2', color: '#ff001d', name: 'Binary Search', provinces: ['path44', 'path48', 'path49'] },
-    { id: 'isle3', color: '#3b0909', name: 'Hard Problem Land', provinces: ['path53'] },
-    { id: 'region1', color: '#23e929', name: 'Linked Lists', provinces: ['path56', 'path57', 'path58', 'path60'] },
-    { id: 'region2', color: '#2346e9', name: 'Two Pointers / Sliding Window', provinces: ['path63', 'path64', 'path65', 'path66', 'path68', 'path69'] },
-    { id: 'region3', color: '#e08900', name: 'Arrays and Hashing', provinces: ['path72', 'path73', 'path74', 'path75', 'path76', 'path79', 'path80'] },
-    { id: 'region4', color: '#ff0842', name: 'Stacks', provinces: ['path83', 'path86', 'path87', 'path89', 'path91'] },
-];
-
-const LEFT_REGIONS = ['isle1', 'isle2', 'region1', 'region2'];
-const RIGHT_REGIONS = ['isle3', 'region3', 'region4'];
-
-const POLL_INTERVAL_MS = 60_000;
-
-function LegendItem({
-    region,
-    onHover,
-}: {
-    region: Region;
-    onHover: (provinces: string[] | null) => void;
-}) {
-    return (
-        <li
-            onMouseEnter={() => onHover(region.provinces)}
-            onMouseLeave={() => onHover(null)}
-            className="flex cursor-pointer items-center gap-3 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2.5 text-sm transition hover:border-white/30 hover:bg-[#2a2a2a]"
-        >
-            <span
-                className="h-3 w-3 shrink-0 rounded-full"
-                style={{ backgroundColor: region.color }}
-            />
-            <span className="text-[#eff1f6]">{region.name}</span>
-        </li>
-    );
-}
-
 export function MapPage({
     currentUserId,
     currentUsername,
@@ -121,55 +25,19 @@ export function MapPage({
     friendUsername,
     onBack,
 }: MapPageProps) {
-    const [provincesData, setProvincesData] = useState<ProvinceApiData[]>([]);
-    const [scoreData, setScoreData] = useState<ScoreApiData | null>(null);
-    const [playerAvatarUrl, setPlayerAvatarUrl] = useState<string | null>(null);
-    const [friendAvatarUrl, setFriendAvatarUrl] = useState<string | null>(null);
-    const [lastWeekResult, setLastWeekResult] = useState<LastWeekResultApiData | null>(null);
-    const [loading, setLoading] = useState(true);
+    const {
+        provincesData,
+        scoreData,
+        playerAvatarUrl,
+        friendAvatarUrl,
+        lastWeekResult,
+        loading,
+        reset,
+    } = useMapSync(friendshipId);
+
     const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
     const [popPos, setPopPos] = useState<{ x: number; y: number } | null>(null);
     const [hoveredProvinces, setHoveredProvinces] = useState<string[] | null>(null);
-
-    useEffect(() => {
-        setLoading(true);
-        apiRequest<WeeklyMapApiResponse>(`/maps/${friendshipId}`)
-            .then((data) => {
-                setProvincesData(data.provinces);
-                setScoreData(data.score);
-                setPlayerAvatarUrl(data.player_avatar_url);
-                setFriendAvatarUrl(data.friend_avatar_url);
-                setLastWeekResult(data.last_week_result);
-                return apiRequest<SyncApiResponse>(`/maps/${friendshipId}/sync`, { method: 'POST' });
-            })
-            .then((syncData) => {
-                if (syncData && syncData.provinces.length > 0) {
-                    setProvincesData(syncData.provinces);
-                    setScoreData(syncData.score);
-                    if (syncData.player_avatar_url) setPlayerAvatarUrl(syncData.player_avatar_url);
-                    if (syncData.friend_avatar_url) setFriendAvatarUrl(syncData.friend_avatar_url);
-                }
-            })
-            .catch(console.error)
-            .finally(() => setLoading(false));
-    }, [friendshipId]);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            apiRequest<SyncApiResponse>(`/maps/${friendshipId}/sync`, { method: 'POST' })
-                .then((data) => {
-                    if (data.provinces.length > 0) {
-                        setProvincesData(data.provinces);
-                        setScoreData(data.score);
-                        if (data.player_avatar_url) setPlayerAvatarUrl(data.player_avatar_url);
-                        if (data.friend_avatar_url) setFriendAvatarUrl(data.friend_avatar_url);
-                    }
-                })
-                .catch(() => {});
-        }, POLL_INTERVAL_MS);
-
-        return () => clearInterval(interval);
-    }, [friendshipId]);
 
     const captured = useMemo(() => {
         const map = new Map<string, Owner>();
@@ -192,21 +60,6 @@ export function MapPage({
         setSelectedProvince(null);
         setPopPos(null);
     }, []);
-
-    const handleReset = useCallback(async () => {
-        setLoading(true);
-        try {
-            const data = await apiRequest<WeeklyMapApiResponse>(`/maps/${friendshipId}?reset=1`);
-            setProvincesData(data.provinces);
-            setScoreData(data.score);
-            if (data.player_avatar_url) setPlayerAvatarUrl(data.player_avatar_url);
-            if (data.friend_avatar_url) setFriendAvatarUrl(data.friend_avatar_url);
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoading(false);
-        }
-    }, [friendshipId]);
 
     const selectedProvinceData = selectedProvince
         ? provincesData.find((p) => p.province_id === selectedProvince) ?? null
@@ -246,7 +99,7 @@ export function MapPage({
                         {currentUserId === 1 && (
                             <button
                                 type="button"
-                                onClick={handleReset}
+                                onClick={reset}
                                 disabled={loading}
                                 className="rounded-md border border-[#3a3a3a] bg-[#262626] px-3 py-1.5 text-xs font-medium text-[#d7d7d7] transition hover:border-[#ffa116]/60 hover:text-[#ffa116] disabled:cursor-not-allowed disabled:opacity-50"
                             >
@@ -257,91 +110,20 @@ export function MapPage({
                 </header>
 
                 {scoreData && (
-                    <section className="mt-6 rounded-lg border border-[#3a3a3a] bg-[#262626] p-4 shadow-xl shadow-black/20">
-                        <div className="flex items-center justify-center gap-4">
-                            <div className="flex shrink-0 items-center gap-2">
-                                {playerAvatarUrl ? (
-                                    <img
-                                        src={playerAvatarUrl}
-                                        alt={currentUsername}
-                                        className="h-10 w-10 shrink-0 rounded-full border border-[#3a3a3a] object-cover"
-                                    />
-                                ) : (
-                                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#00e5ff]/20 text-sm font-bold text-[#00e5ff]">
-                                        {currentUsername[0].toUpperCase()}
-                                    </div>
-                                )}
-                                <span className="hidden text-sm font-medium text-[#eff1f6] sm:block">
-                                    {currentUsername}
-                                </span>
-                            </div>
-
-                            <div className="flex h-3 flex-1 overflow-hidden rounded-full bg-[#333]">
-                                {scoreData.player_provinces > 0 && (
-                                    <div
-                                        className="h-full transition-all duration-500"
-                                        style={{
-                                            width: `${(scoreData.player_provinces / scoreData.total_provinces) * 100}%`,
-                                            backgroundColor: '#00e5ff',
-                                        }}
-                                    />
-                                )}
-                                {scoreData.neutral_provinces > 0 && (
-                                    <div
-                                        className="h-full transition-all duration-500"
-                                        style={{
-                                            width: `${(scoreData.neutral_provinces / scoreData.total_provinces) * 100}%`,
-                                            backgroundColor: '#555',
-                                        }}
-                                    />
-                                )}
-                                {scoreData.friend_provinces > 0 && (
-                                    <div
-                                        className="h-full transition-all duration-500"
-                                        style={{
-                                            width: `${(scoreData.friend_provinces / scoreData.total_provinces) * 100}%`,
-                                            backgroundColor: '#ff2d55',
-                                        }}
-                                    />
-                                )}
-                            </div>
-
-                            <div className="flex shrink-0 items-center gap-2">
-                                <span className="hidden text-sm font-medium text-[#eff1f6] sm:block">
-                                    {friendUsername}
-                                </span>
-                                {friendAvatarUrl ? (
-                                    <img
-                                        src={friendAvatarUrl}
-                                        alt={friendUsername}
-                                        className="h-10 w-10 shrink-0 rounded-full border border-[#3a3a3a] object-cover"
-                                    />
-                                ) : (
-                                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#ff2d55]/20 text-sm font-bold text-[#ff2d55]">
-                                        {friendUsername[0].toUpperCase()}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </section>
+                    <ScoreBar
+                        scoreData={scoreData}
+                        currentUsername={currentUsername}
+                        friendUsername={friendUsername}
+                        playerAvatarUrl={playerAvatarUrl}
+                        friendAvatarUrl={friendAvatarUrl}
+                    />
                 )}
 
                 {lastWeekResult && (
-                    <section className="mt-3 rounded-lg border border-[#ffa116]/30 bg-[#ffa116]/5 px-4 py-3 text-center text-sm shadow-sm">
-                        {lastWeekResult.winner_user_id === null ? (
-                            <span className="text-[#a3a3a3]">
-                                Last week was a tie: {lastWeekResult.player_regions} vs {lastWeekResult.friend_regions} regions
-                            </span>
-                        ) : lastWeekResult.winner_user_id === currentUserId ? (
-                            <span className="text-[#ffa116]">
-                                You won last week: {lastWeekResult.player_regions} vs {lastWeekResult.friend_regions} regions
-                            </span>
-                        ) : (
-                            <span className="text-[#ff2d55]">
-                                {lastWeekResult.winner_username} won last week: {lastWeekResult.friend_regions} vs {lastWeekResult.player_regions} regions
-                            </span>
-                        )}
-                    </section>
+                    <LastWeekBanner
+                        lastWeekResult={lastWeekResult}
+                        currentUserId={currentUserId}
+                    />
                 )}
 
                 <section className="mt-6 overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#262626] p-4 shadow-xl shadow-black/20">
@@ -351,15 +133,11 @@ export function MapPage({
                         </div>
                     ) : (
                         <div className="flex items-start justify-center gap-3">
-                            <ul className="hidden w-40 shrink-0 list-none space-y-2 md:flex md:flex-col">
-                                {leftItems.map((region) => (
-                                    <LegendItem
-                                        key={region.id}
-                                        region={region}
-                                        onHover={setHoveredProvinces}
-                                    />
-                                ))}
-                            </ul>
+                            <MapLegend
+                                regions={leftItems}
+                                onHover={setHoveredProvinces}
+                                className="hidden w-40 shrink-0 list-none space-y-2 md:flex md:flex-col"
+                            />
 
                             <div className="min-w-0 flex-1">
                                 <ProvinceMap
@@ -369,28 +147,20 @@ export function MapPage({
                                 />
                             </div>
 
-                            <ul className="hidden w-40 shrink-0 list-none space-y-2 md:flex md:flex-col">
-                                {rightItems.map((region) => (
-                                    <LegendItem
-                                        key={region.id}
-                                        region={region}
-                                        onHover={setHoveredProvinces}
-                                    />
-                                ))}
-                            </ul>
+                            <MapLegend
+                                regions={rightItems}
+                                onHover={setHoveredProvinces}
+                                className="hidden w-40 shrink-0 list-none space-y-2 md:flex md:flex-col"
+                            />
                         </div>
                     )}
 
                     {provincesData.length > 0 && (
-                        <ul className="mt-4 flex list-none flex-col gap-2 md:hidden">
-                            {REGIONS.map((region) => (
-                                <LegendItem
-                                    key={region.id}
-                                    region={region}
-                                    onHover={setHoveredProvinces}
-                                />
-                            ))}
-                        </ul>
+                        <MapLegend
+                            regions={REGIONS}
+                            onHover={setHoveredProvinces}
+                            className="mt-4 flex list-none flex-col gap-2 md:hidden"
+                        />
                     )}
                 </section>
 
