@@ -20,16 +20,6 @@ type DashboardPageProps = {
     onOpenMap: (friendshipId: number, friendId: number, friendUsername: string) => void;
 };
 
-function usePrevious<T>(value: T) {
-    const [previous, setPrevious] = useState<T | null>(null);
-
-    useEffect(() => {
-        setPrevious(value);
-    }, [value]);
-
-    return previous;
-}
-
 export function DashboardPage({ user, refreshKey, onLogout, onOpenMap }: DashboardPageProps) {
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
     const [friends, setFriends] = useState<FriendResponse[]>([]);
@@ -43,9 +33,6 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenMap }: Dashboa
             : currentStreakState === "pending"
               ? "Waiting for today's solve"
               : "Solve today to start";
-    const previousCurrentStreakState = usePrevious(currentStreakState);
-    const shouldIgniteCurrentStreak =
-        currentStreakState === "lit" && previousCurrentStreakState !== "lit";
 
     useEffect(() => {
         async function loadDashboard() {
@@ -76,7 +63,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenMap }: Dashboa
             <div className="mx-auto max-w-5xl">
                 <header className="flex flex-col gap-4 rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4">
-                        <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-full border border-[#3a3a3a] bg-[#333333] text-[#b3b3b3]">
+                        <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full border border-[#3a3a3a] bg-[#333333] text-[#b3b3b3]">
                             {dashboardData?.avatar_url ? (
                                 <img
                                     src={dashboardData.avatar_url}
@@ -88,11 +75,22 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenMap }: Dashboa
                             )}
                         </div>
 
-                        <div>
-                            <p className="text-sm font-medium text-[#8a8a8a]">Logged in as</p>
-                            <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-2xl font-semibold tracking-tight">
                                 {dashboardData?.leetcode_username ?? user.leetcode_username}
                             </h1>
+                            <FriendFlame
+                                count={dashboardData?.current_streak ?? 0}
+                                state={currentStreakState}
+                                size="xs"
+                            />
+                            <span
+                                className={`ml-2 text-xs ${
+                                    isCurrentStreakLit ? "text-[#ffa116]" : "text-[#8a8a8a]"
+                                }`}
+                            >
+                                {currentStreakHint}
+                            </span>
                         </div>
                     </div>
 
@@ -127,36 +125,10 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenMap }: Dashboa
                     </section>
                 ) : (
                     <section className="mt-6 grid gap-4 sm:grid-cols-3">
-                        <article
-                            className={`rounded-lg border p-6 shadow-xl shadow-black/20 ${
-                                isCurrentStreakLit
-                                    ? "border-[#ffa116]/40 bg-[#ffa116]/10"
-                                    : "border-[#3a3a3a] bg-[#262626]"
-                            }`}
-                        >
-                            <div className="flex h-full flex-col">
-                                <p className="self-start text-sm font-medium text-[#a3a3a3]">
-                                    Current streak
-                                </p>
-
-                                <div className="flex flex-1 flex-col items-center justify-center text-center">
-                                    <FriendFlame
-                                        count={dashboardData?.current_streak ?? 0}
-                                        state={currentStreakState}
-                                        ignite={shouldIgniteCurrentStreak}
-                                        size="lg"
-                                    />
-
-                                    <p
-                                        className={`mt-4 text-xs ${
-                                            isCurrentStreakLit ? "text-[#ffa116]" : "text-[#8a8a8a]"
-                                        }`}
-                                    >
-                                        {currentStreakHint}
-                                    </p>
-                                </div>
-                            </div>
-                        </article>
+                        <ActivityCalendar
+                            activityCalendar={dashboardData?.activity_calendar ?? []}
+                            activeDaysCount={dashboardData?.active_days_count ?? 0}
+                        />
 
                         <article className="flex flex-col rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
                             <div className="flex items-start justify-between gap-4">
@@ -174,7 +146,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenMap }: Dashboa
                                 </span>
                             </div>
 
-                            <div className="mt-4 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
+                            <div className="mt-4 flex min-h-0 max-h-[15rem] flex-col gap-2 overflow-y-auto pr-1">
                                 {!dashboardData?.today_submissions.length ? (
                                     <p className="text-sm text-[#8a8a8a]">
                                         No accepted submissions yet.
@@ -228,10 +200,19 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenMap }: Dashboa
                             </div>
                         </article>
 
-                        <ActivityCalendar
-                            activityCalendar={dashboardData?.activity_calendar ?? []}
-                            activeDaysCount={dashboardData?.active_days_count ?? 0}
-                        />
+                        <article
+                            className={`rounded-lg border p-6 shadow-xl shadow-black/20 ${
+                                isCurrentStreakLit
+                                    ? "border-[#ffa116]/40 bg-[#ffa116]/10"
+                                    : "border-[#3a3a3a] bg-[#262626]"
+                            }`}
+                        >
+                            <div className="flex h-full flex-col">
+                                <p className="self-start text-sm font-medium text-[#a3a3a3]">
+                                    Current streak
+                                </p>
+                            </div>
+                        </article>
                     </section>
                 )}
 

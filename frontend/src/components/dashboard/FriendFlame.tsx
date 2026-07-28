@@ -9,12 +9,12 @@ export function FriendFlame({
     count: number;
     state: "lit" | "pending" | "broken";
     ignite?: boolean;
-    size?: "md" | "lg";
+    size?: "xs" | "sm" | "md" | "lg";
 }) {
     const isLit = state === "lit";
-    const outerSize = size === "lg" ? "h-36 w-36" : "h-16 w-16";
-    const glowSize = size === "lg" ? "h-28 w-28" : "h-12 w-12";
-    const iconSize = size === "lg" ? 88 : 44;
+    const outerSize = size === "lg" ? "h-36 w-36" : size === "md" ? "h-16 w-16" : size === "sm" ? "h-8 w-8" : "h-12 w-12";
+    const glowSize = size === "lg" ? "h-28 w-28" : size === "md" ? "h-12 w-12" : size === "sm" ? "h-6 w-6" : "h-9 w-9";
+    const iconSize = size === "lg" ? 88 : size === "md" ? 44 : size === "sm" ? 18 : 28;
 
     return (
         <div
@@ -42,7 +42,7 @@ export function FriendFlame({
                 className={`absolute font-bold tabular-nums ${
                     size === "lg" ? "text-xl" : "text-sm"
                 } ${
-                    isLit ? "text-[#111111]" : "text-[#d6d6d6]"
+                    isLit ? "text-white drop-shadow-[0_2px_3px_rgba(0,0,0,0.5)]" : "text-[#d6d6d6]"
                 }`}
             >
                 {count}
