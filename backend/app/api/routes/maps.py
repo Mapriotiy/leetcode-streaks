@@ -140,25 +140,6 @@ async def get_map(
     if friend is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Friend user not found")
 
-    from app.services.map_generator import get_week_start
-    week_start = get_week_start()
-
-    if reset:
-        existing_map = (
-            db.query(WeeklyMap)
-            .filter(
-                WeeklyMap.friendship_id == friendship.id,
-                WeeklyMap.week_start == week_start,
-            )
-            .first()
-        )
-        if existing_map:
-            db.query(WeeklyMapProvince).filter(
-                WeeklyMapProvince.weekly_map_id == existing_map.id
-            ).delete()
-            db.delete(existing_map)
-            db.commit()
-
     weekly_map = await get_or_create_weekly_map(
         friendship_id=friendship.id,
         user_a_id=current_user.id,
@@ -166,6 +147,7 @@ async def get_map(
         leetcode_username_a=current_user.leetcode_username,
         leetcode_username_b=friend.leetcode_username,
         db=db,
+        reset=reset,
     )
     return _build_map_response(weekly_map, db)
 

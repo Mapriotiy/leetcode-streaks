@@ -68,8 +68,25 @@ async def get_or_create_weekly_map(
     db: Session,
     leetcode_username_a: str | None = None,
     leetcode_username_b: str | None = None,
+    reset: bool = False,
 ) -> WeeklyMap:
     week_start = get_week_start()
+
+    if reset:
+        existing_map = (
+            db.query(WeeklyMap)
+            .filter(
+                WeeklyMap.friendship_id == friendship_id,
+                WeeklyMap.week_start == week_start,
+            )
+            .first()
+        )
+        if existing_map:
+            db.query(WeeklyMapProvince).filter(
+                WeeklyMapProvince.weekly_map_id == existing_map.id
+            ).delete()
+            db.delete(existing_map)
+            db.flush()
 
     existing = (
         db.query(WeeklyMap)
