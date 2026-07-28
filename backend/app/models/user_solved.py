@@ -25,3 +25,6 @@ class UserSolved(Base):
     )
     title_slug: Mapped[str] = mapped_column(String, nullable=False, index=True)
     solved_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    best_runtime_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    best_submission_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    best_runtime_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

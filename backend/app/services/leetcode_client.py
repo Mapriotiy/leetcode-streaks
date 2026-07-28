@@ -8,6 +8,7 @@ from typing import Any
 import httpx
 from fastapi import HTTPException, status
 
+from app.core.config import settings
 from app.schemas.leetcode import (
     LeetCodeProfileResponse,
     RecentAcceptedSubmission,
@@ -48,9 +49,26 @@ query recentAcSubmissions($username: String!, $limit: Int!) {
     titleSlug
     timestamp
     lang
+    runtime
+    memory
+    langName
   }
 }
 """
+
+
+def parse_runtime_ms(raw: str | None) -> int | None:
+    """Parse a LeetCode runtime display string ("167 ms", "0 ms") to int ms.
+
+    "N/A", empty, or unparseable values return None. 0 is a valid runtime.
+    """
+    if not raw:
+        return None
+    value = raw.strip().removesuffix("ms").strip()
+    try:
+        return int(float(value))
+    except ValueError:
+        return None
 
 PROBLEMSET_LIST_QUERY = """
 query problemsetQuestionList($categorySlug: String, $skip: Int, $limit: Int, $filters: QuestionListFilterInput) {
@@ -124,6 +142,22 @@ def _cache_set(key: str, value: Any) -> None:
     _cache[key] = (time.monotonic(), value)
 
 
+def _load_fake_submissions(username: str) -> list[dict]:
+    """Load fake submissions for a user from the configured JSON file.
+
+    File shape: {"<username>": [{"id": 1, "title": "...", "titleSlug": "...",
+    "timestamp": 1753700000, "lang": "python3", "runtime": "167 ms"}, ...]}
+    """
+    path = settings.leetcode_fake_submissions_path
+    try:
+        with open(path) as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        logger.warning("Could not read fake submissions file %s", path, exc_info=True)
+        return []
+    return data.get(username, [])
+
+
 class LeetCodeClient:
     async def get_user_profile(self, username: str) -> LeetCodeProfileResponse:
         cache_key = f"profile:{username}"
@@ -152,6 +186,13 @@ class LeetCodeClient:
             username: str,
             limit: int = 20,
     ) -> list[RecentAcceptedSubmission]:
+        # Test seam: serve submissions from a local JSON file, re-read on
+        # every call and bypassing the cache so edits show up immediately.
+        if settings.leetcode_fake_submissions_path:
+            return self._normalize_submissions(
+                _load_fake_submissions(username)[:limit]
+            )
+
         cache_key = f"subs:{username}:{limit}"
         cached = _cache_get(cache_key, _SUBS_TTL)
         if cached is not None:
@@ -163,6 +204,15 @@ class LeetCodeClient:
         )
 
         submissions = payload.get("data", {}).get("recentAcSubmissionList") or []
+        result = self._normalize_submissions(submissions)
+
+        _cache_set(cache_key, result)
+        return result
+
+    def _normalize_submissions(
+            self,
+            submissions: list[dict],
+    ) -> list[RecentAcceptedSubmission]:
         result: list[RecentAcceptedSubmission] = []
 
         for submission in submissions:
@@ -188,10 +238,10 @@ class LeetCodeClient:
                     language=submission.get("lang"),
                     submission_id=int(submission_id) if submission_id else None,
                     submission_url=f"https://leetcode.com/submissions/detail/{submission_id}/" if submission_id else None,
+                    runtime_ms=parse_runtime_ms(submission.get("runtime")),
                 )
             )
 
-        _cache_set(cache_key, result)
         return result
 
     async def fetch_profile_and_submissions(

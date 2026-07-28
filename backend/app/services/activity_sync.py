@@ -9,7 +9,7 @@ from app.models.daily_activity import DailyActivity
 from app.models.user import User
 from app.schemas.leetcode import LeetCodeProfileResponse, RecentAcceptedSubmission
 from app.services.leetcode_client import LeetCodeClient
-from app.services.user_solved import update_solved
+from app.services.user_solved import record_submissions
 
 
 def _dialect_insert(db: Session):
@@ -66,8 +66,7 @@ async def sync_user_daily_activity(
         db.commit()
 
     if recent_submissions:
-        slugs = [(s.title_slug, s.submitted_at) for s in recent_submissions]
-        update_solved(user.id, slugs, db)
+        record_submissions(user.id, recent_submissions, db)
 
     return profile, recent_submissions
 

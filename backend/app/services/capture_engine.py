@@ -9,7 +9,7 @@ from app.models.weekly_map_province import WeeklyMapProvince
 from app.services.leetcode_client import LeetCodeClient
 from app.services.user_solved import (
     get_solved_slugs_with_timestamps,
-    update_solved,
+    record_submissions,
 )
 
 logger = logging.getLogger(__name__)
@@ -31,16 +31,8 @@ async def check_captures(
     url_by_slug_a: dict[str, str | None] = {s.title_slug: s.submission_url for s in subs_a}
     url_by_slug_b: dict[str, str | None] = {s.title_slug: s.submission_url for s in subs_b}
 
-    update_solved(
-        user_a_id,
-        [(s.title_slug, s.submitted_at) for s in subs_a],
-        db,
-    )
-    update_solved(
-        user_b_id,
-        [(s.title_slug, s.submitted_at) for s in subs_b],
-        db,
-    )
+    record_submissions(user_a_id, subs_a, db)
+    record_submissions(user_b_id, subs_b, db)
 
     solved_a = get_solved_slugs_with_timestamps(user_a_id, db)
     solved_b = get_solved_slugs_with_timestamps(user_b_id, db)
