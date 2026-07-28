@@ -43,6 +43,7 @@ query userPublicProfile($username: String!) {
 RECENT_ACCEPTED_SUBMISSIONS_QUERY = """
 query recentAcSubmissions($username: String!, $limit: Int!) {
   recentAcSubmissionList(username: $username, limit: $limit) {
+    id
     title
     titleSlug
     timestamp
@@ -176,6 +177,8 @@ class LeetCodeClient:
                 tz=timezone.utc,
             ).isoformat()
 
+            submission_id = submission.get("id")
+
             result.append(
                 RecentAcceptedSubmission(
                     title=submission.get("title") or title_slug,
@@ -183,6 +186,8 @@ class LeetCodeClient:
                     url=f"https://leetcode.com/problems/{title_slug}/",
                     submitted_at=submitted_at,
                     language=submission.get("lang"),
+                    submission_id=int(submission_id) if submission_id else None,
+                    submission_url=f"https://leetcode.com/submissions/detail/{submission_id}/" if submission_id else None,
                 )
             )
 

@@ -219,6 +219,9 @@ async def check_captures(
     subs_a = await client.get_recent_accepted_submissions(leetcode_username_a, limit=50)
     subs_b = await client.get_recent_accepted_submissions(leetcode_username_b, limit=50)
 
+    url_by_slug_a: dict[str, str | None] = {s.title_slug: s.submission_url for s in subs_a}
+    url_by_slug_b: dict[str, str | None] = {s.title_slug: s.submission_url for s in subs_b}
+
     update_solved(
         user_a_id,
         [(s.title_slug, s.submitted_at) for s in subs_a],
@@ -251,17 +254,25 @@ async def check_captures(
             if ts_a <= ts_b:
                 province.captured_by = user_a_id
                 province.captured_at = ts_a
+                province.captured_submission_url = url_by_slug_a.get(province.problem_title_slug)
+                province.capturer_leetcode_username = leetcode_username_a
             else:
                 province.captured_by = user_b_id
                 province.captured_at = ts_b
+                province.captured_submission_url = url_by_slug_b.get(province.problem_title_slug)
+                province.capturer_leetcode_username = leetcode_username_b
             captured_count += 1
         elif ts_a is not None:
             province.captured_by = user_a_id
             province.captured_at = ts_a
+            province.captured_submission_url = url_by_slug_a.get(province.problem_title_slug)
+            province.capturer_leetcode_username = leetcode_username_a
             captured_count += 1
         elif ts_b is not None:
             province.captured_by = user_b_id
             province.captured_at = ts_b
+            province.captured_submission_url = url_by_slug_b.get(province.problem_title_slug)
+            province.capturer_leetcode_username = leetcode_username_b
             captured_count += 1
 
     if captured_count > 0:

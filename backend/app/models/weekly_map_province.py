@@ -32,3 +32,5 @@ class WeeklyMapProvince(Base):
         index=True,
     )
     captured_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    captured_submission_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    capturer_leetcode_username: Mapped[str | None] = mapped_column(String, nullable=True)

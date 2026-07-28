@@ -23,3 +23,5 @@ class RecentAcceptedSubmission(BaseModel):
     url: str
     submitted_at: str
     language: str | None = None
+    submission_id: int | None = None
+    submission_url: str | None = None

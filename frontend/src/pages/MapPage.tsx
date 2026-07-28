@@ -19,6 +19,8 @@ type ProvinceApiData = {
     captured_by: number | null;
     captured_by_username: string | null;
     captured_at: string | null;
+    captured_submission_url: string | null;
+    capturer_leetcode_username: string | null;
 };
 
 type ScoreApiData = {
@@ -398,6 +400,8 @@ export function MapPage({
                     owner={selectedProvinceData ? captured.get(selectedProvinceData.province_id) : undefined}
                     capturedByUsername={selectedProvinceData?.captured_by_username ?? undefined}
                     problem={selectedProvinceData?.problem ?? null}
+                    submissionUrl={selectedProvinceData?.captured_submission_url ?? null}
+                    capturerLeetcodeUsername={selectedProvinceData?.capturer_leetcode_username ?? null}
                     onClose={handleClose}
                 />
             </div>

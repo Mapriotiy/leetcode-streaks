@@ -19,6 +19,8 @@ class ProvinceResponse(BaseModel):
     captured_by: Optional[int] = None
     captured_by_username: Optional[str] = None
     captured_at: Optional[datetime] = None
+    captured_submission_url: Optional[str] = None
+    capturer_leetcode_username: Optional[str] = None
 
 
 class ScoreResponse(BaseModel):

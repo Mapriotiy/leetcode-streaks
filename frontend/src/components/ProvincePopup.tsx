@@ -32,6 +32,8 @@ type ProvincePopupProps = {
     owner: Owner | undefined;
     capturedByUsername: string | undefined;
     problem: ProblemInfo | null;
+    submissionUrl: string | null;
+    capturerLeetcodeUsername: string | null;
     onClose: () => void;
 };
 
@@ -41,6 +43,8 @@ export default function ProvincePopup({
     owner,
     capturedByUsername,
     problem,
+    submissionUrl,
+    capturerLeetcodeUsername,
     onClose,
 }: ProvincePopupProps) {
     if (!provinceId || !pos) return null;
@@ -103,6 +107,17 @@ export default function ProvincePopup({
                         >
                             {problem.difficulty}
                         </span>
+                    </a>
+                )}
+
+                {owner && submissionUrl && (
+                    <a
+                        href={submissionUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-2 block rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-center text-xs font-medium text-[#d7d7d7] transition hover:border-white/30 hover:text-white"
+                    >
+                        View {capturerLeetcodeUsername ?? 'capturer'}'s solution
                     </a>
                 )}
 

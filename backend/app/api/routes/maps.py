@@ -83,6 +83,8 @@ def _build_province_response(
         captured_by=province.captured_by,
         captured_by_username=captured_by_username,
         captured_at=province.captured_at,
+        captured_submission_url=province.captured_submission_url,
+        capturer_leetcode_username=province.capturer_leetcode_username,
     )
 
 
