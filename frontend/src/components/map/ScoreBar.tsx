@@ -30,9 +30,14 @@ export function ScoreBar({
                             {currentUsername[0].toUpperCase()}
                         </div>
                     )}
-                    <span className="hidden text-sm font-medium text-[#eff1f6] sm:block">
-                        {currentUsername}
-                    </span>
+                    <div className="hidden sm:block">
+                        <span className="block text-sm font-medium text-[#eff1f6]">
+                            {currentUsername}
+                        </span>
+                        <span className="block text-xs font-semibold tabular-nums text-[#00e5ff]">
+                            {scoreData.player_points.toLocaleString()} pts
+                        </span>
+                    </div>
                 </div>
 
                 <div className="flex h-3 flex-1 overflow-hidden rounded-full bg-[#333]">
@@ -66,9 +71,14 @@ export function ScoreBar({
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2">
-                    <span className="hidden text-sm font-medium text-[#eff1f6] sm:block">
-                        {friendUsername}
-                    </span>
+                    <div className="hidden text-right sm:block">
+                        <span className="block text-sm font-medium text-[#eff1f6]">
+                            {friendUsername}
+                        </span>
+                        <span className="block text-xs font-semibold tabular-nums text-[#ff2d55]">
+                            {scoreData.friend_points.toLocaleString()} pts
+                        </span>
+                    </div>
                     {friendAvatarUrl ? (
                         <img
                             src={friendAvatarUrl}

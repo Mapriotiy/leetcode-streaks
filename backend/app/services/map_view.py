@@ -114,6 +114,8 @@ def build_province_response(
         captured_at=province.captured_at,
         captured_submission_url=province.captured_submission_url,
         capturer_leetcode_username=province.capturer_leetcode_username,
+        first_captured_by=province.first_captured_by,
+        first_captured_at=province.first_captured_at,
     )
 
 
@@ -205,7 +207,12 @@ def build_map_response(
             )
             for p in provinces
         ],
-        score=compute_score(provinces, current_user_id, friend_id),
+        score=compute_score(
+            provinces,
+            current_user_id,
+            friend_id,
+            {slug: p.difficulty for slug, p in problems.items()},
+        ),
         player_avatar_url=player_avatar_url,
         friend_avatar_url=friend_avatar_url,
         last_week_result=last_week_result,

@@ -115,7 +115,12 @@ async def sync_map(
     ]
 
     friend = user_b if friendship.user_a_id == current_user.id else user_a
-    score = compute_score(provinces, current_user.id, friend.id)
+    score = compute_score(
+        provinces,
+        current_user.id,
+        friend.id,
+        {slug: p.difficulty for slug, p in problems.items()},
+    )
 
     avatar_player_raw, avatar_friend_raw = await fetch_avatars(current_user, friend)
 
