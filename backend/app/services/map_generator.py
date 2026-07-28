@@ -128,14 +128,39 @@ async def get_or_create_weekly_map(
 
     used_slugs: set[str] = set()
 
-    for province_id, region_id in PROVINCE_REGION.items():
+    prov_items = list(PROVINCE_REGION.items())
+    random.shuffle(prov_items)
+
+    total = len(prov_items)
+    easy_target = round(total * 0.50)
+    medium_target = round(total * 0.35)
+    hard_count = total - easy_target - medium_target
+
+    difficulty_order: list[str] = ["Easy"] * easy_target + ["Medium"] * medium_target + ["Hard"] * hard_count
+    random.shuffle(difficulty_order)
+
+    isle3_idx = next(i for i, (pid, _) in enumerate(prov_items) if pid == "path53")
+    if difficulty_order[isle3_idx] != "Hard":
+        hard_idx = next(i for i, d in enumerate(difficulty_order) if d == "Hard")
+        difficulty_order[isle3_idx], difficulty_order[hard_idx] = difficulty_order[hard_idx], difficulty_order[isle3_idx]
+
+    for (province_id, region_id), pick_difficulty in zip(prov_items, difficulty_order):
         config = REGION_TOPICS.get(region_id, {"tags": [], "difficulty": None})
+
         problem = _pick_problem(
             tags=config["tags"],
-            difficulty=config["difficulty"],
+            difficulty=pick_difficulty,
             exclude=exclude | used_slugs,
             db=db,
         )
+
+        if problem is None:
+            problem = _pick_problem(
+                tags=[],
+                difficulty=pick_difficulty,
+                exclude=exclude | used_slugs,
+                db=db,
+            )
 
         if problem is None:
             problem = _pick_problem(
