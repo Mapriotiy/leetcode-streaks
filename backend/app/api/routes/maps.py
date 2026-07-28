@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -13,10 +14,12 @@ from app.models.leetcode_problem import LeetCodeProblem
 from app.schemas.maps import (
     ProblemResponse,
     ProvinceResponse,
+    ScoreResponse,
     SyncResponse,
     WeeklyMapResponse,
 )
-from app.services.map_generator import check_captures, get_or_create_weekly_map
+from app.services.map_generator import PROVINCE_REGION, check_captures, get_or_create_weekly_map
+from app.services.leetcode_client import LeetCodeClient
 
 logger = logging.getLogger(__name__)
 
@@ -81,9 +84,72 @@ def _build_province_response(
     )
 
 
+def _compute_score(
+    provinces: list[WeeklyMapProvince],
+    current_user_id: int,
+    friend_id: int,
+) -> ScoreResponse:
+    total = len(provinces)
+    player_provinces = 0
+    friend_provinces = 0
+
+    for p in provinces:
+        if p.captured_by == current_user_id:
+            player_provinces += 1
+        elif p.captured_by == friend_id:
+            friend_provinces += 1
+
+    total_regions = len(set(p.region_id for p in provinces))
+
+    region_counts: dict[str, dict[str, int]] = {}
+    for p in provinces:
+        r = region_counts.setdefault(p.region_id, {"player": 0, "friend": 0})
+        if p.captured_by == current_user_id:
+            r["player"] += 1
+        elif p.captured_by == friend_id:
+            r["friend"] += 1
+
+    player_regions = 0
+    friend_regions = 0
+    for r, counts in region_counts.items():
+        if counts["player"] > counts["friend"]:
+            player_regions += 1
+        elif counts["friend"] > counts["player"]:
+            friend_regions += 1
+
+    return ScoreResponse(
+        player_provinces=player_provinces,
+        friend_provinces=friend_provinces,
+        neutral_provinces=total - player_provinces - friend_provinces,
+        total_provinces=total,
+        player_regions=player_regions,
+        friend_regions=friend_regions,
+        total_regions=total_regions,
+    )
+
+
+async def _fetch_avatars(user_a: User, user_b: User) -> tuple[str | None, str | None]:
+    try:
+        client = LeetCodeClient()
+        results = await asyncio.gather(
+            client.get_user_profile(user_a.leetcode_username),
+            client.get_user_profile(user_b.leetcode_username),
+            return_exceptions=True,
+        )
+        avatar_a = results[0].avatar_url if not isinstance(results[0], Exception) else None
+        avatar_b = results[1].avatar_url if not isinstance(results[1], Exception) else None
+        return avatar_a, avatar_b
+    except Exception:
+        return None, None
+
+
 def _build_map_response(
     weekly_map: WeeklyMap,
     db: Session,
+    current_user_id: int,
+    friend_id: int,
+    player_avatar_url: str | None = None,
+    friend_avatar_url: str | None = None,
 ) -> WeeklyMapResponse:
     provinces = (
         db.query(WeeklyMapProvince)
@@ -95,6 +161,7 @@ def _build_map_response(
             week_start=weekly_map.week_start,
             friendship_id=weekly_map.friendship_id,
             provinces=[],
+            score=_compute_score([], current_user_id, friend_id),
         )
 
     slugs = {p.problem_title_slug for p in provinces}
@@ -111,6 +178,8 @@ def _build_map_response(
         users = db.query(User).filter(User.id.in_(capture_user_ids)).all()
         capture_username_by_id = {u.id: u.leetcode_username for u in users}
 
+    score = _compute_score(provinces, current_user_id, friend_id)
+
     return WeeklyMapResponse(
         week_start=weekly_map.week_start,
         friendship_id=weekly_map.friendship_id,
@@ -122,6 +191,9 @@ def _build_map_response(
             )
             for p in provinces
         ],
+        score=score,
+        player_avatar_url=player_avatar_url,
+        friend_avatar_url=friend_avatar_url,
     )
 
 
@@ -149,7 +221,10 @@ async def get_map(
         db=db,
         reset=reset,
     )
-    return _build_map_response(weekly_map, db)
+
+    avatar_a, avatar_b = await _fetch_avatars(current_user, friend)
+
+    return _build_map_response(weekly_map, db, current_user.id, friend.id, avatar_a, avatar_b)
 
 
 @router.post("/{friendship_id}/sync", response_model=SyncResponse)
@@ -223,7 +298,14 @@ async def sync_map(
         for p in provinces
     ]
 
+    score = _compute_score(provinces, current_user.id, friendship.user_a_id if friendship.user_b_id == current_user.id else friendship.user_b_id)
+
+    avatar_a, avatar_b = await _fetch_avatars(user_a, user_b)
+
     return SyncResponse(
         captured_count=captured_count,
         provinces=province_responses,
+        score=score,
+        player_avatar_url=avatar_a,
+        friend_avatar_url=avatar_b,
     )

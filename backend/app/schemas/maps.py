@@ -21,12 +21,28 @@ class ProvinceResponse(BaseModel):
     captured_at: Optional[datetime] = None
 
 
+class ScoreResponse(BaseModel):
+    player_provinces: int
+    friend_provinces: int
+    neutral_provinces: int
+    total_provinces: int
+    player_regions: int
+    friend_regions: int
+    total_regions: int
+
+
 class WeeklyMapResponse(BaseModel):
     week_start: date
     friendship_id: int
     provinces: list[ProvinceResponse]
+    score: ScoreResponse
+    player_avatar_url: Optional[str] = None
+    friend_avatar_url: Optional[str] = None
 
 
 class SyncResponse(BaseModel):
     captured_count: int
     provinces: list[ProvinceResponse]
+    score: ScoreResponse
+    player_avatar_url: Optional[str] = None
+    friend_avatar_url: Optional[str] = None

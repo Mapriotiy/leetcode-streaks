@@ -127,6 +127,7 @@ export default function App() {
             {activeMapFriendship ? (
                 <MapPage
                     currentUserId={user.id}
+                    currentUsername={user.leetcode_username}
                     friendshipId={activeMapFriendship.friendshipId}
                     friendId={activeMapFriendship.friendId}
                     friendUsername={activeMapFriendship.friendUsername}
