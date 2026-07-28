@@ -10,8 +10,8 @@ from app.services.leetcode_client import LeetCodeClient
 logger = logging.getLogger(__name__)
 
 CATALOG_REFRESH_INTERVAL_DAYS = 7
-PROBLEMSET_PAGE_SIZE = 50
-MIN_PROBLEMS = 1000
+PROBLEMSET_PAGE_SIZE = 100
+MIN_PROBLEMS = 500
 
 
 def _utcnow() -> datetime:
