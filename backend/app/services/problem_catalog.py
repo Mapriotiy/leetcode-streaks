@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import datetime, timezone
 
@@ -10,7 +11,7 @@ from app.services.leetcode_client import LeetCodeClient
 logger = logging.getLogger(__name__)
 
 CATALOG_REFRESH_INTERVAL_DAYS = 7
-PROBLEMSET_PAGE_SIZE = 100
+PROBLEMSET_PAGE_SIZE = 200
 MIN_PROBLEMS = 500
 
 
@@ -20,17 +21,34 @@ def _utcnow() -> datetime:
 
 async def refresh_catalog(db: Session) -> int:
     client = LeetCodeClient()
+
+    total, first_questions = await client.get_problemset_list(skip=0, limit=PROBLEMSET_PAGE_SIZE)
+    if not first_questions:
+        logger.warning("First page returned 0 problems")
+        return 0
+
+    tasks = []
+    for page_skip in range(PROBLEMSET_PAGE_SIZE, total, PROBLEMSET_PAGE_SIZE):
+        tasks.append(client.get_problemset_list(skip=page_skip, limit=PROBLEMSET_PAGE_SIZE))
+
+    all_pages = await asyncio.gather(*tasks, return_exceptions=True)
+
     all_rows: list[dict] = []
-    skip = 0
+    for q in first_questions:
+        all_rows.append({
+            "frontend_id": q["frontend_id"],
+            "title": q["title"],
+            "title_slug": q["title_slug"],
+            "difficulty": q["difficulty"],
+            "topic_tags": q["topic_tags"],
+            "updated_at": _utcnow(),
+        })
 
-    while True:
-        total, questions = await client.get_problemset_list(
-            skip=skip, limit=PROBLEMSET_PAGE_SIZE,
-        )
-
-        if not questions:
-            break
-
+    for result in all_pages:
+        if isinstance(result, Exception):
+            logger.warning("Page fetch failed: %s", result)
+            continue
+        _, questions = result
         for q in questions:
             all_rows.append({
                 "frontend_id": q["frontend_id"],
@@ -41,16 +59,8 @@ async def refresh_catalog(db: Session) -> int:
                 "updated_at": _utcnow(),
             })
 
-        skip += PROBLEMSET_PAGE_SIZE
-
-        if skip >= total or len(questions) < PROBLEMSET_PAGE_SIZE:
-            break
-
     if len(all_rows) < MIN_PROBLEMS:
-        logger.warning(
-            "Fetched only %d problems — keeping existing catalog",
-            len(all_rows),
-        )
+        logger.warning("Fetched only %d problems — keeping existing catalog", len(all_rows))
         return 0 if not db.query(LeetCodeProblem).count() else len(all_rows)
 
     db.query(LeetCodeProblem).delete()
