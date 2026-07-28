@@ -34,6 +34,10 @@ class WeeklyMapProvince(Base):
     captured_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     captured_submission_url: Mapped[str | None] = mapped_column(String, nullable=True)
     capturer_leetcode_username: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Runtime of the current owner's best solve; the bar a challenger must
+    # strictly beat to steal the province. NULL counts as beatable by any
+    # timed solve.
+    captured_runtime_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # Permanent first-capture ledger: never changes once set, even if the
     # province is later recaptured. The first-capture bonus derives from it.
     first_captured_by: Mapped[int | None] = mapped_column(

@@ -21,6 +21,7 @@ class ProvinceResponse(BaseModel):
     captured_at: Optional[datetime] = None
     captured_submission_url: Optional[str] = None
     capturer_leetcode_username: Optional[str] = None
+    captured_runtime_ms: Optional[int] = None
     first_captured_by: Optional[int] = None
     first_captured_at: Optional[datetime] = None
 
@@ -62,6 +63,7 @@ class WeeklyMapResponse(BaseModel):
 
 class SyncResponse(BaseModel):
     captured_count: int
+    recaptured_count: int = 0
     provinces: list[ProvinceResponse]
     score: ScoreResponse
     player_avatar_url: Optional[str] = None
