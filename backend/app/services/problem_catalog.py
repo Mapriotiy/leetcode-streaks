@@ -153,7 +153,6 @@ def get_problems_by_tags(
             continue
         problem_tags = set(p.topic_tags)
         if not problem_tags:
-            result.append(p)
             continue
         if problem_tags & set(tags):
             result.append(p)
