@@ -7,6 +7,7 @@ from app.models.daily_activity import DailyActivity  # noqa: F401
 from app.models.friend_invite import FriendInvite  # noqa: F401
 from app.models.friendship import Friendship  # noqa: F401
 from app.models.leetcode_problem import LeetCodeProblem  # noqa: F401
+from app.models.map_event import MapEvent  # noqa: F401
 from app.models.user import User  # noqa: F401
 from app.models.user_solved import UserSolved  # noqa: F401
 from app.models.weekly_map import WeeklyMap  # noqa: F401

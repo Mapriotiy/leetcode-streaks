@@ -26,6 +26,7 @@ from app.models.daily_activity import DailyActivity
 from app.models.friend_invite import FriendInvite
 from app.models.friendship import Friendship
 from app.models.leetcode_problem import LeetCodeProblem
+from app.models.map_event import MapEvent
 from app.models.user_solved import UserSolved
 from app.models.weekly_map import WeeklyMap
 from app.models.weekly_map_province import WeeklyMapProvince

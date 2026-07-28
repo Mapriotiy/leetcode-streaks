@@ -9,6 +9,7 @@ from app.models.user import User
 from app.models.weekly_map import WeeklyMap
 from app.schemas.maps import SyncResponse, WeeklyMapResponse
 from app.services.capture_engine import CAPTURE, RECAPTURE, sync_captures
+from app.services.events import record_capture_events
 from app.services.map_config import get_week_start
 from app.services.map_generator import get_or_create_weekly_map
 from app.services.map_view import (
@@ -106,6 +107,17 @@ async def sync_map(
     recaptured_count = sum(1 for c in changes if c.kind == RECAPTURE)
 
     provinces, problems, capture_username_by_id = load_map_context(weekly_map, db)
+
+    record_capture_events(
+        changes=changes,
+        weekly_map=weekly_map,
+        problems=problems,
+        usernames={
+            user_a.id: user_a.leetcode_username,
+            user_b.id: user_b.leetcode_username,
+        },
+        db=db,
+    )
 
     province_responses = [
         build_province_response(

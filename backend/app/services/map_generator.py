@@ -5,6 +5,7 @@ import random
 from sqlalchemy.orm import Session
 
 from app.models.leetcode_problem import LeetCodeProblem
+from app.models.map_event import MapEvent
 from app.models.weekly_map import WeeklyMap
 from app.models.weekly_map_province import WeeklyMapProvince
 from app.services.leetcode_client import LeetCodeClient
@@ -47,6 +48,11 @@ async def get_or_create_weekly_map(
             .first()
         )
         if existing_map:
+            # SQLite runs without FK enforcement, so cascades never fire;
+            # children must be deleted explicitly.
+            db.query(MapEvent).filter(
+                MapEvent.weekly_map_id == existing_map.id
+            ).delete()
             db.query(WeeklyMapProvince).filter(
                 WeeklyMapProvince.weekly_map_id == existing_map.id
             ).delete()
