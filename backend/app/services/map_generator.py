@@ -86,7 +86,7 @@ async def get_or_create_weekly_map(
                 WeeklyMapProvince.weekly_map_id == existing_map.id
             ).delete()
             db.delete(existing_map)
-            db.flush()
+            db.commit()
 
     existing = (
         db.query(WeeklyMap)
