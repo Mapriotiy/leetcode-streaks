@@ -19,6 +19,7 @@ type ProvincePopupProps = {
     submissionUrl: string | null;
     capturerLeetcodeUsername: string | null;
     firstCaptureOwner?: Owner;
+    capturedRuntimeMs?: number | null;
     onClose: () => void;
 };
 
@@ -31,6 +32,7 @@ export default function ProvincePopup({
     submissionUrl,
     capturerLeetcodeUsername,
     firstCaptureOwner,
+    capturedRuntimeMs,
     onClose,
 }: ProvincePopupProps) {
     if (!provinceId || !pos) return null;
@@ -112,6 +114,21 @@ export default function ProvincePopup({
                         First capture +{firstCaptureBonus(problem?.difficulty)}
                         {firstCaptureOwner === 'player' ? ' (yours)' : ''}
                     </div>
+                )}
+
+                {owner && (
+                    <div className="mt-2 flex items-center justify-between text-xs">
+                        <span className="text-gray-400">Fastest</span>
+                        <span className="text-[#eff1f6]">
+                            {capturedRuntimeMs != null ? `${capturedRuntimeMs} ms` : 'unknown'}
+                        </span>
+                    </div>
+                )}
+
+                {owner === 'enemy' && (
+                    <p className="mt-1.5 text-center text-[11px] text-[#8a8a8a]">
+                        Solve it faster to steal this province
+                    </p>
                 )}
 
                 {owner && submissionUrl && (

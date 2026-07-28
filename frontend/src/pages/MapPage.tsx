@@ -179,6 +179,7 @@ export function MapPage({
                               ? 'enemy'
                               : undefined
                     }
+                    capturedRuntimeMs={selectedProvinceData?.captured_runtime_ms}
                     onClose={handleClose}
                 />
             </div>

@@ -114,6 +114,7 @@ def build_province_response(
         captured_at=province.captured_at,
         captured_submission_url=province.captured_submission_url,
         capturer_leetcode_username=province.capturer_leetcode_username,
+        captured_runtime_ms=province.captured_runtime_ms,
         first_captured_by=province.first_captured_by,
         first_captured_at=province.first_captured_at,
     )
