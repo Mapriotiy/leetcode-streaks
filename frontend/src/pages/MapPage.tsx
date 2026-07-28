@@ -170,6 +170,21 @@ export function MapPage({
         setPopPos(null);
     }, []);
 
+    const handleReset = useCallback(async () => {
+        setLoading(true);
+        try {
+            const data = await apiRequest<WeeklyMapApiResponse>(`/maps/${friendshipId}?reset=1`);
+            setProvincesData(data.provinces);
+            setScoreData(data.score);
+            if (data.player_avatar_url) setPlayerAvatarUrl(data.player_avatar_url);
+            if (data.friend_avatar_url) setFriendAvatarUrl(data.friend_avatar_url);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
+    }, [friendshipId]);
+
     const selectedProvinceData = selectedProvince
         ? provincesData.find((p) => p.province_id === selectedProvince) ?? null
         : null;
@@ -202,6 +217,19 @@ export function MapPage({
                         <p className="mt-1 text-sm text-[#8a8a8a]">
                             Capture provinces by solving problems
                         </p>
+                    </div>
+
+                    <div className="ml-auto">
+                        {currentUserId === 1 && (
+                            <button
+                                type="button"
+                                onClick={handleReset}
+                                disabled={loading}
+                                className="rounded-md border border-[#3a3a3a] bg-[#262626] px-3 py-1.5 text-xs font-medium text-[#d7d7d7] transition hover:border-[#ffa116]/60 hover:text-[#ffa116] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                {loading ? 'Resetting...' : 'Reset map'}
+                            </button>
+                        )}
                     </div>
                 </header>
 

@@ -11,25 +11,39 @@ from app.services.leetcode_client import LeetCodeClient
 logger = logging.getLogger(__name__)
 
 CATALOG_REFRESH_INTERVAL_DAYS = 7
-PROBLEMSET_PAGE_SIZE = 200
+PROBLEMSET_PAGE_SIZE = 100
 MIN_PROBLEMS = 500
+CONCURRENCY = 3
 
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+async def _fetch_page(client: LeetCodeClient, skip: int, sem: asyncio.Semaphore, retries: int = 2) -> tuple[int, list[dict]]:
+    for attempt in range(retries):
+        async with sem:
+            await asyncio.sleep(0.8)
+            total, questions = await client.get_problemset_list(skip=skip, limit=PROBLEMSET_PAGE_SIZE)
+        if questions or attempt == retries - 1:
+            return total, questions
+        logger.warning("Retrying page skip=%d (attempt %d)", skip, attempt + 2)
+    return 0, []
+
+
 async def refresh_catalog(db: Session) -> int:
     client = LeetCodeClient()
+    sem = asyncio.Semaphore(CONCURRENCY)
 
     total, first_questions = await client.get_problemset_list(skip=0, limit=PROBLEMSET_PAGE_SIZE)
     if not first_questions:
         logger.warning("First page returned 0 problems")
         return 0
 
-    tasks = []
-    for page_skip in range(PROBLEMSET_PAGE_SIZE, total, PROBLEMSET_PAGE_SIZE):
-        tasks.append(client.get_problemset_list(skip=page_skip, limit=PROBLEMSET_PAGE_SIZE))
+    tasks = [
+        _fetch_page(client, page_skip, sem)
+        for page_skip in range(PROBLEMSET_PAGE_SIZE, total, PROBLEMSET_PAGE_SIZE)
+    ]
 
     all_pages = await asyncio.gather(*tasks, return_exceptions=True)
 
