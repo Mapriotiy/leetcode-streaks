@@ -237,7 +237,7 @@ class LeetCodeClient:
                 continue
 
             tags_raw = q.get("topicTags") or []
-            topic_tags = [t.get("name", "") for t in tags_raw if t.get("name")]
+            topic_tags = [t.get("name", "").lower().replace(" ", "-") for t in tags_raw if t.get("name")]
 
             result.append({
                 "frontend_id": int(frontend_id),
