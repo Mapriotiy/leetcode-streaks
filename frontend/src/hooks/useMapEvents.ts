@@ -19,7 +19,11 @@ export function useMapEvents(friendshipId: number, syncTick: number) {
             .then((newEvents) => {
                 if (newEvents.length === 0) return;
                 lastIdRef.current = newEvents[newEvents.length - 1].id;
-                setEvents((prev) => [...prev, ...newEvents]);
+                setEvents((prev) => {
+                    const existingIds = new Set(prev.map((e) => e.id));
+                    const filtered = newEvents.filter((e) => !existingIds.has(e.id));
+                    return [...prev, ...filtered];
+                });
             })
             .catch(() => {});
     }, [friendshipId, syncTick]);
