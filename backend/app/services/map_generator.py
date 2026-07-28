@@ -20,7 +20,7 @@ from app.services.problem_catalog import (
 )
 from app.services.user_solved import (
     get_solved_slugs_with_timestamps,
-    update_solved,
+    record_submissions,
 )
 
 logger = logging.getLogger(__name__)
@@ -74,9 +74,9 @@ async def get_or_create_weekly_map(
                 client.get_recent_accepted_submissions(leetcode_username_b, limit=100),
             )
             if subs_a:
-                update_solved(user_a_id, [(s.title_slug, s.submitted_at) for s in subs_a], db)
+                record_submissions(user_a_id, subs_a, db)
             if subs_b:
-                update_solved(user_b_id, [(s.title_slug, s.submitted_at) for s in subs_b], db)
+                record_submissions(user_b_id, subs_b, db)
         except Exception:
             logger.warning("Failed to fetch recent submissions for map exclusion", exc_info=True)
 

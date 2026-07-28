@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     secret_key: str = "dev-secret-key"
     access_token_expire_minutes: int = 60 * 24
     frontend_url: str = "http://localhost:5173"
+    # Test seam: path to a JSON file of fake recent submissions per username.
+    leetcode_fake_submissions_path: str | None = None
 
     class Config:
         env_file = ".env"
