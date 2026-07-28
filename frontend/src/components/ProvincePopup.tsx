@@ -1,23 +1,6 @@
+import { DIFFICULTY_COLORS, PROVINCE_NAMES } from '../mapRegions';
+
 export type Owner = 'player' | 'enemy';
-
-const PROVINCE_NAMES: Record<string, string> = {
-    path34: 'Sylvan Canopy', path36: 'Rootveil Hollow',
-    path44: 'Pivot Peak', path48: 'Midpoint Mesa', path49: 'Bisect Bluffs',
-    path53: 'The Obsidian Gauntlet',
-    path56: 'Node Haven', path57: 'Chainspire Coast', path58: 'Sentinel Shore', path60: "Pointer's Rest",
-    path63: 'Tidal Sliding Fen', path64: 'Dualstrike Fields', path65: 'Windowmere', path66: 'Slidevale',
-    path68: "Pointer's Drift", path69: 'Riftward Expanse',
-    path72: 'Index Spire', path73: 'The Hashforge', path74: 'Keymount Steppe', path75: 'Cipher Ridge',
-    path76: 'Saltwind Coast', path79: 'Bucket Bay', path80: 'Collision Crossing',
-    path83: 'Pushdown Heights', path86: 'Popfall Hollow', path87: 'Peaktower Citadel', path89: 'Lastthrone Plateau',
-    path91: 'Undarspire',
-};
-
-const DIFFICULTY_COLORS: Record<string, string> = {
-    Easy: '#00b8a3',
-    Medium: '#ffc01e',
-    Hard: '#ff375f',
-};
 
 type ProblemInfo = {
     title: string;
