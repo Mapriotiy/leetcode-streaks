@@ -31,6 +31,15 @@ class ScoreResponse(BaseModel):
     total_regions: int
 
 
+class LastWeekResult(BaseModel):
+    week_start: date
+    winner_user_id: Optional[int] = None
+    winner_username: Optional[str] = None
+    player_regions: int
+    friend_regions: int
+    total_regions: int
+
+
 class WeeklyMapResponse(BaseModel):
     week_start: date
     friendship_id: int
@@ -38,6 +47,7 @@ class WeeklyMapResponse(BaseModel):
     score: ScoreResponse
     player_avatar_url: Optional[str] = None
     friend_avatar_url: Optional[str] = None
+    last_week_result: Optional[LastWeekResult] = None
 
 
 class SyncResponse(BaseModel):

@@ -1,16 +1,16 @@
 export type Owner = 'player' | 'enemy';
 
 const PROVINCE_NAMES: Record<string, string> = {
-    path34: 'Isle 1-1', path36: 'Isle 1-2',
-    path44: 'Isle 2-1', path48: 'Isle 2-2', path49: 'Isle 2-3',
-    path53: 'Isle 3',
-    path56: 'Region 1-2', path57: 'Region 1-3', path58: 'Region 1-4', path60: 'Region 1-1',
-    path63: 'Region 2-4', path64: 'Region 2-3', path65: 'Region 2-2', path66: 'Region 2-1',
-    path68: 'Region 2-5', path69: 'Region 2-6',
-    path72: 'Region 3-7', path73: 'Region 3-6', path74: 'Region 3-5', path75: 'Region 3-4',
-    path76: 'Region 3-3', path79: 'Region 3-1', path80: 'Region 3-2',
-    path83: 'Region 4-1', path86: 'Region 4-2', path87: 'Region 4-3', path89: 'Region 4-5',
-    path91: 'Region 4-4',
+    path34: 'Sylvan Canopy', path36: 'Rootveil Hollow',
+    path44: 'Pivot Peak', path48: 'Midpoint Mesa', path49: 'Bisect Bluffs',
+    path53: 'The Obsidian Gauntlet',
+    path56: 'Node Haven', path57: 'Chainspire Coast', path58: 'Sentinel Shore', path60: "Pointer's Rest",
+    path63: 'Tidal Sliding Fen', path64: 'Dualstrike Fields', path65: 'Windowmere', path66: 'Slidevale',
+    path68: "Pointer's Drift", path69: 'Riftward Expanse',
+    path72: 'Index Spire', path73: 'The Hashforge', path74: 'Keymount Steppe', path75: 'Cipher Ridge',
+    path76: 'Saltwind Coast', path79: 'Bucket Bay', path80: 'Collision Crossing',
+    path83: 'Pushdown Heights', path86: 'Popfall Hollow', path87: 'Peaktower Citadel', path89: 'Lastthrone Plateau',
+    path91: 'Undarspire',
 };
 
 const DIFFICULTY_COLORS: Record<string, string> = {

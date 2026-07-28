@@ -31,6 +31,15 @@ type ScoreApiData = {
     total_regions: number;
 };
 
+type LastWeekResultApiData = {
+    week_start: string;
+    winner_user_id: number | null;
+    winner_username: string | null;
+    player_regions: number;
+    friend_regions: number;
+    total_regions: number;
+};
+
 type WeeklyMapApiResponse = {
     week_start: string;
     friendship_id: number;
@@ -38,6 +47,7 @@ type WeeklyMapApiResponse = {
     score: ScoreApiData;
     player_avatar_url: string | null;
     friend_avatar_url: string | null;
+    last_week_result: LastWeekResultApiData | null;
 };
 
 type SyncApiResponse = {
@@ -113,6 +123,7 @@ export function MapPage({
     const [scoreData, setScoreData] = useState<ScoreApiData | null>(null);
     const [playerAvatarUrl, setPlayerAvatarUrl] = useState<string | null>(null);
     const [friendAvatarUrl, setFriendAvatarUrl] = useState<string | null>(null);
+    const [lastWeekResult, setLastWeekResult] = useState<LastWeekResultApiData | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
     const [popPos, setPopPos] = useState<{ x: number; y: number } | null>(null);
@@ -126,6 +137,7 @@ export function MapPage({
                 setScoreData(data.score);
                 setPlayerAvatarUrl(data.player_avatar_url);
                 setFriendAvatarUrl(data.friend_avatar_url);
+                setLastWeekResult(data.last_week_result);
             })
             .catch(console.error)
             .finally(() => setLoading(false));
@@ -300,6 +312,24 @@ export function MapPage({
                                 )}
                             </div>
                         </div>
+                    </section>
+                )}
+
+                {lastWeekResult && (
+                    <section className="mt-3 rounded-lg border border-[#ffa116]/30 bg-[#ffa116]/5 px-4 py-3 text-center text-sm shadow-sm">
+                        {lastWeekResult.winner_user_id === null ? (
+                            <span className="text-[#a3a3a3]">
+                                Last week was a tie: {lastWeekResult.player_regions} vs {lastWeekResult.friend_regions} regions
+                            </span>
+                        ) : lastWeekResult.winner_user_id === currentUserId ? (
+                            <span className="text-[#ffa116]">
+                                You won last week: {lastWeekResult.player_regions} vs {lastWeekResult.friend_regions} regions
+                            </span>
+                        ) : (
+                            <span className="text-[#ff2d55]">
+                                {lastWeekResult.winner_username} won last week: {lastWeekResult.friend_regions} vs {lastWeekResult.player_regions} regions
+                            </span>
+                        )}
                     </section>
                 )}
 

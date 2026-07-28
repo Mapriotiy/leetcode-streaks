@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -12,6 +13,7 @@ from app.models.weekly_map import WeeklyMap
 from app.models.weekly_map_province import WeeklyMapProvince
 from app.models.leetcode_problem import LeetCodeProblem
 from app.schemas.maps import (
+    LastWeekResult,
     ProblemResponse,
     ProvinceResponse,
     ScoreResponse,
@@ -143,6 +145,57 @@ async def _fetch_avatars(user_a: User, user_b: User) -> tuple[str | None, str | 
         return None, None
 
 
+def _get_last_week_result(
+    friendship_id: int,
+    current_week_start: date,
+    current_user_id: int,
+    friend_id: int,
+    db: Session,
+) -> LastWeekResult | None:
+    last_week_monday = current_week_start - timedelta(days=7)
+
+    last_map = (
+        db.query(WeeklyMap)
+        .filter(
+            WeeklyMap.friendship_id == friendship_id,
+            WeeklyMap.week_start == last_week_monday,
+        )
+        .first()
+    )
+
+    if last_map is None:
+        return None
+
+    provinces = (
+        db.query(WeeklyMapProvince)
+        .filter(WeeklyMapProvince.weekly_map_id == last_map.id)
+        .all()
+    )
+
+    score = _compute_score(provinces, current_user_id, friend_id)
+
+    winner_id: int | None = None
+    winner_username: str | None = None
+
+    if score.player_regions > score.friend_regions:
+        winner_id = current_user_id
+    elif score.friend_regions > score.player_regions:
+        winner_id = friend_id
+
+    if winner_id is not None:
+        winner = db.get(User, winner_id)
+        winner_username = winner.leetcode_username if winner else None
+
+    return LastWeekResult(
+        week_start=last_week_monday,
+        winner_user_id=winner_id,
+        winner_username=winner_username,
+        player_regions=score.player_regions,
+        friend_regions=score.friend_regions,
+        total_regions=score.total_regions,
+    )
+
+
 def _build_map_response(
     weekly_map: WeeklyMap,
     db: Session,
@@ -150,6 +203,7 @@ def _build_map_response(
     friend_id: int,
     player_avatar_url: str | None = None,
     friend_avatar_url: str | None = None,
+    last_week_result: LastWeekResult | None = None,
 ) -> WeeklyMapResponse:
     provinces = (
         db.query(WeeklyMapProvince)
@@ -162,6 +216,7 @@ def _build_map_response(
             friendship_id=weekly_map.friendship_id,
             provinces=[],
             score=_compute_score([], current_user_id, friend_id),
+            last_week_result=last_week_result,
         )
 
     slugs = {p.problem_title_slug for p in provinces}
@@ -194,6 +249,7 @@ def _build_map_response(
         score=score,
         player_avatar_url=player_avatar_url,
         friend_avatar_url=friend_avatar_url,
+        last_week_result=last_week_result,
     )
 
 
@@ -224,7 +280,15 @@ async def get_map(
 
     avatar_a, avatar_b = await _fetch_avatars(current_user, friend)
 
-    return _build_map_response(weekly_map, db, current_user.id, friend.id, avatar_a, avatar_b)
+    last_week_result = _get_last_week_result(
+        friendship.id, weekly_map.week_start,
+        current_user.id, friend.id, db,
+    )
+
+    return _build_map_response(
+        weekly_map, db, current_user.id, friend.id,
+        avatar_a, avatar_b, last_week_result,
+    )
 
 
 @router.post("/{friendship_id}/sync", response_model=SyncResponse)
