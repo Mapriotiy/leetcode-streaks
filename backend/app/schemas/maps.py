@@ -21,6 +21,8 @@ class ProvinceResponse(BaseModel):
     captured_at: Optional[datetime] = None
     captured_submission_url: Optional[str] = None
     capturer_leetcode_username: Optional[str] = None
+    first_captured_by: Optional[int] = None
+    first_captured_at: Optional[datetime] = None
 
 
 class ScoreResponse(BaseModel):
@@ -31,6 +33,12 @@ class ScoreResponse(BaseModel):
     player_regions: int
     friend_regions: int
     total_regions: int
+    player_points: int = 0
+    friend_points: int = 0
+    player_base_points: int = 0
+    friend_base_points: int = 0
+    player_bonus_points: int = 0
+    friend_bonus_points: int = 0
 
 
 class LastWeekResult(BaseModel):

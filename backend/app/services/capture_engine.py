@@ -76,6 +76,10 @@ async def check_captures(
             province.capturer_leetcode_username = leetcode_username_b
             captured_count += 1
 
+        if province.captured_by is not None and province.first_captured_by is None:
+            province.first_captured_by = province.captured_by
+            province.first_captured_at = province.captured_at
+
     if captured_count > 0:
         db.commit()
 

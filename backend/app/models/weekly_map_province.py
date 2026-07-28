@@ -34,3 +34,10 @@ class WeeklyMapProvince(Base):
     captured_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     captured_submission_url: Mapped[str | None] = mapped_column(String, nullable=True)
     capturer_leetcode_username: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Permanent first-capture ledger: never changes once set, even if the
+    # province is later recaptured. The first-capture bonus derives from it.
+    first_captured_by: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=True,
+    )
+    first_captured_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
