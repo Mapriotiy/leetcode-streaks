@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -18,6 +18,10 @@ def _dialect_insert(db: Session):
     return sqlite_insert
 
 
+def _utc_today() -> date:
+    return datetime.now(timezone.utc).date()
+
+
 async def sync_user_daily_activity(
     user: User, db: Session,
 ) -> tuple[LeetCodeProfileResponse, list[RecentAcceptedSubmission]]:
@@ -33,10 +37,6 @@ async def sync_user_daily_activity(
         activity_date = date.fromisoformat(date_string)
         counts_by_date[activity_date] = submissions_count
 
-    for submission in recent_submissions:
-        submitted_date = datetime.fromisoformat(submission.submitted_at).astimezone().date()
-        counts_by_date[submitted_date] = counts_by_date.get(submitted_date, 0) + 1
-
     if counts_by_date:
         rows = [
             {
@@ -49,7 +49,7 @@ async def sync_user_daily_activity(
 
         existing = DailyActivity.__table__.c.submissions_count
         insert_fn = _dialect_insert(db)
-        incoming = insert_fn(DailyActivity).excluded.submissions_count
+        excluded = insert_fn(DailyActivity).excluded.submissions_count
 
         stmt = (
             insert_fn(DailyActivity)
@@ -57,7 +57,7 @@ async def sync_user_daily_activity(
             .on_conflict_do_update(
                 index_elements=["user_id", "date"],
                 set_={
-                    "submissions_count": func.greatest(existing, incoming),
+                    "submissions_count": func.greatest(existing, excluded),
                 },
             )
         )
@@ -65,3 +65,14 @@ async def sync_user_daily_activity(
         db.commit()
 
     return profile, recent_submissions
+
+
+def get_utc_today() -> date:
+    return _utc_today()
+
+
+def submission_to_utc_date(submitted_at: str) -> date:
+    parsed = datetime.fromisoformat(submitted_at)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc).date()

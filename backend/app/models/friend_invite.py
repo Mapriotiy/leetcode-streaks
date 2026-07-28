@@ -1,9 +1,13 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class FriendInvite(Base):
@@ -27,5 +31,5 @@ class FriendInvite(Base):
         nullable=False,
     )
     status: Mapped[str] = mapped_column(String, nullable=False, default="pending")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     accepted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

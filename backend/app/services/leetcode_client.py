@@ -66,6 +66,15 @@ async def _get_client() -> httpx.AsyncClient:
     return _client
 
 
+async def close_client() -> None:
+    global _client
+    if _client is not None and not _client.is_closed:
+        async with _client_lock:
+            if _client is not None and not _client.is_closed:
+                await _client.aclose()
+    _client = None
+
+
 _cache: dict[str, tuple[float, Any]] = {}
 _PROFILE_TTL = 300   # 5 min — avatar, calendar, historical data
 _SUBS_TTL = 60       # 1 min — recent submissions should refresh quickly

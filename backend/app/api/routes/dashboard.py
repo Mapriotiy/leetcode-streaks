@@ -1,6 +1,6 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -13,7 +13,15 @@ from app.services.streaks import (
     calculate_personal_streak,
     get_active_dates,
 )
-from app.services.activity_sync import sync_user_daily_activity
+from app.services.activity_sync import (
+    get_utc_today,
+    submission_to_utc_date,
+    sync_user_daily_activity,
+)
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -54,21 +62,19 @@ async def get_dashboard(
 ):
     avatar_url = None
     recent_submissions = []
-    today = date.today()
+    today = get_utc_today()
 
     try:
         profile, recent_submissions = await sync_user_daily_activity(current_user, db)
         avatar_url = profile.avatar_url
-    except HTTPException:
-        pass
+    except Exception:
+        logger.exception("sync_user_daily_activity failed for user_id=%s", current_user.id)
 
     seen_problem_slugs: set[str] = set()
     today_submissions = []
 
     for submission in recent_submissions:
-        submitted_date = datetime.fromisoformat(
-            submission.submitted_at,
-        ).astimezone().date()
+        submitted_date = submission_to_utc_date(submission.submitted_at)
 
         if submitted_date != today:
             continue

@@ -18,6 +18,7 @@ type Marker = {
 type ProvinceMapProps = {
     captured: Map<string, string>;
     onSelect: (id: string, pos: { x: number; y: number }) => void;
+    highlightedProvinces: string[] | null;
 };
 
 function parseScale(transform: string | null): number {
@@ -82,13 +83,14 @@ function setIconFlag(icon: SVGGElement, color: string) {
 }
 
 function applyCaptured(path: SVGPathElement, color: string) {
+    path.style.opacity = '0.38';
     path.style.stroke = color;
     path.style.strokeWidth = '5';
-    path.style.fill = color + '59';
+    path.style.fill = color + '66';
     path.style.filter = `drop-shadow(0 0 6px ${color}) drop-shadow(0 0 12px ${color})`;
 }
 
-export default function ProvinceMap({ captured, onSelect }: ProvinceMapProps) {
+export default function ProvinceMap({ captured, onSelect, highlightedProvinces }: ProvinceMapProps) {
     const svgWrapRef = useRef<HTMLDivElement>(null);
     const markersRef = useRef<Map<string, Marker>>(new Map());
     const pathStylesRef = useRef<Map<string, string>>(new Map());
@@ -97,19 +99,35 @@ export default function ProvinceMap({ captured, onSelect }: ProvinceMapProps) {
         const el = svgWrapRef.current;
         if (!el || el.querySelector('svg')) return;
 
-        el.innerHTML = mapSvgString;
+        try {
+            el.innerHTML = mapSvgString;
+        } catch (err) {
+            console.error('[ProvinceMap] innerHTML failed:', err);
+            return;
+        }
         const svg = el.querySelector('svg');
-        if (!svg) return;
+        if (!svg) {
+            console.error('[ProvinceMap] No SVG element found after injection');
+            return;
+        }
+
+        svg.setAttribute('preserveAspectRatio', 'none');
 
         svg.querySelectorAll<SVGPathElement>('.prov').forEach((path) => {
             if (markersRef.current.has(path.id)) return;
 
             pathStylesRef.current.set(path.id, path.getAttribute('style') || '');
 
-            const pathBbox = path.getBBox();
-            const s = parseScale(path.getAttribute('transform'));
-            const cx = (pathBbox.x + pathBbox.width / 2) * s;
-            const cy = (pathBbox.y + pathBbox.height / 2) * s;
+            let cx = 0, cy = 0;
+            try {
+                const pathBbox = path.getBBox();
+                const s = parseScale(path.getAttribute('transform'));
+                cx = (pathBbox.x + pathBbox.width / 2) * s;
+                cy = (pathBbox.y + pathBbox.height / 2) * s;
+            } catch (err) {
+                console.error('[ProvinceMap] getBBox failed for', path.id, err);
+                return;
+            }
 
             const { g, ring, icon } = createMarkerGroup(cx, cy);
             path.parentNode?.insertBefore(g, path.nextSibling);
@@ -158,15 +176,55 @@ export default function ProvinceMap({ captured, onSelect }: ProvinceMapProps) {
         });
     }, [captured]);
 
+useEffect(() => {
+        const svg = svgWrapRef.current?.querySelector('svg');
+        if (!svg) return;
+
+        svg.querySelectorAll<SVGPathElement>('.prov').forEach((path) => {
+            const owner = captured.get(path.id);
+            const isCaptured = owner && COLORS[owner];
+
+            if (!highlightedProvinces) {
+                if (isCaptured) {
+                    applyCaptured(path, COLORS[owner]);
+                } else {
+                    path.setAttribute('style', pathStylesRef.current.get(path.id) || '');
+                }
+                return;
+            }
+
+            const isHighlighted = highlightedProvinces.includes(path.id);
+
+            if (isHighlighted) {
+                if (isCaptured) {
+                    applyCaptured(path, COLORS[owner]);
+                } else {
+                    path.setAttribute('style', pathStylesRef.current.get(path.id) || '');
+                    path.style.opacity = '0.45';
+                    path.style.filter = 'drop-shadow(0 0 5px rgba(255,255,255,0.4))';
+                }
+            } else {
+                if (isCaptured) {
+                    applyCaptured(path, COLORS[owner]);
+                    path.style.opacity = '0.15';
+                } else {
+                    path.setAttribute('style', pathStylesRef.current.get(path.id) || '');
+                    path.style.opacity = '0.03';
+                }
+            }
+        });
+    }, [highlightedProvinces, captured]);
+
     return (
         <div
-            className="relative w-full max-w-3xl overflow-hidden rounded-2xl shadow-2xl border border-white/10"
+            className="relative w-full overflow-hidden rounded-2xl shadow-2xl border border-white/10"
             style={{ aspectRatio: '1321 / 900' }}
         >
             <img
                 src={`${import.meta.env.BASE_URL}leet_background.png`}
                 alt="Background"
                 className="absolute inset-0 w-full h-full object-fill"
+                onError={(e) => console.error('[ProvinceMap] Background image failed:', (e.target as HTMLImageElement).src)}
             />
             <div ref={svgWrapRef} className="absolute inset-0 w-full h-full" />
         </div>

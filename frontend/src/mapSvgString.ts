@@ -1,4 +1,4 @@
-﻿export const mapSvgString = `<svg class="province-svg"    width="100%"
+export const mapSvgString = `<svg class="province-svg"    width="100%"
    height="100%"
    viewBox="0 0 349.56787 238.00241"
    version="1.1"

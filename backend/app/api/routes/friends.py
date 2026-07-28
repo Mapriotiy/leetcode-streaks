@@ -1,6 +1,7 @@
 import asyncio
+import logging
 import secrets
-from datetime import date, datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_
@@ -22,8 +23,10 @@ from app.schemas.friends import (
     TodayFriendStatusResponse,
 )
 
-from app.services.activity_sync import sync_user_daily_activity
+from app.services.activity_sync import get_utc_today, sync_user_daily_activity
 from app.services.streaks import calculate_friend_streak, get_active_dates
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -47,7 +50,8 @@ def build_invite_url(token: str) -> str:
 async def sync_user_activity_if_available(user: User, db: Session) -> None:
     try:
         await sync_user_daily_activity(user, db)
-    except HTTPException:
+    except Exception:
+        logger.exception("sync_user_daily_activity failed for user_id=%s", user.id)
         return
 
 
@@ -143,7 +147,7 @@ def accept_invite(
     if existing_friendship:
         invite.status = "accepted"
         invite.accepted_by_user_id = current_user.id
-        invite.accepted_at = datetime.utcnow()
+        invite.accepted_at = datetime.now(timezone.utc)
         db.commit()
 
         inviter = db.get(User, invite.inviter_user_id)
@@ -160,7 +164,7 @@ def accept_invite(
 
     invite.status = "accepted"
     invite.accepted_by_user_id = current_user.id
-    invite.accepted_at = datetime.utcnow()
+    invite.accepted_at = datetime.now(timezone.utc)
 
     db.add(friendship)
     db.commit()
@@ -209,7 +213,7 @@ async def list_friends(
     await asyncio.gather(*sync_tasks)
 
     current_user_dates = get_active_dates(current_user, db)
-    today = date.today()
+    today = get_utc_today()
 
     result: list[FriendResponse] = []
 

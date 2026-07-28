@@ -1,10 +1,14 @@
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
 from app.models.daily_activity import DailyActivity
 from app.models.user import User
+
+
+def _utc_today() -> date:
+    return datetime.now(timezone.utc).date()
 
 
 @dataclass
@@ -58,7 +62,7 @@ def calculate_streak_ending_at(active_dates: set[date], end_date: date) -> int:
 
 def calculate_current_streak(active_dates: set[date], today: date | None = None) -> int:
     if today is None:
-        today = date.today()
+        today = _utc_today()
 
     return calculate_streak_ending_at(active_dates, today)
 
@@ -68,7 +72,7 @@ def calculate_personal_streak(
         today: date | None = None,
 ) -> PersonalStreakStats:
     if today is None:
-        today = date.today()
+        today = _utc_today()
 
     if today in active_dates:
         return PersonalStreakStats(
@@ -123,7 +127,7 @@ def calculate_friend_streak(
         today: date | None = None,
 ) -> FriendStreakStats:
     if today is None:
-        today = date.today()
+        today = _utc_today()
 
     shared_dates = {
         active_date
