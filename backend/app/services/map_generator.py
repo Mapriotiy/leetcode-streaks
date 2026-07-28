@@ -99,7 +99,7 @@ async def get_or_create_weekly_map(
     if existing:
         return existing
 
-    await ensure_catalog(db)
+    await ensure_catalog(db, force=reset)
 
     if leetcode_username_a and leetcode_username_b:
         client = LeetCodeClient()

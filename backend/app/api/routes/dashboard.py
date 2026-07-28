@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.daily_activity import DailyActivity
+from app.models.leetcode_problem import LeetCodeProblem
 from app.models.user import User
 from app.schemas.dashboard import DashboardResponse, TodaySubmissionResponse
 from app.services.streaks import (
@@ -71,7 +72,7 @@ async def get_dashboard(
         logger.exception("sync_user_daily_activity failed for user_id=%s", current_user.id)
 
     seen_problem_slugs: set[str] = set()
-    today_submissions = []
+    submissions_map: dict[str, TodaySubmissionResponse] = {}
 
     for submission in recent_submissions:
         submitted_date = submission_to_utc_date(submission.submitted_at)
@@ -83,15 +84,28 @@ async def get_dashboard(
             continue
 
         seen_problem_slugs.add(submission.title_slug)
-        today_submissions.append(
-            TodaySubmissionResponse(
-                title=submission.title,
-                title_slug=submission.title_slug,
-                url=submission.url,
-                submitted_at=submission.submitted_at,
-                language=submission.language,
-            )
+        submissions_map[submission.title_slug] = TodaySubmissionResponse(
+            title=submission.title,
+            title_slug=submission.title_slug,
+            url=submission.url,
+            submitted_at=submission.submitted_at,
+            language=submission.language,
         )
+
+    if submissions_map:
+        problems = {
+            p.title_slug: p
+            for p in db.query(LeetCodeProblem).filter(
+                LeetCodeProblem.title_slug.in_(list(submissions_map.keys()))
+            ).all()
+        }
+        for slug, resp in submissions_map.items():
+            prob = problems.get(slug)
+            if prob:
+                resp.difficulty = prob.difficulty
+                resp.topic_tags = (prob.topic_tags or [])[:2]
+
+    today_submissions = list(submissions_map.values())
 
     active_dates = get_active_dates(current_user, db)
     personal_streak = calculate_personal_streak(active_dates, today=today)

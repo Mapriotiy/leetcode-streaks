@@ -140,9 +140,9 @@ def get_any_unsolved(exclude_slugs: set[str], db: Session) -> list[LeetCodeProbl
     return [p for p in rows if p.title_slug not in exclude_slugs]
 
 
-async def ensure_catalog(db: Session) -> None:
+async def ensure_catalog(db: Session, force: bool = False) -> None:
     try:
-        if needs_refresh(db):
+        if force or needs_refresh(db):
             count = await refresh_catalog(db)
             if count == 0:
                 logger.error("Catalog refresh returned 0 problems — map generation may fail")

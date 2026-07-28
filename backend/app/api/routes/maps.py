@@ -300,12 +300,15 @@ async def sync_map(
 
     score = _compute_score(provinces, current_user.id, friendship.user_a_id if friendship.user_b_id == current_user.id else friendship.user_b_id)
 
-    avatar_a, avatar_b = await _fetch_avatars(user_a, user_b)
+    friend_id = friendship.user_b_id if friendship.user_a_id == current_user.id else friendship.user_a_id
+    friend = db.get(User, friend_id)
+
+    avatar_player_raw, avatar_friend_raw = await _fetch_avatars(current_user, friend)
 
     return SyncResponse(
         captured_count=captured_count,
         provinces=province_responses,
         score=score,
-        player_avatar_url=avatar_a,
-        friend_avatar_url=avatar_b,
+        player_avatar_url=avatar_player_raw,
+        friend_avatar_url=avatar_friend_raw,
     )

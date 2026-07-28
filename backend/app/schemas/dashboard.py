@@ -9,6 +9,8 @@ class TodaySubmissionResponse(BaseModel):
     url: str
     submitted_at: str
     language: str | None = None
+    difficulty: str | None = None
+    topic_tags: list[str] = Field(default_factory=list)
 
 
 class ActivityCalendarDayResponse(BaseModel):

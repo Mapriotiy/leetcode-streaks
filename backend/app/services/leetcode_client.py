@@ -65,6 +65,7 @@ query problemsetQuestionList($categorySlug: String, $skip: Int, $limit: Int, $fi
       title
       titleSlug
       difficulty
+      isPaidOnly
       topicTags {
         name
         slug
@@ -229,6 +230,8 @@ class LeetCodeClient:
 
         result: list[dict] = []
         for q in questions:
+            if q.get("isPaidOnly", False):
+                continue
             frontend_id = q.get("questionId")
             if frontend_id is None:
                 continue

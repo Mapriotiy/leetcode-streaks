@@ -21,6 +21,8 @@ type DashboardData = {
         url: string;
         submitted_at: string;
         language: string | null;
+        difficulty: string | null;
+        topic_tags: string[];
     }[];
     activity_calendar: ActivityCalendarDay[];
 };
@@ -413,33 +415,64 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenMap }: Dashboa
                                 </span>
                             </div>
 
-                            <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
+                            <div className="mt-4 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
                                 {!dashboardData?.today_submissions.length ? (
                                     <p className="text-sm text-[#8a8a8a]">
                                         No accepted submissions yet.
                                     </p>
                                 ) : (
-                                    <ul className="grid gap-2">
-                                        {dashboardData.today_submissions.map((submission) => (
-                                            <li key={submission.title_slug}>
-                                                <a
-                                                    href={submission.url}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="block rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm text-[#eff1f6] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
-                                                >
-                                                    <span className="block truncate">
-                                                        {submission.title}
-                                                    </span>
-                                                    {submission.language ? (
-                                                        <span className="mt-1 block text-xs text-[#8a8a8a]">
-                                                            {submission.language}
+                                    dashboardData.today_submissions.map((submission) => (
+                                        <a
+                                            key={submission.title_slug}
+                                            href={submission.url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="block rounded-md border px-3 py-2 text-sm text-[#eff1f6] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                                            style={{
+                                                borderColor: submission.difficulty
+                                                    ? submission.difficulty === 'Easy'
+                                                        ? '#00b8a3'
+                                                        : submission.difficulty === 'Medium'
+                                                          ? '#ffc01e'
+                                                          : '#ff375f'
+                                                    : '#3a3a3a',
+                                            }}
+                                        >
+                                            <span className="block truncate font-medium">
+                                                {submission.title}
+                                            </span>
+                                            {(submission.difficulty || submission.topic_tags?.length) ? (
+                                                <span className="mt-1 flex items-center gap-1.5 text-xs">
+                                                    {submission.difficulty ? (
+                                                        <span
+                                                            className="font-medium"
+                                                            style={{
+                                                                color: submission.difficulty === 'Easy'
+                                                                    ? '#00b8a3'
+                                                                    : submission.difficulty === 'Medium'
+                                                                      ? '#ffc01e'
+                                                                      : '#ff375f',
+                                                            }}
+                                                        >
+                                                            {submission.difficulty}
                                                         </span>
                                                     ) : null}
-                                                </a>
-                                            </li>
-                                        ))}
-                                    </ul>
+                                                    {(submission.topic_tags ?? []).map((tag) => (
+                                                        <span
+                                                            key={tag}
+                                                            className="rounded-full bg-[#333] px-2 py-0.5 text-[#aaa]"
+                                                        >
+                                                            {tag}
+                                                        </span>
+                                                    ))}
+                                                </span>
+                                            ) : submission.language ? (
+                                                <span className="mt-1 block text-xs text-[#8a8a8a]">
+                                                    {submission.language}
+                                                </span>
+                                            ) : null}
+                                        </a>
+                                    ))
                                 )}
                             </div>
                         </article>
