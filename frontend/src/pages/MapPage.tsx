@@ -138,6 +138,15 @@ export function MapPage({
                 setPlayerAvatarUrl(data.player_avatar_url);
                 setFriendAvatarUrl(data.friend_avatar_url);
                 setLastWeekResult(data.last_week_result);
+                return apiRequest<SyncApiResponse>(`/maps/${friendshipId}/sync`, { method: 'POST' });
+            })
+            .then((syncData) => {
+                if (syncData && syncData.provinces.length > 0) {
+                    setProvincesData(syncData.provinces);
+                    setScoreData(syncData.score);
+                    if (syncData.player_avatar_url) setPlayerAvatarUrl(syncData.player_avatar_url);
+                    if (syncData.friend_avatar_url) setFriendAvatarUrl(syncData.friend_avatar_url);
+                }
             })
             .catch(console.error)
             .finally(() => setLoading(false));
