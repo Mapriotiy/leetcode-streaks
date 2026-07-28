@@ -202,7 +202,7 @@ class LeetCodeClient:
             self,
             skip: int = 0,
             limit: int = 50,
-            category_slug: str = "all-code-essentials",
+            category_slug: str = "",
     ) -> tuple[int, list[dict]]:
         cache_key = f"problemset:{skip}:{limit}:{category_slug}"
         cached = _cache_get(cache_key, _SUBS_TTL)
