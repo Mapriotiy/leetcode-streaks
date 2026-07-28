@@ -127,44 +127,39 @@ export function MapPage({
                             Loading map...
                         </div>
                     ) : (
-                        <div className="flex items-stretch justify-center gap-3">
+                        <div className="flex items-start justify-center gap-3">
                             <MapLegend
                                 regions={REGIONS}
                                 onHover={setHoveredProvinces}
                                 className="hidden w-40 shrink-0 list-none space-y-2 md:flex md:flex-col"
                             />
 
-                            <div className="min-w-0 flex-1 self-start">
+                            <div className="min-w-0 flex-1">
                                 <ProvinceMap
                                     captured={captured}
                                     onSelect={handleSelect}
                                     highlightedProvinces={hoveredProvinces}
                                 />
                             </div>
-
-                            <EventLogPanel
-                                events={events}
-                                currentUserId={currentUserId}
-                                className="hidden w-72 shrink-0 max-h-[560px] md:flex"
-                            />
                         </div>
                     )}
 
                     {provincesData.length > 0 && (
-                        <>
-                            <EventLogPanel
-                                events={events}
-                                currentUserId={currentUserId}
-                                className="mt-4 max-h-72 md:hidden"
-                            />
-                            <MapLegend
-                                regions={REGIONS}
-                                onHover={setHoveredProvinces}
-                                className="mt-4 flex list-none flex-col gap-2 md:hidden"
-                            />
-                        </>
+                        <MapLegend
+                            regions={REGIONS}
+                            onHover={setHoveredProvinces}
+                            className="mt-4 flex list-none flex-col gap-2 md:hidden"
+                        />
                     )}
                 </section>
+
+                {!loading && (
+                    <EventLogPanel
+                        events={events}
+                        currentUserId={currentUserId}
+                        className="mt-6 max-h-80"
+                    />
+                )}
 
                 <ProvincePopup
                     provinceId={selectedProvince}
