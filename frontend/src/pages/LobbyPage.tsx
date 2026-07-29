@@ -68,6 +68,7 @@ function defaultFactions(count: number): Faction[] {
 const MODE_LABELS: Record<string, string> = {
     free_for_all: 'Free for All',
     team_battle: 'Team Battle',
+    bingo: 'Bingo',
 };
 
 const MAP_LABELS: Record<string, string> = {

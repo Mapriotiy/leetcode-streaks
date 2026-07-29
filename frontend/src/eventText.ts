@@ -41,6 +41,12 @@ export function eventText(event: GameEventApiData, currentUserId: number): strin
             return `${actor} seized full control of ${regionNameForProvince(event.province_id)}${
                 event.points ? ` (+${event.points} while held)` : ''
             }`;
+        case 'cell_claimed':
+            return `${actor} claimed ${event.problem_title ?? 'a cell'}${
+                event.points ? ` (+${event.points})` : ''
+            }`;
+        case 'bingo_line':
+            return `${actor} completed a bingo line!`;
         case 'game_won':
             return event.actor_user_id === currentUserId
                 ? 'You won the game! 🏆'
