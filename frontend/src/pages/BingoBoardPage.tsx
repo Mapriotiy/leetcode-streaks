@@ -54,7 +54,9 @@ type BingoBoardPageProps = {
     onLeft: () => void;
 };
 
-const POLL_INTERVAL_MS = 30_000;
+const STATE_POLL_INTERVAL_MS = 7_500;
+const SYNC_INTERVAL_MS = 60_000;
+const SYNC_JITTER_MS = 15_000;
 
 export function BingoBoardPage({ lobbyId, currentUserId, players, factions, onBack, onLeft }: BingoBoardPageProps) {
     const [cells, setCells] = useState<BingoCellData[]>([]);
@@ -119,8 +121,31 @@ export function BingoBoardPage({ lobbyId, currentUserId, players, factions, onBa
 
     useEffect(() => {
         if (gameStatus === 'finished') return;
-        const interval = setInterval(sync, POLL_INTERVAL_MS);
+        const interval = setInterval(loadBoard, STATE_POLL_INTERVAL_MS);
         return () => clearInterval(interval);
+    }, [loadBoard, gameStatus]);
+
+    useEffect(() => {
+        if (gameStatus === 'finished') return;
+        let timeoutId: number | null = null;
+        let isActive = true;
+
+        function scheduleSync() {
+            if (!isActive) return;
+            const delay = SYNC_INTERVAL_MS + Math.floor(Math.random() * SYNC_JITTER_MS);
+            timeoutId = window.setTimeout(() => {
+                void sync().finally(() => {
+                    if (isActive) scheduleSync();
+                });
+            }, delay);
+        }
+
+        scheduleSync();
+
+        return () => {
+            isActive = false;
+            if (timeoutId !== null) window.clearTimeout(timeoutId);
+        };
     }, [sync, gameStatus]);
 
     const handleLeave = useCallback(async () => {

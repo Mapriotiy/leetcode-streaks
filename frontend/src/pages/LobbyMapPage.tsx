@@ -83,7 +83,9 @@ type LobbyMapPageProps = {
     onLeft: () => void;
 };
 
-const POLL_INTERVAL_MS = 30_000;
+const STATE_POLL_INTERVAL_MS = 7_500;
+const SYNC_INTERVAL_MS = 60_000;
+const SYNC_JITTER_MS = 15_000;
 const STATIC_PROVINCE_ORDER = REGIONS.flatMap((region) => region.provinces);
 const STATIC_PROVINCE_ORDER_INDEX = new Map(STATIC_PROVINCE_ORDER.map((provinceId, index) => [provinceId, index]));
 
@@ -227,8 +229,31 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
 
     useEffect(() => {
         if (gameStatus === 'finished') return;
-        const interval = setInterval(sync, POLL_INTERVAL_MS);
+        const interval = setInterval(loadMap, STATE_POLL_INTERVAL_MS);
         return () => clearInterval(interval);
+    }, [loadMap, gameStatus]);
+
+    useEffect(() => {
+        if (gameStatus === 'finished') return;
+        let timeoutId: number | null = null;
+        let isActive = true;
+
+        function scheduleSync() {
+            if (!isActive) return;
+            const delay = SYNC_INTERVAL_MS + Math.floor(Math.random() * SYNC_JITTER_MS);
+            timeoutId = window.setTimeout(() => {
+                void sync().finally(() => {
+                    if (isActive) scheduleSync();
+                });
+            }, delay);
+        }
+
+        scheduleSync();
+
+        return () => {
+            isActive = false;
+            if (timeoutId !== null) window.clearTimeout(timeoutId);
+        };
     }, [sync, gameStatus]);
 
     const handleSelect = useCallback((id: string, pos: { x: number; y: number }) => {
