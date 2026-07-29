@@ -36,7 +36,7 @@ from app.services.lobby_settings import (
     team_by_user,
 )
 from app.services.map_config import PROVINCE_REGION, REGION_TOPICS
-from app.services.map_generator import _pick_problem
+from app.services.problem_picker import pick_problem
 from app.services.scoring import (
     TeamScore,
     compute_team_scores,
@@ -69,9 +69,9 @@ class TerritoryMode(GameMode):
         used: set[str] = set()
         for prov_id, region_id in PROVINCE_REGION.items():
             cfg = REGION_TOPICS.get(region_id, {"tags": [], "difficulty": None})
-            prob = _pick_problem(cfg["tags"], cfg["difficulty"], all_solved | used, db)
+            prob = pick_problem(cfg["tags"], cfg["difficulty"], all_solved | used, db)
             if not prob:
-                prob = _pick_problem([], None, all_solved | used, db)
+                prob = pick_problem([], None, all_solved | used, db)
             if not prob:
                 continue
             used.add(prob.title_slug)

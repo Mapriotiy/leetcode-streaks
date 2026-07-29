@@ -14,11 +14,8 @@ from app.services.map_config import (
     REGION_TOPICS,
     get_week_start,
 )
-from app.services.problem_catalog import (
-    ensure_catalog,
-    get_any_unsolved,
-    get_problems_by_tags,
-)
+from app.services.problem_catalog import ensure_catalog
+from app.services.problem_picker import pick_problem
 from app.services.user_solved import (
     get_solved_slugs_with_timestamps,
     record_submissions,
@@ -163,15 +160,6 @@ async def get_or_create_weekly_map(
     return weekly_map
 
 
-def _pick_problem(
-    tags: list[str],
-    difficulty: str | None,
-    exclude: set[str],
-    db: Session,
-) -> LeetCodeProblem | None:
-    candidates = get_problems_by_tags(tags, difficulty, exclude, db)
-    if not candidates:
-        candidates = get_any_unsolved(exclude, db)
-    if not candidates:
-        return None
-    return random.choice(candidates)
+# Kept as an alias for this dormant weekly-map module; the shared picker
+# lives in problem_picker.py.
+_pick_problem = pick_problem
