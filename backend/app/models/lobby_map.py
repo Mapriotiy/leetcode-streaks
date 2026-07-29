@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.types import JSON
 from app.db.base import Base
 
 
@@ -15,4 +16,6 @@ class LobbyMap(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     lobby_id: Mapped[int] = mapped_column(ForeignKey("lobbies.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
     map_size: Mapped[str] = mapped_column(String, nullable=False, default="medium")
+    map_kind: Mapped[str] = mapped_column(String, nullable=False, default="default")
+    map_config: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)

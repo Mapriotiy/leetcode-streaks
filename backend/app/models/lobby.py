@@ -18,6 +18,7 @@ class Lobby(Base):
     status: Mapped[str] = mapped_column(String, nullable=False, default="waiting")
     game_mode: Mapped[str] = mapped_column(String, nullable=False, default="free_for_all")
     map_size: Mapped[str] = mapped_column(String, nullable=False, default="medium")
+    map_config: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     max_players: Mapped[int] = mapped_column(Integer, nullable=False, default=2)
     faction_mode: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     faction_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

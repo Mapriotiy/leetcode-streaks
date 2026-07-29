@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Any, Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -27,6 +27,7 @@ class LobbyResponse(BaseModel):
     faction_mode: bool
     faction_count: int
     factions: list[FactionResponse] = Field(default_factory=list)
+    map_selection: Optional[dict[str, Any]] = None
     programming_language: str = "python3"
     win_condition: dict
     players: list[LobbyPlayerResponse]
@@ -54,6 +55,15 @@ class CreateLobbyResponse(BaseModel):
     invite_url: str
 
 
+class LobbyMapSelectionRequest(BaseModel):
+    kind: Literal["default", "generated"] = "default"
+    draft: Optional[dict[str, Any]] = None
+
+
+class LobbyMapSelectionResponse(BaseModel):
+    selection: dict[str, Any]
+
+
 class InviteLobbyResponse(BaseModel):
     lobby_id: int
     lobby_name: str
@@ -69,6 +79,8 @@ class InviteLobbyResponse(BaseModel):
 class LobbyMapProvinceResponse(BaseModel):
     province_id: str
     region_id: str
+    province_name: Optional[str] = None
+    region_name: Optional[str] = None
     problem: Optional[dict] = None
     captured_by: Optional[int] = None
     captured_by_username: Optional[str] = None
@@ -102,6 +114,7 @@ class LobbyScoreEntry(BaseModel):
 
 class LobbyMapResponse(BaseModel):
     lobby_id: int
+    map_selection: Optional[dict[str, Any]] = None
     provinces: list[LobbyMapProvinceResponse]
     score: list[LobbyScoreEntry] = Field(default_factory=list)
 
@@ -109,6 +122,7 @@ class LobbyMapResponse(BaseModel):
 class LobbyMapSyncResponse(BaseModel):
     captured_count: int
     recaptured_count: int = 0
+    map_selection: Optional[dict[str, Any]] = None
     provinces: list[LobbyMapProvinceResponse]
     score: list[LobbyScoreEntry] = Field(default_factory=list)
 
@@ -116,6 +130,8 @@ class LobbyMapSyncResponse(BaseModel):
 class LobbyEventResponse(BaseModel):
     id: int
     province_id: Optional[str] = None
+    province_name: Optional[str] = None
+    region_name: Optional[str] = None
     event_type: str
     actor_user_id: int
     actor_username: str
