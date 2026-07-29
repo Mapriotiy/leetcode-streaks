@@ -31,6 +31,8 @@ class LobbyEvent(Base):
     )
     # Null for game-level events (game_won); "cellN" keys for board modes.
     province_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    province_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    region_name: Mapped[str | None] = mapped_column(String, nullable=True)
     event_type: Mapped[str] = mapped_column(String, nullable=False)
     actor_user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"),

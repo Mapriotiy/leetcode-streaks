@@ -9,6 +9,8 @@ from app.models.friendship import Friendship
 from app.models.leetcode_problem import LeetCodeProblem
 from app.models.lobby import Lobby
 from app.models.lobby_event import LobbyEvent
+from app.models.lobby_map import LobbyMap
+from app.models.lobby_map_province import LobbyMapProvince
 from app.models.map_event import MapEvent
 from app.models.user import User
 from app.models.weekly_map import WeeklyMap
@@ -92,6 +94,8 @@ def record_lobby_events(
         event = LobbyEvent(
             lobby_id=lobby.id,
             province_id=change.province.province_id,
+            province_name=getattr(change.province, "province_name", None),
+            region_name=getattr(change.province, "region_name", None),
             event_type=change.kind,
             actor_user_id=change.actor_user_id,
             actor_username=usernames.get(change.actor_user_id, "?"),
@@ -124,7 +128,7 @@ def get_lobby_events(
     limit: int,
     db: Session,
 ) -> list[LobbyEvent]:
-    return (
+    events = (
         db.query(LobbyEvent)
         .filter(
             LobbyEvent.lobby_id == lobby_id,
@@ -134,6 +138,47 @@ def get_lobby_events(
         .limit(limit)
         .all()
     )
+    _enrich_lobby_event_names(lobby_id, events, db)
+    return events
+
+
+def _enrich_lobby_event_names(
+    lobby_id: int,
+    events: list[LobbyEvent],
+    db: Session,
+) -> None:
+    province_ids = {
+        event.province_id
+        for event in events
+        if event.province_id and (not event.province_name or not event.region_name)
+    }
+    if not province_ids:
+        return
+
+    lmap = db.query(LobbyMap).filter_by(lobby_id=lobby_id).first()
+    if not lmap:
+        return
+
+    provinces = (
+        db.query(LobbyMapProvince)
+        .filter(
+            LobbyMapProvince.lobby_map_id == lmap.id,
+            LobbyMapProvince.province_id.in_(province_ids),
+        )
+        .all()
+    )
+    province_by_id = {province.province_id: province for province in provinces}
+
+    for event in events:
+        if not event.province_id:
+            continue
+        province = province_by_id.get(event.province_id)
+        if not province:
+            continue
+        if not event.province_name:
+            event.province_name = province.province_name
+        if not event.region_name:
+            event.region_name = province.region_name
 
 
 def record_capture_events(
