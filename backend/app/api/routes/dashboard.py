@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -10,11 +10,14 @@ from app.models.leetcode_problem import LeetCodeProblem
 from app.models.lobby import Lobby
 from app.models.lobby_player import LobbyPlayer
 from app.models.user import User
+from app.models.user_solved import UserSolved
 from app.schemas.dashboard import (
+    DashboardSyncResponse,
     DashboardFactionResponse,
     DashboardLobbyPlayerResponse,
     DashboardLobbyResponse,
     DashboardResponse,
+    SyncMetaResponse,
     TodaySubmissionResponse,
 )
 from app.services.streaks import (
@@ -24,13 +27,8 @@ from app.services.streaks import (
 )
 from app.services.activity_sync import (
     get_utc_today,
-    submission_to_utc_date,
-    sync_user_daily_activity,
 )
-
-import logging
-
-logger = logging.getLogger(__name__)
+from app.services.leetcode_sync import maybe_sync_user_profile, maybe_sync_user_recent
 
 router = APIRouter()
 
@@ -143,69 +141,84 @@ def build_user_lobbies(current_user: User, db: Session) -> list[DashboardLobbyRe
     return responses
 
 
+def build_today_submissions(
+        current_user: User,
+        db: Session,
+        today: date,
+) -> list[TodaySubmissionResponse]:
+    start = datetime.combine(today, time.min)
+    end = start + timedelta(days=1)
+
+    solved_rows = (
+        db.query(UserSolved)
+        .filter(
+            UserSolved.user_id == current_user.id,
+            UserSolved.solved_at >= start,
+            UserSolved.solved_at < end,
+        )
+        .order_by(UserSolved.solved_at.desc())
+        .all()
+    )
+
+    solved_by_slug: dict[str, UserSolved] = {}
+    for solved in solved_rows:
+        solved_by_slug.setdefault(solved.title_slug, solved)
+
+    if not solved_by_slug:
+        return []
+
+    problems = {
+        p.title_slug: p
+        for p in db.query(LeetCodeProblem).filter(
+            LeetCodeProblem.title_slug.in_(list(solved_by_slug.keys()))
+        ).all()
+    }
+
+    submissions: list[TodaySubmissionResponse] = []
+    for slug, solved in solved_by_slug.items():
+        problem = problems.get(slug)
+        submissions.append(
+            TodaySubmissionResponse(
+                title=problem.title if problem else slug.replace("-", " ").title(),
+                title_slug=slug,
+                url=f"https://leetcode.com/problems/{slug}/",
+                submitted_at=solved.solved_at.isoformat(),
+                language=solved.language,
+                difficulty=problem.difficulty if problem else None,
+                topic_tags=(problem.topic_tags or [])[:2] if problem else [],
+            )
+        )
+
+    return submissions
+
+
 @router.get("/", response_model=DashboardResponse)
 async def get_dashboard(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db),
 ):
-    avatar_url = None
-    recent_submissions = []
     today = get_utc_today()
 
-    try:
-        profile, recent_submissions = await sync_user_daily_activity(current_user, db)
-        avatar_url = profile.avatar_url
-    except Exception:
-        logger.exception("sync_user_daily_activity failed for user_id=%s", current_user.id)
-
-    seen_problem_slugs: set[str] = set()
-    submissions_map: dict[str, TodaySubmissionResponse] = {}
-
-    for submission in recent_submissions:
-        submitted_date = submission_to_utc_date(submission.submitted_at)
-
-        if submitted_date != today:
-            continue
-
-        if submission.title_slug in seen_problem_slugs:
-            continue
-
-        seen_problem_slugs.add(submission.title_slug)
-        submissions_map[submission.title_slug] = TodaySubmissionResponse(
-            title=submission.title,
-            title_slug=submission.title_slug,
-            url=submission.url,
-            submitted_at=submission.submitted_at,
-            language=submission.language,
-        )
-
-    if submissions_map:
-        problems = {
-            p.title_slug: p
-            for p in db.query(LeetCodeProblem).filter(
-                LeetCodeProblem.title_slug.in_(list(submissions_map.keys()))
-            ).all()
-        }
-        for slug, resp in submissions_map.items():
-            prob = problems.get(slug)
-            if prob:
-                resp.difficulty = prob.difficulty
-                resp.topic_tags = (prob.topic_tags or [])[:2]
-
-    today_submissions = list(submissions_map.values())
+    recent_sync = await maybe_sync_user_recent(current_user, db, limit=30)
+    profile_sync = await maybe_sync_user_profile(current_user, db)
+    db.refresh(current_user)
 
     active_dates = get_active_dates(current_user, db)
     personal_streak = calculate_personal_streak(active_dates, today=today)
 
     return DashboardResponse(
         leetcode_username=current_user.leetcode_username,
-        avatar_url=avatar_url,
+        avatar_url=current_user.leetcode_avatar_url,
         current_streak=personal_streak.display_count,
         current_streak_state=personal_streak.state,
         today_active=personal_streak.today_active,
         longest_streak=calculate_longest_streak(active_dates),
         active_days_count=len(active_dates),
-        today_submissions=today_submissions,
+        today_submissions=build_today_submissions(current_user, db, today=today),
         activity_calendar=build_activity_calendar(current_user, db, today=today),
         lobbies=build_user_lobbies(current_user, db),
+        sync=DashboardSyncResponse(
+            recent=SyncMetaResponse(**recent_sync.meta.as_dict()),
+            profile=SyncMetaResponse(**profile_sync.meta.as_dict()),
+        ),
     )

@@ -5,8 +5,8 @@ from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.leetcode import LeetCodeProfileResponse
-from app.services.activity_sync import sync_user_daily_activity
 from app.services.leetcode_client import LeetCodeClient
+from app.services.leetcode_sync import maybe_sync_user_profile, maybe_sync_user_recent
 
 router = APIRouter()
 
@@ -22,8 +22,13 @@ async def sync_my_leetcode_activity(
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db),
 ):
-    profile, _ = await sync_user_daily_activity(current_user, db)
+    recent = await maybe_sync_user_recent(current_user, db, cooldown_seconds=0)
+    profile = await maybe_sync_user_profile(current_user, db, cooldown_seconds=0)
 
     return {
-        "synced_days": len(profile.submission_calendar),
+        "synced_days": len(profile.profile.submission_calendar) if profile.profile else 0,
+        "sync": {
+            "recent": recent.meta.as_dict(),
+            "profile": profile.meta.as_dict(),
+        },
     }

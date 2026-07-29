@@ -17,6 +17,25 @@ export type DashboardData = {
     }[];
     activity_calendar: ActivityCalendarDay[];
     lobbies: DashboardLobby[];
+    sync: DashboardSync | null;
+};
+
+export type SyncMeta = {
+    status:
+        | "synced"
+        | "recently_synced"
+        | "in_progress"
+        | "rate_limited"
+        | "failed"
+        | "skipped";
+    last_synced_at: string | null;
+    next_sync_after: string | null;
+    error: string | null;
+};
+
+export type DashboardSync = {
+    recent: SyncMeta;
+    profile: SyncMeta;
 };
 
 export type ActivityCalendarDay = {

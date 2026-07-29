@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import secrets
 from datetime import datetime, timezone
@@ -23,7 +22,8 @@ from app.schemas.friends import (
     TodayFriendStatusResponse,
 )
 
-from app.services.activity_sync import get_utc_today, sync_user_daily_activity
+from app.services.activity_sync import get_utc_today
+from app.services.leetcode_sync import maybe_sync_user_profile
 from app.services.streaks import calculate_friend_streak, get_active_dates
 
 logger = logging.getLogger(__name__)
@@ -49,9 +49,9 @@ def build_invite_url(token: str) -> str:
 
 async def sync_user_activity_if_available(user: User, db: Session) -> None:
     try:
-        await sync_user_daily_activity(user, db)
+        await maybe_sync_user_profile(user, db)
     except Exception:
-        logger.exception("sync_user_daily_activity failed for user_id=%s", user.id)
+        logger.exception("maybe_sync_user_profile failed for user_id=%s", user.id)
         return
 
 
@@ -206,11 +206,13 @@ async def list_friends(
         for u in db.query(User).filter(User.id.in_(friend_ids)).all()
     }
 
-    sync_tasks = [sync_user_activity_if_available(current_user, db)]
+    users_to_sync = [current_user]
     for fid in friend_ids:
         if fid in friends:
-            sync_tasks.append(sync_user_activity_if_available(friends[fid], db))
-    await asyncio.gather(*sync_tasks)
+            users_to_sync.append(friends[fid])
+
+    for user in users_to_sync:
+        await sync_user_activity_if_available(user, db)
 
     current_user_dates = get_active_dates(current_user, db)
     today = get_utc_today()
