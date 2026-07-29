@@ -86,6 +86,7 @@ class LobbyScoreEntry(BaseModel):
     provinces: int
     base_points: int
     bonus_points: int
+    region_control_points: int = 0
     total_points: int
 
 

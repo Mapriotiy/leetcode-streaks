@@ -31,10 +31,14 @@ from app.schemas.lobby import (
     UpdatePlayerFactionRequest,
 )
 from app.services.capture_engine import CAPTURE, RECAPTURE, apply_capture_pass
-from app.services.events import get_lobby_events, record_lobby_events
+from app.services.events import (
+    get_lobby_events,
+    record_lobby_events,
+    region_control_changes,
+)
 from app.services.leetcode_client import LeetCodeClient
 from app.services.problem_catalog import ensure_catalog
-from app.services.scoring import TeamScore, compute_team_scores
+from app.services.scoring import TeamScore, compute_team_scores, region_control_by_team
 from app.services.user_solved import (
     get_solved_for_slugs,
     get_solved_slugs_with_timestamps,
@@ -235,6 +239,7 @@ def _score_entries(
                     provinces=score.provinces,
                     base_points=score.base_points,
                     bonus_points=score.bonus_points,
+                    region_control_points=score.region_control_points,
                     total_points=score.total_points,
                 )
             )
@@ -249,6 +254,7 @@ def _score_entries(
                     provinces=score.provinces,
                     base_points=score.base_points,
                     bonus_points=score.bonus_points,
+                    region_control_points=score.region_control_points,
                     total_points=score.total_points,
                 )
             )
@@ -576,13 +582,16 @@ async def sync_map(lobby_id: int, current_user: User = Depends(get_current_user)
     }
     username_by_id = {u.id: u.leetcode_username for _, u in players}
 
+    team_by_user = _team_by_user(lobby, players)
+    control_before = region_control_by_team(provinces, team_by_user)
+
     changes = apply_capture_pass(
         provinces=provinces,
         solved_by_user=solved_by_user,
         username_by_id=username_by_id,
         since=lobby.started_at or lobby.created_at,
         tiebreak_order=[u.id for _, u in players],
-        team_by_user=_team_by_user(lobby, players),
+        team_by_user=team_by_user,
     )
     if changes:
         db.commit()
@@ -590,8 +599,12 @@ async def sync_map(lobby_id: int, current_user: User = Depends(get_current_user)
     problems = {p.title_slug: p for p in db.query(LeetCodeProblem).filter(LeetCodeProblem.title_slug.in_(slugs)).all()}
 
     if changes:
+        control_after = region_control_by_team(provinces, team_by_user)
+        all_changes = changes + region_control_changes(
+            provinces, changes, control_before, control_after,
+        )
         record_lobby_events(
-            changes,
+            all_changes,
             lobby,
             problems,
             username_by_id,
