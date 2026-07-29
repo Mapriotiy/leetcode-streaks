@@ -17,6 +17,7 @@ type CreateLobbyModalProps = {
 const GAME_MODES = [
     { value: 'free_for_all', label: 'Free for All' },
     { value: 'team_battle', label: 'Team Battle' },
+    { value: 'bingo', label: 'Bingo' },
 ];
 
 const WIN_CONDITIONS = [
@@ -84,7 +85,10 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
                     max_players: factionMode ? 0 : maxPlayers,
                     faction_mode: factionMode,
                     faction_count: factionMode ? factionCount : 0,
-                    win_condition: { type: wc.value, threshold: wc.threshold, duration_hours: 0 },
+                    // Bingo's win condition is implicit: first line, else majority.
+                    win_condition: gameMode === 'bingo'
+                        ? {}
+                        : { type: wc.value, threshold: wc.threshold, duration_hours: 0 },
                 }),
             });
 
@@ -129,7 +133,7 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
 
                     <div>
                         <label className="text-xs font-medium text-[#8a8a8a] block mb-1">Game Mode</label>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                             {GAME_MODES.map((m) => (
                                 <button
                                     key={m.value}
@@ -209,7 +213,7 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
                         )}
                     </div>
 
-                    <div>
+                    <div className={gameMode === 'bingo' ? 'hidden' : undefined}>
                         <label className="text-xs font-medium text-[#8a8a8a] block mb-1">Win Condition</label>
                         <div className="grid gap-2">
                             {WIN_CONDITIONS.map((wc) => (
