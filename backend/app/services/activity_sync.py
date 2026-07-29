@@ -23,6 +23,49 @@ def _utc_today() -> date:
     return datetime.now(timezone.utc).date()
 
 
+def upsert_daily_activity(
+    user_id: int,
+    submission_calendar: dict[str, int],
+    db: Session,
+) -> int:
+    counts_by_date: dict[date, int] = {}
+
+    for date_string, submissions_count in submission_calendar.items():
+        activity_date = date.fromisoformat(date_string)
+        counts_by_date[activity_date] = submissions_count
+
+    if not counts_by_date:
+        return 0
+
+    rows = [
+        {
+            "user_id": user_id,
+            "date": activity_date,
+            "submissions_count": submissions_count,
+        }
+        for activity_date, submissions_count in counts_by_date.items()
+    ]
+
+    existing = DailyActivity.__table__.c.submissions_count
+    insert_fn = _dialect_insert(db)
+    excluded = insert_fn(DailyActivity).excluded.submissions_count
+
+    stmt = (
+        insert_fn(DailyActivity)
+        .values(rows)
+        .on_conflict_do_update(
+            index_elements=["user_id", "date"],
+            set_={
+                "submissions_count": func.greatest(existing, excluded),
+            },
+        )
+    )
+    db.execute(stmt)
+    db.commit()
+
+    return len(rows)
+
+
 async def sync_user_daily_activity(
     user: User, db: Session,
 ) -> tuple[LeetCodeProfileResponse, list[RecentAcceptedSubmission]]:
@@ -32,38 +75,7 @@ async def sync_user_daily_activity(
         limit=30,
     )
 
-    counts_by_date: dict[date, int] = {}
-
-    for date_string, submissions_count in profile.submission_calendar.items():
-        activity_date = date.fromisoformat(date_string)
-        counts_by_date[activity_date] = submissions_count
-
-    if counts_by_date:
-        rows = [
-            {
-                "user_id": user.id,
-                "date": activity_date,
-                "submissions_count": submissions_count,
-            }
-            for activity_date, submissions_count in counts_by_date.items()
-        ]
-
-        existing = DailyActivity.__table__.c.submissions_count
-        insert_fn = _dialect_insert(db)
-        excluded = insert_fn(DailyActivity).excluded.submissions_count
-
-        stmt = (
-            insert_fn(DailyActivity)
-            .values(rows)
-            .on_conflict_do_update(
-                index_elements=["user_id", "date"],
-                set_={
-                    "submissions_count": func.greatest(existing, excluded),
-                },
-            )
-        )
-        db.execute(stmt)
-        db.commit()
+    upsert_daily_activity(user.id, profile.submission_calendar, db)
 
     if recent_submissions:
         record_submissions(user.id, recent_submissions, db)
