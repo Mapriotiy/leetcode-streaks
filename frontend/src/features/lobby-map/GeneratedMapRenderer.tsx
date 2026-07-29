@@ -214,11 +214,13 @@ export function renderGeneratedIslandSvg({
             const provinceName = province?.name ?? provinceId;
             const capturedColor = resolveCaptureColor(captured.get(provinceId));
             const isHighlighted = highlightedProvinces ? highlightedProvinces.includes(provinceId) : true;
-            const fill = capturedColor ?? region?.color ?? "#5b4d3f";
-            const stroke = capturedColor ?? "#ffad42";
+            const regionColor = region?.color ?? "#8f7458";
+            const fill = capturedColor ?? regionColor;
+            const stroke = capturedColor ?? regionColor;
             const filter = capturedColor ? `drop-shadow(0 0 6px ${capturedColor}) drop-shadow(0 0 12px ${capturedColor})` : "";
             const inlineStyle = [
                 `--generated-map-region-color: ${fill}`,
+                `--generated-map-region-stroke-color: ${stroke}`,
                 `--generated-map-capture-color: ${capturedColor ?? "#ffad42"}`,
             ].join("; ");
             pathIndex += 1;
@@ -301,9 +303,9 @@ export function GeneratedMapRenderer({
     const svgLayerStyle = useMemo(
         () =>
             ({
-                "--generated-map-fill-opacity": showFill ? "0.16" : "0",
+                "--generated-map-fill-opacity": showFill ? "0.2" : "0",
                 "--generated-map-capture-fill-opacity": showFill ? "0.4" : "0",
-                "--generated-map-layer-opacity": String(overlayOpacity),
+                "--generated-map-layer-opacity": String(Math.min(overlayOpacity, 0.58)),
                 "--generated-map-stroke-width": String(strokeWidth),
             }) as CSSProperties,
         [overlayOpacity, showFill, strokeWidth],
@@ -342,10 +344,10 @@ export function GeneratedMapRenderer({
         if (!zoomable || event.button !== 0) return;
         if ((event.target as Element).closest("button")) return;
         activePointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-        event.currentTarget.setPointerCapture(event.pointerId);
 
         const activePoints = [...activePointersRef.current.values()];
         if (activePoints.length >= 2) {
+            event.currentTarget.setPointerCapture(event.pointerId);
             const [a, b] = activePoints;
             pinchRef.current = {
                 startDistance: Math.max(1, pointerDistance(a, b)),
@@ -358,6 +360,7 @@ export function GeneratedMapRenderer({
         }
 
         if (zoom <= minZoom) return;
+        event.currentTarget.setPointerCapture(event.pointerId);
         dragRef.current = {
             pointerId: event.pointerId,
             startX: event.clientX,
@@ -623,11 +626,11 @@ function GeneratedMapStyles() {
 
                 .generated-map-svg .generated-map-province {
                     cursor: pointer;
-                    fill: var(--generated-map-region-color) !important;
+                    fill: color-mix(in srgb, var(--generated-map-region-color) 44%, #d8c7a8 56%) !important;
                     fill-opacity: var(--generated-map-fill-opacity) !important;
                     opacity: var(--generated-map-layer-opacity) !important;
-                    stroke: #c77f32 !important;
-                    stroke-opacity: 0.48 !important;
+                    stroke: color-mix(in srgb, var(--generated-map-region-stroke-color) 76%, #e7d2ad 24%) !important;
+                    stroke-opacity: 0.54 !important;
                     stroke-width: var(--generated-map-stroke-width) !important;
                     stroke-linecap: round;
                     stroke-linejoin: round;
