@@ -1,5 +1,7 @@
 """Recording and reading game events (captures, recaptures, defenses)."""
 
+from collections import Counter
+
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -10,8 +12,66 @@ from app.models.lobby_event import LobbyEvent
 from app.models.map_event import MapEvent
 from app.models.user import User
 from app.models.weekly_map import WeeklyMap
-from app.services.capture_engine import CaptureChange
-from app.services.scoring import flag_points
+from app.services.capture_engine import (
+    REGION_CONTROL,
+    REGION_CONTROL_LOST,
+    CaptureChange,
+)
+from app.services.scoring import (
+    flag_points,
+    region_control_bonus,
+)
+
+
+def region_control_changes(
+    provinces,
+    changes: list[CaptureChange],
+    control_before: dict[str, int],
+    control_after: dict[str, int],
+) -> list[CaptureChange]:
+    """Turn a region-control diff into loggable events.
+
+    Each event is attached to the capture/recapture in that region that
+    completed or broke full control (the last one in the pass).
+    """
+    region_sizes = Counter(p.region_id for p in provinces)
+    events: list[CaptureChange] = []
+
+    for region_id in sorted(set(control_before) | set(control_after)):
+        before = control_before.get(region_id)
+        after = control_after.get(region_id)
+        if before == after:
+            continue
+
+        trigger = next(
+            (c for c in reversed(changes) if c.province.region_id == region_id),
+            None,
+        )
+        if trigger is None:
+            continue
+        bonus = region_control_bonus(region_sizes[region_id])
+
+        if before is not None:
+            events.append(
+                CaptureChange(
+                    kind=REGION_CONTROL_LOST,
+                    province=trigger.province,
+                    actor_user_id=trigger.actor_user_id,
+                    previous_owner_user_id=trigger.previous_owner_user_id,
+                    points=bonus,
+                )
+            )
+        if after is not None:
+            events.append(
+                CaptureChange(
+                    kind=REGION_CONTROL,
+                    province=trigger.province,
+                    actor_user_id=trigger.actor_user_id,
+                    points=bonus,
+                )
+            )
+
+    return events
 
 
 def record_lobby_events(
@@ -45,7 +105,7 @@ def record_lobby_events(
             problem_title_slug=slug,
             problem_title=problem.title if problem else None,
             problem_difficulty=difficulty,
-            points=flag_points(difficulty),
+            points=change.points if change.points is not None else flag_points(difficulty),
             runtime_ms=change.runtime_ms,
             previous_runtime_ms=change.previous_runtime_ms,
         )

@@ -1,8 +1,12 @@
-import { PROVINCE_NAMES } from './mapRegions';
+import { PROVINCE_NAMES, REGIONS } from './mapRegions';
 import type { GameEventApiData } from './types/events';
 
 export function provinceName(provinceId: string): string {
     return PROVINCE_NAMES[provinceId] ?? provinceId;
+}
+
+export function regionNameForProvince(provinceId: string): string {
+    return REGIONS.find((region) => region.provinces.includes(provinceId))?.name ?? 'a region';
 }
 
 export function eventText(event: GameEventApiData, currentUserId: number): string {
@@ -31,6 +35,19 @@ export function eventText(event: GameEventApiData, currentUserId: number): strin
             return `${actor} defended ${province}${
                 event.runtime_ms != null ? ` — improved to ${event.runtime_ms} ms` : ''
             }`;
+        case 'region_control':
+            return `${actor} seized full control of ${regionNameForProvince(event.province_id)}${
+                event.points ? ` (+${event.points} while held)` : ''
+            }`;
+        case 'region_control_lost': {
+            const victim =
+                event.previous_owner_user_id === currentUserId
+                    ? 'your'
+                    : event.previous_owner_username
+                      ? `${event.previous_owner_username}'s`
+                      : "the enemy's"
+            return `${actor} broke ${victim} control of ${regionNameForProvince(event.province_id)}`;
+        }
         default:
             return `${actor}: ${event.event_type} on ${province}`;
     }

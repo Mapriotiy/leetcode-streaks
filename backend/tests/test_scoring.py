@@ -1,5 +1,12 @@
 from app.models.weekly_map_province import WeeklyMapProvince
-from app.services.scoring import compute_score, first_capture_bonus, flag_points
+from app.services.scoring import (
+    compute_score,
+    compute_team_scores,
+    first_capture_bonus,
+    flag_points,
+    region_control_bonus,
+    region_control_by_team,
+)
 
 
 def province(slug: str, region: str, captured_by=None, first_captured_by=None):
@@ -72,3 +79,78 @@ def test_counts_and_regions_unchanged():
     assert score.neutral_provinces == 1
     assert score.player_regions == 1
     assert score.friend_regions == 1
+
+
+def test_weekly_score_has_no_region_control_bonus():
+    # Player 1 fully owns r1, but the dormant weekly mode predates the bonus.
+    provinces = [
+        province("a", "r1", captured_by=1, first_captured_by=1),
+        province("b", "r1", captured_by=1, first_captured_by=1),
+    ]
+    score = compute_score(provinces, 1, 2, {"a": "Easy", "b": "Easy"})
+
+    assert score.player_points == 300  # 2 flags + 2 bonuses, nothing else
+
+
+# ── Region control ──
+
+
+def test_region_control_bonus_scales_quadratically():
+    assert region_control_bonus(1) == 50
+    assert region_control_bonus(2) == 200
+    assert region_control_bonus(3) == 450
+    assert region_control_bonus(4) == 800
+    assert region_control_bonus(5) == 1250
+    assert region_control_bonus(7) == 2450
+
+
+def test_region_control_requires_every_province():
+    provinces = [
+        province("a", "r1", captured_by=1),
+        province("b", "r1", captured_by=1),
+        province("c", "r2", captured_by=1),
+        province("d", "r2"),  # neutral blocks control of r2
+        province("e", "r3", captured_by=1),
+        province("f", "r3", captured_by=2),  # contested r3
+    ]
+    control = region_control_by_team(provinces, {1: 1, 2: 2})
+
+    assert control == {"r1": 1}
+
+
+def test_region_control_by_faction_pools_members():
+    provinces = [
+        province("a", "r1", captured_by=1),
+        province("b", "r1", captured_by=2),
+    ]
+    # Users 1 and 2 share faction 7: the faction controls r1.
+    assert region_control_by_team(provinces, {1: 7, 2: 7}) == {"r1": 7}
+    # As separate teams nobody does.
+    assert region_control_by_team(provinces, {1: 1, 2: 2}) == {}
+
+
+def test_team_scores_include_held_region_control():
+    provinces = [
+        province("a", "r1", captured_by=1, first_captured_by=1),
+        province("b", "r1", captured_by=1, first_captured_by=1),
+        province("c", "r1", captured_by=1, first_captured_by=1),
+    ]
+    difficulties = {"a": "Easy", "b": "Easy", "c": "Easy"}
+    scores = compute_team_scores(provinces, {1: 1, 2: 2}, difficulties)
+
+    assert scores[1].region_control_points == 450  # 50 * 3^2
+    assert scores[1].total_points == 300 + 150 + 450
+
+
+def test_region_control_bonus_disappears_when_a_province_flips():
+    provinces = [
+        province("a", "r1", captured_by=1, first_captured_by=1),
+        province("b", "r1", captured_by=1, first_captured_by=1),
+    ]
+    teams = {1: 1, 2: 2}
+    assert compute_team_scores(provinces, teams, {})[1].region_control_points == 200
+
+    provinces[1].captured_by = 2  # steal one province
+    scores = compute_team_scores(provinces, teams, {})
+    assert scores[1].region_control_points == 0
+    assert scores[2].region_control_points == 0  # contested, nobody holds it

@@ -9,9 +9,12 @@ from app.services.capture_engine import (
     CAPTURE,
     DEFENSE,
     RECAPTURE,
+    REGION_CONTROL,
+    REGION_CONTROL_LOST,
     apply_capture_pass,
 )
-from app.services.scoring import TeamScore, compute_team_scores
+from app.services.events import region_control_changes
+from app.services.scoring import TeamScore, compute_team_scores, region_control_by_team
 
 SINCE = datetime(2026, 7, 27)
 ALICE, BOB, CAROL, DAVE = 1, 2, 3, 4
@@ -184,3 +187,76 @@ def test_compute_team_scores_ignores_unknown_users():
 
     assert scores.get(ALICE, TeamScore()).total_points == 0
     assert DAVE not in scores
+
+
+# ── Region-control events ──
+
+
+def _region_pair(captured_by=None):
+    return [
+        make_province("p-1", province_id="path44", region_id="isle2",
+                      captured_by=captured_by, captured_runtime_ms=100 if captured_by else None),
+        make_province("p-2", province_id="path48", region_id="isle2",
+                      captured_by=captured_by, captured_runtime_ms=100 if captured_by else None),
+    ]
+
+
+def test_completing_a_region_emits_region_control_once():
+    provinces = _region_pair()
+    provinces[0].captured_by = ALICE
+    provinces[0].captured_runtime_ms = 100
+    teams = {ALICE: ALICE, BOB: BOB}
+
+    before = region_control_by_team(provinces, teams)
+    changes = run_pass(provinces, [make_solve(ALICE, "p-2", runtime_ms=100)])
+    after = region_control_by_team(provinces, teams)
+
+    events = region_control_changes(provinces, changes, before, after)
+    assert [e.kind for e in events] == [REGION_CONTROL]
+    assert events[0].actor_user_id == ALICE
+    assert events[0].points == 200  # 50 * 2^2
+    assert events[0].province.region_id == "isle2"
+
+
+def test_breaking_control_emits_region_control_lost_once():
+    provinces = _region_pair(captured_by=ALICE)
+    teams = {ALICE: ALICE, BOB: BOB}
+
+    before = region_control_by_team(provinces, teams)
+    assert before == {"isle2": ALICE}
+    changes = run_pass(provinces, [make_solve(BOB, "p-2", runtime_ms=50)])
+    after = region_control_by_team(provinces, teams)
+
+    events = region_control_changes(provinces, changes, before, after)
+    assert [e.kind for e in events] == [REGION_CONTROL_LOST]
+    assert events[0].actor_user_id == BOB
+    assert events[0].previous_owner_user_id == ALICE
+    assert events[0].points == 200
+
+
+def test_stealing_a_whole_region_emits_lost_then_control():
+    provinces = _region_pair(captured_by=ALICE)
+    teams = {ALICE: ALICE, BOB: BOB}
+
+    before = region_control_by_team(provinces, teams)
+    changes = run_pass(
+        provinces,
+        [make_solve(BOB, "p-1", runtime_ms=50), make_solve(BOB, "p-2", runtime_ms=50)],
+    )
+    after = region_control_by_team(provinces, teams)
+
+    events = region_control_changes(provinces, changes, before, after)
+    assert [e.kind for e in events] == [REGION_CONTROL_LOST, REGION_CONTROL]
+    assert events[1].actor_user_id == BOB
+
+
+def test_no_control_change_emits_nothing():
+    provinces = _region_pair(captured_by=ALICE)
+    teams = {ALICE: ALICE, BOB: BOB}
+
+    before = region_control_by_team(provinces, teams)
+    # Defense only: Alice improves her own runtime, control unchanged.
+    changes = run_pass(provinces, [make_solve(ALICE, "p-1", runtime_ms=40)])
+    after = region_control_by_team(provinces, teams)
+
+    assert region_control_changes(provinces, changes, before, after) == []

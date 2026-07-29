@@ -29,6 +29,8 @@ logger = logging.getLogger(__name__)
 CAPTURE = "capture"
 RECAPTURE = "recapture"
 DEFENSE = "defense"
+REGION_CONTROL = "region_control"
+REGION_CONTROL_LOST = "region_control_lost"
 
 
 class ProvinceLike(Protocol):
@@ -47,12 +49,14 @@ class ProvinceLike(Protocol):
 
 @dataclass
 class CaptureChange:
-    kind: str  # CAPTURE | RECAPTURE | DEFENSE
+    kind: str  # CAPTURE | RECAPTURE | DEFENSE | REGION_CONTROL(_LOST)
     province: ProvinceLike
     actor_user_id: int
     previous_owner_user_id: int | None = None
     runtime_ms: int | None = None
     previous_runtime_ms: int | None = None
+    # Event point value; defaults to the province's flag value when recorded.
+    points: int | None = None
 
 
 def _utcnow_naive() -> datetime:

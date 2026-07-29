@@ -15,3 +15,9 @@ export function flagPoints(difficulty: string | null | undefined): number {
 export function firstCaptureBonus(difficulty: string | null | undefined): number {
     return Math.floor(flagPoints(difficulty) / 2);
 }
+
+// Held while a team owns EVERY province of a region; scales quadratically
+// with the region's size (1 -> 50, 4 -> 800, 7 -> 2450).
+export function regionControlBonus(provinceCount: number): number {
+    return 50 * provinceCount * provinceCount;
+}
