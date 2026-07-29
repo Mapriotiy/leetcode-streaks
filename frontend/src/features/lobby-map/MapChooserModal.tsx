@@ -123,15 +123,15 @@ export function MapChooserModal({
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/70 p-4 text-white" onMouseDown={onClose}>
+        <div className="fixed inset-0 z-50 bg-black/70 p-2 text-white sm:p-4" onMouseDown={onClose}>
             <div
-                className="mx-auto flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#202020] shadow-2xl"
+                className="mx-auto flex h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#202020] shadow-2xl sm:h-[92vh]"
                 onMouseDown={(event) => event.stopPropagation()}
             >
-                <header className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+                <header className="flex items-center justify-between border-b border-white/10 px-3 py-2 sm:px-4 sm:py-3">
                     <div>
                         <h2 className="text-lg font-semibold tracking-normal">Choose Map</h2>
-                        <p className="mt-0.5 text-sm text-[#9a9a9a]">Catalog preset or generated lobby draft</p>
+                        <p className="mt-0.5 hidden text-sm text-[#9a9a9a] sm:block">Catalog preset or generated lobby draft</p>
                     </div>
                     <button
                         type="button"
@@ -142,8 +142,8 @@ export function MapChooserModal({
                     </button>
                 </header>
 
-                <div className="grid min-h-0 flex-1 gap-0 md:grid-cols-[260px_1fr]">
-                    <aside className="border-b border-white/10 p-4 md:border-b-0 md:border-r">
+                <div className="flex min-h-0 flex-1 flex-col md:grid md:grid-cols-[260px_1fr]">
+                    <aside className="shrink-0 border-b border-white/10 p-3 md:overflow-auto md:border-b-0 md:border-r md:p-4">
                         <div className="grid grid-cols-2 gap-2">
                             {(["catalog", "custom"] as const).map((nextTab) => (
                                 <button
@@ -176,10 +176,10 @@ export function MapChooserModal({
                                 </span>
                             </button>
                         ) : (
-                            <div className="mt-4 space-y-4">
+                            <div className="mt-3 space-y-3 md:mt-4 md:space-y-4">
                                 <div>
                                     <p className="mb-2 text-xs uppercase tracking-wide text-[#888]">Size</p>
-                                    <div className="grid gap-2">
+                                    <div className="grid grid-cols-3 gap-2 md:grid-cols-1">
                                         {SIZE_ORDER.map((nextSize) => {
                                             const config = MAP_SIZE_CONFIG[nextSize];
                                             const active = size === nextSize;
@@ -207,7 +207,7 @@ export function MapChooserModal({
 
                                 <div>
                                     <p className="mb-2 text-xs uppercase tracking-wide text-[#888]">Topics</p>
-                                    <div className="max-h-72 space-y-2 overflow-auto pr-1">
+                                    <div className="flex gap-2 overflow-x-auto pb-1 md:block md:max-h-72 md:space-y-2 md:overflow-auto md:pb-0 md:pr-1">
                                         {availableTopics.map((topic) => {
                                             const checked = selectedTopicIds.includes(topic.id);
                                             return (
@@ -215,7 +215,7 @@ export function MapChooserModal({
                                                     key={topic.id}
                                                     type="button"
                                                     onClick={() => toggleTopic(topic.id)}
-                                                    className={`flex w-full items-center gap-2 rounded-md border px-3 py-2 text-left text-sm transition ${
+                                                    className={`flex min-w-[150px] items-center gap-2 rounded-md border px-3 py-2 text-left text-sm transition md:w-full md:min-w-0 ${
                                                         checked
                                                             ? "border-white/20 bg-[#2d2d2d] text-white"
                                                             : "border-white/10 bg-[#242424] text-[#9a9a9a] hover:border-white/20"
@@ -233,9 +233,9 @@ export function MapChooserModal({
                         )}
                     </aside>
 
-                    <section className="min-h-0 overflow-auto p-4">
+                    <section className="flex min-h-0 flex-1 flex-col overflow-hidden p-3 md:overflow-auto md:p-4">
                         {tab === "catalog" ? (
-                            <div className="flex h-full min-h-[420px] items-center justify-center rounded-lg border border-white/10 bg-[#191919]">
+                            <div className="flex min-h-[280px] flex-1 items-center justify-center rounded-lg border border-white/10 bg-[#191919] md:min-h-[420px]">
                                 <div className="text-center">
                                     <p className="text-sm text-[#bdbdbd]">Default map is selected from the production map component.</p>
                                     <button
@@ -250,26 +250,27 @@ export function MapChooserModal({
                                 </div>
                             </div>
                         ) : (
-                            <div className="space-y-3">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex min-h-0 flex-1 flex-col gap-3">
+                                <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                     <div className="text-sm text-[#bdbdbd]">
                                         {draft ? `${draft.provinceCount} provinces / ${draft.regionCount} regions` : "No generated draft yet"}
                                     </div>
-                                    <div className="flex flex-wrap gap-2">
+                                    <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
                                         <button
                                             type="button"
                                             onClick={applyTopicsOnly}
                                             disabled={isGenerating || selectedTopics.length === 0}
-                                            className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-white/10 bg-[#2a2a2a] px-3 text-sm text-[#d7d7d7] transition hover:border-[#ffa116]/60 disabled:cursor-not-allowed disabled:text-[#777]"
+                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-white/10 bg-[#2a2a2a] px-2 text-xs text-[#d7d7d7] transition hover:border-[#ffa116]/60 disabled:cursor-not-allowed disabled:text-[#777] sm:gap-2 sm:px-3 sm:text-sm"
                                         >
                                             <RotateCcw size={15} />
-                                            Apply Topics
+                                            <span className="hidden sm:inline">Apply Topics</span>
+                                            <span className="sm:hidden">Topics</span>
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => generateNextDraft()}
                                             disabled={isGenerating || selectedTopics.length === 0}
-                                            className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-white/10 bg-[#2a2a2a] px-3 text-sm text-[#d7d7d7] transition hover:border-[#ffa116]/60 disabled:cursor-not-allowed disabled:text-[#777]"
+                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-white/10 bg-[#2a2a2a] px-2 text-xs text-[#d7d7d7] transition hover:border-[#ffa116]/60 disabled:cursor-not-allowed disabled:text-[#777] sm:gap-2 sm:px-3 sm:text-sm"
                                         >
                                             <Shuffle size={15} />
                                             {isGenerating ? "Generating..." : "Reroll"}
@@ -278,7 +279,7 @@ export function MapChooserModal({
                                             type="button"
                                             onClick={chooseGenerated}
                                             disabled={!draft || isGenerating || isApplying}
-                                            className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-[#ffa116] bg-[#ffa116] px-3 text-sm font-semibold text-[#171717] disabled:cursor-not-allowed disabled:border-[#5f4a25] disabled:bg-[#5f4a25] disabled:text-[#a0a0a0]"
+                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-[#ffa116] bg-[#ffa116] px-2 text-xs font-semibold text-[#171717] disabled:cursor-not-allowed disabled:border-[#5f4a25] disabled:bg-[#5f4a25] disabled:text-[#a0a0a0] sm:gap-2 sm:px-3 sm:text-sm"
                                         >
                                             <Check size={15} />
                                             {isApplying ? "Saving..." : "Use Map"}
@@ -293,13 +294,15 @@ export function MapChooserModal({
                                 ) : null}
 
                                 {draft ? (
-                                    <GeneratedMapRenderer draft={draft} />
+                                    <div className="min-h-0 flex-1 overflow-hidden rounded-lg bg-[#191919] text-center">
+                                        <GeneratedMapRenderer draft={draft} fitHeight className="mx-auto" />
+                                    </div>
                                 ) : (
                                     <button
                                         type="button"
                                         onClick={() => generateNextDraft()}
                                         disabled={isGenerating || selectedTopics.length === 0}
-                                        className="flex min-h-[420px] w-full items-center justify-center rounded-lg border border-dashed border-white/15 bg-[#191919] text-sm font-medium text-[#bdbdbd] transition hover:border-[#ffa116]/60 hover:text-white disabled:cursor-not-allowed disabled:text-[#777]"
+                                        className="flex min-h-[280px] flex-1 items-center justify-center rounded-lg border border-dashed border-white/15 bg-[#191919] text-sm font-medium text-[#bdbdbd] transition hover:border-[#ffa116]/60 hover:text-white disabled:cursor-not-allowed disabled:text-[#777] md:min-h-[420px]"
                                     >
                                         {isGenerating ? "Generating..." : "Generate Map"}
                                     </button>

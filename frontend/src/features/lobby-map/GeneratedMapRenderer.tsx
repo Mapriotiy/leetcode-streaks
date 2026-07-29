@@ -1,4 +1,14 @@
-import { useEffect, useMemo, useState, type CSSProperties, type MouseEvent } from "react";
+import { Minus, Plus, RotateCcw } from "lucide-react";
+import {
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type CSSProperties,
+    type MouseEvent,
+    type PointerEvent,
+    type WheelEvent,
+} from "react";
 import { MAP_ASPECT_RATIO, mapAssetUrl } from "./assets";
 import type { GeneratedMapDraft, GeneratedMapIsland } from "./types";
 
@@ -12,6 +22,11 @@ type GeneratedMapRendererProps = {
     showFill?: boolean;
     overlayOpacity?: number;
     strokeWidth?: number;
+    zoomable?: boolean;
+    minZoom?: number;
+    maxZoom?: number;
+    initialZoom?: number;
+    fitHeight?: boolean;
 };
 
 type ProvinceMarker = {
@@ -21,6 +36,44 @@ type ProvinceMarker = {
     top: number;
     color: string | null;
 };
+
+type DragState = {
+    pointerId: number;
+    startX: number;
+    startY: number;
+    originX: number;
+    originY: number;
+    moved: boolean;
+};
+
+type PointerPoint = {
+    x: number;
+    y: number;
+};
+
+type PinchState = {
+    startDistance: number;
+    startZoom: number;
+    startPan: PointerPoint;
+    startCenter: PointerPoint;
+};
+
+const ZOOM_STEP = 0.35;
+
+function clampZoom(value: number, minZoom: number, maxZoom: number) {
+    return Math.max(minZoom, Math.min(maxZoom, value));
+}
+
+function pointerDistance(a: PointerPoint, b: PointerPoint) {
+    return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function pointerCenter(a: PointerPoint, b: PointerPoint): PointerPoint {
+    return {
+        x: (a.x + b.x) / 2,
+        y: (a.y + b.y) / 2,
+    };
+}
 
 function setSvgAttr(tag: string, name: string, value: string) {
     const attrPattern = new RegExp(`\\s${name}="[^"]*"`);
@@ -198,9 +251,20 @@ export function GeneratedMapRenderer({
     showFill = true,
     overlayOpacity = 0.68,
     strokeWidth = 1.15,
+    zoomable = true,
+    minZoom = 1,
+    maxZoom = 3,
+    initialZoom = 1,
+    fitHeight = false,
 }: GeneratedMapRendererProps) {
     const [svgTexts, setSvgTexts] = useState<Record<string, string>>({});
     const [loadError, setLoadError] = useState<string | null>(null);
+    const [zoom, setZoom] = useState(() => clampZoom(initialZoom, minZoom, maxZoom));
+    const [pan, setPan] = useState({ x: 0, y: 0 });
+    const dragRef = useRef<DragState | null>(null);
+    const activePointersRef = useRef<Map<number, PointerPoint>>(new Map());
+    const pinchRef = useRef<PinchState | null>(null);
+    const suppressClickRef = useRef(false);
 
     useEffect(() => {
         let cancelled = false;
@@ -226,6 +290,14 @@ export function GeneratedMapRenderer({
         };
     }, [draft]);
 
+    useEffect(() => {
+        setZoom(clampZoom(initialZoom, minZoom, maxZoom));
+        setPan({ x: 0, y: 0 });
+        activePointersRef.current.clear();
+        dragRef.current = null;
+        pinchRef.current = null;
+    }, [draft, initialZoom, maxZoom, minZoom]);
+
     const svgLayerStyle = useMemo(
         () =>
             ({
@@ -247,7 +319,122 @@ export function GeneratedMapRenderer({
         return map;
     }, [captured, draft, svgTexts]);
 
+    function updateZoom(nextZoom: number) {
+        const clamped = clampZoom(nextZoom, minZoom, maxZoom);
+        setZoom(clamped);
+        if (clamped === minZoom) {
+            setPan({ x: 0, y: 0 });
+        }
+    }
+
+    function resetView() {
+        setZoom(clampZoom(initialZoom, minZoom, maxZoom));
+        setPan({ x: 0, y: 0 });
+    }
+
+    function handleWheel(event: WheelEvent<HTMLDivElement>) {
+        if (!zoomable) return;
+        event.preventDefault();
+        updateZoom(zoom + (event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP));
+    }
+
+    function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
+        if (!zoomable || event.button !== 0) return;
+        if ((event.target as Element).closest("button")) return;
+        activePointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        event.currentTarget.setPointerCapture(event.pointerId);
+
+        const activePoints = [...activePointersRef.current.values()];
+        if (activePoints.length >= 2) {
+            const [a, b] = activePoints;
+            pinchRef.current = {
+                startDistance: Math.max(1, pointerDistance(a, b)),
+                startZoom: zoom,
+                startPan: pan,
+                startCenter: pointerCenter(a, b),
+            };
+            dragRef.current = null;
+            return;
+        }
+
+        if (zoom <= minZoom) return;
+        dragRef.current = {
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startY: event.clientY,
+            originX: pan.x,
+            originY: pan.y,
+            moved: false,
+        };
+    }
+
+    function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
+        if (activePointersRef.current.has(event.pointerId)) {
+            activePointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        }
+
+        const pinch = pinchRef.current;
+        if (pinch && activePointersRef.current.size >= 2) {
+            const [a, b] = [...activePointersRef.current.values()];
+            const nextZoom = clampZoom(
+                pinch.startZoom * (pointerDistance(a, b) / pinch.startDistance),
+                minZoom,
+                maxZoom,
+            );
+            const center = pointerCenter(a, b);
+            setZoom(nextZoom);
+            setPan(
+                nextZoom === minZoom
+                    ? { x: 0, y: 0 }
+                    : {
+                          x: pinch.startPan.x + center.x - pinch.startCenter.x,
+                          y: pinch.startPan.y + center.y - pinch.startCenter.y,
+                      },
+            );
+            suppressClickRef.current = true;
+            return;
+        }
+
+        const drag = dragRef.current;
+        if (!drag || drag.pointerId !== event.pointerId) return;
+        const dx = event.clientX - drag.startX;
+        const dy = event.clientY - drag.startY;
+        if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
+        setPan({ x: drag.originX + dx, y: drag.originY + dy });
+    }
+
+    function handlePointerUp(event: PointerEvent<HTMLDivElement>) {
+        const releasePointer = () => {
+            if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                event.currentTarget.releasePointerCapture(event.pointerId);
+            }
+        };
+
+        activePointersRef.current.delete(event.pointerId);
+        if (pinchRef.current) {
+            suppressClickRef.current = true;
+            if (activePointersRef.current.size < 2) {
+                pinchRef.current = null;
+            }
+            releasePointer();
+            return;
+        }
+
+        const drag = dragRef.current;
+        if (!drag || drag.pointerId !== event.pointerId) {
+            releasePointer();
+            return;
+        }
+        if (drag.moved) suppressClickRef.current = true;
+        dragRef.current = null;
+        releasePointer();
+    }
+
     function handleClick(event: MouseEvent<HTMLDivElement>) {
+        if (suppressClickRef.current) {
+            suppressClickRef.current = false;
+            return;
+        }
         if (!onSelect) return;
         const target = event.target as Element;
         const path = target.closest<SVGPathElement>(".generated-map-province");
@@ -260,20 +447,73 @@ export function GeneratedMapRenderer({
         });
     }
 
+    const mapLayerStyle: CSSProperties = {
+        transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
+        transformOrigin: "center",
+        transition: dragRef.current ? "none" : "transform 120ms ease",
+        cursor: zoomable ? (zoom > minZoom ? "grab" : "zoom-in") : undefined,
+    };
+    const rootStyle: CSSProperties = fitHeight
+        ? { aspectRatio: MAP_ASPECT_RATIO, height: "100%", minWidth: "100%" }
+        : { aspectRatio: MAP_ASPECT_RATIO };
+
     return (
         <div
-            className={`generated-map-root relative w-full overflow-hidden rounded-lg border border-white/10 shadow-2xl ${className}`}
-            style={{ aspectRatio: MAP_ASPECT_RATIO }}
+            className={`generated-map-root relative overflow-hidden rounded-lg border border-white/10 shadow-2xl ${
+                fitHeight ? "inline-block align-top" : "w-full"
+            } ${
+                zoomable ? "touch-none select-none" : ""
+            } ${className}`}
+            style={rootStyle}
             onClick={handleClick}
+            onWheel={handleWheel}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
         >
             <GeneratedMapStyles />
-            <img
-                src={mapAssetUrl(draft.seaBaseSrc)}
-                alt=""
-                className="absolute inset-0 h-full w-full object-fill"
-                draggable={false}
-            />
-            {draft.seaSprites.map((sprite) => (
+            {zoomable ? (
+                <div className="absolute right-2 top-2 z-20 hidden items-center gap-1 rounded-md border border-white/10 bg-[#1b1b1b]/85 p-1 shadow-lg backdrop-blur sm:flex">
+                    <button
+                        type="button"
+                        onClick={() => updateZoom(zoom - ZOOM_STEP)}
+                        disabled={zoom <= minZoom}
+                        title="Zoom out"
+                        aria-label="Zoom out"
+                        className="grid h-8 w-8 place-items-center rounded bg-[#2a2a2a] text-[#d7d7d7] transition hover:text-white disabled:cursor-not-allowed disabled:text-[#666]"
+                    >
+                        <Minus size={16} />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => updateZoom(zoom + ZOOM_STEP)}
+                        disabled={zoom >= maxZoom}
+                        title="Zoom in"
+                        aria-label="Zoom in"
+                        className="grid h-8 w-8 place-items-center rounded bg-[#2a2a2a] text-[#d7d7d7] transition hover:text-white disabled:cursor-not-allowed disabled:text-[#666]"
+                    >
+                        <Plus size={16} />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={resetView}
+                        title="Reset zoom"
+                        aria-label="Reset zoom"
+                        className="grid h-8 w-8 place-items-center rounded bg-[#2a2a2a] text-[#d7d7d7] transition hover:text-white"
+                    >
+                        <RotateCcw size={15} />
+                    </button>
+                </div>
+            ) : null}
+            <div className="absolute inset-0" style={mapLayerStyle}>
+                <img
+                    src={mapAssetUrl(draft.seaBaseSrc)}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-fill"
+                    draggable={false}
+                />
+                {draft.seaSprites.map((sprite) => (
                 <img
                     key={`${sprite.id}-${sprite.left}-${sprite.top}`}
                     src={mapAssetUrl(sprite.src)}
@@ -288,73 +528,74 @@ export function GeneratedMapRenderer({
                         transform: "none",
                     }}
                 />
-            ))}
-            {draft.islands.map((island) => {
-                const svgText = svgTexts[island.islandId];
-                return (
-                    <div
-                        key={island.islandId}
-                        className="absolute"
-                        style={{
-                            left: `${island.left}%`,
-                            top: `${island.top}%`,
-                            width: `${island.width}%`,
-                            aspectRatio: island.aspectRatio,
-                            zIndex: island.zIndex,
-                            transform: `rotate(${island.rotation}deg)`,
-                            transformOrigin: "center",
-                        }}
-                    >
-                        {showBack ? (
-                            <img
-                                src={mapAssetUrl(island.backPath)}
-                                alt=""
-                                className="generated-map-back absolute inset-0 h-full w-full object-fill"
-                                draggable={false}
-                                style={maskStyle(island.svgPath)}
-                            />
-                        ) : null}
-                        {svgText ? (
-                            <div
-                                className="absolute inset-0 z-[3]"
-                                style={svgLayerStyle}
-                                dangerouslySetInnerHTML={{
-                                    __html: renderGeneratedIslandSvg({
-                                        svgText,
-                                        island,
-                                        draft,
-                                        captured,
-                                        highlightedProvinces,
-                                    }),
-                                }}
-                            />
-                        ) : null}
-                        <div className="pointer-events-none absolute inset-0 z-[6]">
-                            {(markersByIsland.get(island.islandId) ?? []).map((marker) => (
-                                <span
-                                    key={marker.provinceId}
-                                    className="generated-map-marker"
-                                    data-captured={marker.color ? "true" : "false"}
-                                    title={marker.provinceName}
-                                    style={{
-                                        left: `${marker.left}%`,
-                                        top: `${marker.top}%`,
-                                        "--generated-marker-color": marker.color ?? "#777777",
-                                    } as CSSProperties}
-                                >
-                                    <span className="generated-map-marker-shell">
-                                        {marker.color ? (
-                                            <span className="generated-map-marker-flag" />
-                                        ) : (
-                                            <span className="generated-map-marker-dot" />
-                                        )}
+                ))}
+                {draft.islands.map((island) => {
+                    const svgText = svgTexts[island.islandId];
+                    return (
+                        <div
+                            key={island.islandId}
+                            className="absolute"
+                            style={{
+                                left: `${island.left}%`,
+                                top: `${island.top}%`,
+                                width: `${island.width}%`,
+                                aspectRatio: island.aspectRatio,
+                                zIndex: island.zIndex,
+                                transform: `rotate(${island.rotation}deg)`,
+                                transformOrigin: "center",
+                            }}
+                        >
+                            {showBack ? (
+                                <img
+                                    src={mapAssetUrl(island.backPath)}
+                                    alt=""
+                                    className="generated-map-back absolute inset-0 h-full w-full object-fill"
+                                    draggable={false}
+                                    style={maskStyle(island.svgPath)}
+                                />
+                            ) : null}
+                            {svgText ? (
+                                <div
+                                    className="absolute inset-0 z-[3]"
+                                    style={svgLayerStyle}
+                                    dangerouslySetInnerHTML={{
+                                        __html: renderGeneratedIslandSvg({
+                                            svgText,
+                                            island,
+                                            draft,
+                                            captured,
+                                            highlightedProvinces,
+                                        }),
+                                    }}
+                                />
+                            ) : null}
+                            <div className="pointer-events-none absolute inset-0 z-[6]">
+                                {(markersByIsland.get(island.islandId) ?? []).map((marker) => (
+                                    <span
+                                        key={marker.provinceId}
+                                        className="generated-map-marker"
+                                        data-captured={marker.color ? "true" : "false"}
+                                        title={marker.provinceName}
+                                        style={{
+                                            left: `${marker.left}%`,
+                                            top: `${marker.top}%`,
+                                            "--generated-marker-color": marker.color ?? "#777777",
+                                        } as CSSProperties}
+                                    >
+                                        <span className="generated-map-marker-shell">
+                                            {marker.color ? (
+                                                <span className="generated-map-marker-flag" />
+                                            ) : (
+                                                <span className="generated-map-marker-dot" />
+                                            )}
+                                        </span>
                                     </span>
-                                </span>
-                            ))}
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                );
-            })}
+                    );
+                })}
+            </div>
             {loadError ? (
                 <div className="absolute inset-x-4 top-4 rounded-md border border-red-500/30 bg-red-950/70 px-3 py-2 text-sm text-red-200">
                     {loadError}
@@ -421,7 +662,7 @@ function GeneratedMapStyles() {
                 .generated-map-marker {
                     position: absolute;
                     display: grid;
-                    width: clamp(14px, 1.55vw, 20px);
+                    width: clamp(10px, 1.05vw, 16px);
                     aspect-ratio: 1;
                     place-items: center;
                     transform: translate(-50%, -50%);
@@ -440,6 +681,15 @@ function GeneratedMapStyles() {
                     box-shadow:
                         inset 0 0 0 2px rgba(255, 255, 255, 0.05),
                         0 0 0 2px rgba(0, 0, 0, 0.22);
+                }
+
+                .generated-map-marker[data-captured="false"] {
+                    opacity: 0.68;
+                }
+
+                .generated-map-marker[data-captured="false"] .generated-map-marker-shell {
+                    border-color: rgba(150, 150, 150, 0.48);
+                    background: rgba(20, 20, 20, 0.62);
                 }
 
                 .generated-map-marker[data-captured="true"] .generated-map-marker-shell {
