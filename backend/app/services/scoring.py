@@ -1,9 +1,12 @@
-"""Score computation for a weekly map.
+"""Score computation over capturable provinces.
 
-Score is a pure function of province rows: the current owner of each
-province earns its flag value, and whoever first captured it keeps a
-permanent first-capture bonus regardless of later recaptures.
+Score is a pure function of province rows: the current owner's team earns
+each province's flag value, and the team of whoever first captured it keeps
+a permanent first-capture bonus regardless of later recaptures.
 """
+
+from dataclasses import dataclass
+from typing import Sequence
 
 from app.models.weekly_map_province import WeeklyMapProvince
 from app.schemas.maps import ScoreResponse
@@ -27,35 +30,60 @@ def first_capture_bonus(difficulty: str | None) -> int:
     return flag_points(difficulty) // 2
 
 
+@dataclass
+class TeamScore:
+    provinces: int = 0
+    base_points: int = 0
+    bonus_points: int = 0
+
+    @property
+    def total_points(self) -> int:
+        return self.base_points + self.bonus_points
+
+
+def compute_team_scores(
+    provinces: Sequence,
+    team_by_user: dict[int, int],
+    difficulty_by_slug: dict[str, str] | None = None,
+) -> dict[int, TeamScore]:
+    """Per-team score over province rows.
+
+    A user missing from team_by_user contributes nothing (e.g. a player who
+    left the lobby).
+    """
+    difficulty_by_slug = difficulty_by_slug or {}
+    scores: dict[int, TeamScore] = {}
+
+    for p in provinces:
+        difficulty = difficulty_by_slug.get(p.problem_title_slug)
+
+        if p.captured_by is not None and p.captured_by in team_by_user:
+            score = scores.setdefault(team_by_user[p.captured_by], TeamScore())
+            score.provinces += 1
+            score.base_points += flag_points(difficulty)
+
+        if p.first_captured_by is not None and p.first_captured_by in team_by_user:
+            score = scores.setdefault(team_by_user[p.first_captured_by], TeamScore())
+            score.bonus_points += first_capture_bonus(difficulty)
+
+    return scores
+
+
 def compute_score(
     provinces: list[WeeklyMapProvince],
     current_user_id: int,
     friend_id: int,
     difficulty_by_slug: dict[str, str] | None = None,
 ) -> ScoreResponse:
-    difficulty_by_slug = difficulty_by_slug or {}
+    """1v1 weekly-map score shape; delegates the point math to the team scorer."""
+    team_scores = compute_team_scores(
+        provinces,
+        {current_user_id: current_user_id, friend_id: friend_id},
+        difficulty_by_slug,
+    )
+    player = team_scores.get(current_user_id, TeamScore())
+    friend = team_scores.get(friend_id, TeamScore())
     total = len(provinces)
-    player_provinces = 0
-    friend_provinces = 0
-    player_base_points = 0
-    friend_base_points = 0
-    player_bonus_points = 0
-    friend_bonus_points = 0
-
-    for p in provinces:
-        difficulty = difficulty_by_slug.get(p.problem_title_slug)
-
-        if p.captured_by == current_user_id:
-            player_provinces += 1
-            player_base_points += flag_points(difficulty)
-        elif p.captured_by == friend_id:
-            friend_provinces += 1
-            friend_base_points += flag_points(difficulty)
-
-        if p.first_captured_by == current_user_id:
-            player_bonus_points += first_capture_bonus(difficulty)
-        elif p.first_captured_by == friend_id:
-            friend_bonus_points += first_capture_bonus(difficulty)
 
     total_regions = len(set(p.region_id for p in provinces))
 
@@ -76,17 +104,17 @@ def compute_score(
             friend_regions += 1
 
     return ScoreResponse(
-        player_provinces=player_provinces,
-        friend_provinces=friend_provinces,
-        neutral_provinces=total - player_provinces - friend_provinces,
+        player_provinces=player.provinces,
+        friend_provinces=friend.provinces,
+        neutral_provinces=total - player.provinces - friend.provinces,
         total_provinces=total,
         player_regions=player_regions,
         friend_regions=friend_regions,
         total_regions=total_regions,
-        player_base_points=player_base_points,
-        friend_base_points=friend_base_points,
-        player_bonus_points=player_bonus_points,
-        friend_bonus_points=friend_bonus_points,
-        player_points=player_base_points + player_bonus_points,
-        friend_points=friend_base_points + friend_bonus_points,
+        player_base_points=player.base_points,
+        friend_base_points=friend.base_points,
+        player_bonus_points=player.bonus_points,
+        friend_bonus_points=friend.bonus_points,
+        player_points=player.total_points,
+        friend_points=friend.total_points,
     )

@@ -1,6 +1,4 @@
-import asyncio
 import logging
-import random
 import secrets
 from datetime import datetime, timezone
 
@@ -21,32 +19,33 @@ from app.schemas.lobby import (
     CreateLobbyRequest,
     CreateLobbyResponse,
     InviteLobbyResponse,
+    LobbyEventResponse,
     LobbyMapProvinceResponse,
     LobbyMapResponse,
     LobbyMapSyncResponse,
     LobbyPlayerResponse,
     LobbyResponse,
+    LobbyScoreEntry,
     FactionResponse,
     UpdateFactionRequest,
     UpdatePlayerFactionRequest,
 )
+from app.services.capture_engine import CAPTURE, RECAPTURE, apply_capture_pass
+from app.services.events import get_lobby_events, record_lobby_events
 from app.services.leetcode_client import LeetCodeClient
 from app.services.problem_catalog import ensure_catalog
-from app.services.user_solved import get_solved_slugs_with_timestamps, normalize_language, record_submissions
-from app.services.map_generator import PROVINCE_REGION, REGION_TOPICS, _pick_problem
+from app.services.scoring import TeamScore, compute_team_scores
+from app.services.user_solved import (
+    get_solved_for_slugs,
+    get_solved_slugs_with_timestamps,
+    normalize_language,
+    record_submissions,
+)
+from app.services.map_config import PROVINCE_REGION, REGION_TOPICS
+from app.services.map_generator import _pick_problem
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-REGION_NAMES = {
-    "isle1": "Trees and Graphs",
-    "isle2": "Binary Search",
-    "isle3": "Hard Problem Land",
-    "region1": "Linked Lists",
-    "region2": "Two Pointers / Sliding Window",
-    "region3": "Arrays and Hashing",
-    "region4": "Stacks",
-}
 
 FACTION_COLORS = {1: "#00c2ff", 2: "#ff4d6d", 3: "#ffb020", 4: "#27d980"}
 FACTION_NAMES = {1: "Alpha", 2: "Bravo", 3: "Charlie", 4: "Delta"}
@@ -188,9 +187,74 @@ def _build_province(p: LobbyMapProvince, problems: dict, users: dict) -> LobbyMa
         captured_by=p.captured_by,
         captured_by_username=users.get(p.captured_by) if p.captured_by else None,
         captured_at=p.captured_at,
+        captured_runtime_ms=p.captured_runtime_ms,
         captured_submission_url=p.captured_submission_url,
         capturer_leetcode_username=p.capturer_leetcode_username,
+        first_captured_by=p.first_captured_by,
     )
+
+
+def _ordered_players(lobby_id: int, db: Session) -> list[tuple[LobbyPlayer, User]]:
+    """Lobby players with users, in join order (the capture tiebreak order)."""
+    return (
+        db.query(LobbyPlayer, User)
+        .join(User, LobbyPlayer.user_id == User.id)
+        .filter(LobbyPlayer.lobby_id == lobby_id)
+        .order_by(LobbyPlayer.joined_at.asc(), LobbyPlayer.user_id.asc())
+        .all()
+    )
+
+
+def _team_by_user(lobby: Lobby, players: list[tuple[LobbyPlayer, User]]) -> dict[int, int]:
+    """Capture/scoring team per player: faction in faction mode, self otherwise."""
+    if lobby.faction_mode:
+        return {u.id: lp.faction_id for lp, u in players if lp.faction_id}
+    return {u.id: u.id for _, u in players}
+
+
+def _score_entries(
+    lobby: Lobby,
+    provinces: list[LobbyMapProvince],
+    players: list[tuple[LobbyPlayer, User]],
+    problems: dict,
+) -> list[LobbyScoreEntry]:
+    difficulty_by_slug = {
+        slug: prob.difficulty for slug, prob in problems.items() if prob.difficulty
+    }
+    team_scores = compute_team_scores(provinces, _team_by_user(lobby, players), difficulty_by_slug)
+
+    entries: list[LobbyScoreEntry] = []
+    if lobby.faction_mode:
+        for faction in _lobby_factions(lobby):
+            score = team_scores.get(faction["id"], TeamScore())
+            entries.append(
+                LobbyScoreEntry(
+                    team_id=faction["id"],
+                    label=faction["name"],
+                    color=faction["color"],
+                    provinces=score.provinces,
+                    base_points=score.base_points,
+                    bonus_points=score.bonus_points,
+                    total_points=score.total_points,
+                )
+            )
+    else:
+        for lp, u in players:
+            score = team_scores.get(u.id, TeamScore())
+            entries.append(
+                LobbyScoreEntry(
+                    team_id=u.id,
+                    label=u.leetcode_username,
+                    color=FACTION_COLORS.get(lp.faction_id, "#888888"),
+                    provinces=score.provinces,
+                    base_points=score.base_points,
+                    bonus_points=score.bonus_points,
+                    total_points=score.total_points,
+                )
+            )
+
+    entries.sort(key=lambda e: e.total_points, reverse=True)
+    return entries
 
 
 # ── Create ──
@@ -470,12 +534,17 @@ def get_map(lobby_id: int, current_user: User = Depends(get_current_user), db: S
     if not lmap:
         return LobbyMapResponse(lobby_id=lobby_id, provinces=[])
 
+    players = _ordered_players(lobby.id, db)
     provinces = db.query(LobbyMapProvince).filter_by(lobby_map_id=lmap.id).all()
     slugs = {p.problem_title_slug for p in provinces}
     problems = {p.title_slug: p for p in db.query(LeetCodeProblem).filter(LeetCodeProblem.title_slug.in_(slugs)).all()}
     uids = {p.captured_by for p in provinces if p.captured_by}
     users = {u.id: u.leetcode_username for u in db.query(User).filter(User.id.in_(uids)).all()} if uids else {}
-    return LobbyMapResponse(lobby_id=lobby_id, provinces=[_build_province(p, problems, users) for p in provinces])
+    return LobbyMapResponse(
+        lobby_id=lobby_id,
+        provinces=[_build_province(p, problems, users) for p in provinces],
+        score=_score_entries(lobby, provinces, players, problems),
+    )
 
 
 @router.post("/{lobby_id}/map/sync", response_model=LobbyMapSyncResponse)
@@ -487,59 +556,69 @@ async def sync_map(lobby_id: int, current_user: User = Depends(get_current_user)
     if not lmap:
         return LobbyMapSyncResponse(captured_count=0, provinces=[])
 
-    players = (
-        db.query(LobbyPlayer, User)
-        .join(User, LobbyPlayer.user_id == User.id)
-        .filter(LobbyPlayer.lobby_id == lobby.id)
-        .all()
-    )
+    players = _ordered_players(lobby.id, db)
 
     client = LeetCodeClient()
     language = _lobby_programming_language(lobby)
-    submissions_by_user: dict[int, list] = {}
     for _, u in players:
         try:
             subs = await client.get_recent_accepted_submissions(u.leetcode_username, limit=50)
-            language_submissions = _filter_submissions_by_language(subs, language)
-            submissions_by_user[u.id] = language_submissions
-            record_submissions(u.id, language_submissions, db)
+            record_submissions(u.id, _filter_submissions_by_language(subs, language), db)
         except Exception:
             logger.warning("sync failed for %s", u.leetcode_username)
 
-    solved: dict[str, dict[int, datetime]] = {}
-    for _, u in players:
-        for slug, ts in get_solved_slugs_with_timestamps(u.id, db, language=language).items():
-            solved.setdefault(slug, {})[u.id] = ts
+    provinces = db.query(LobbyMapProvince).filter_by(lobby_map_id=lmap.id).all()
+    slugs = {p.problem_title_slug for p in provinces}
 
-    provinces = db.query(LobbyMapProvince).filter(
-        LobbyMapProvince.lobby_map_id == lmap.id,
-        LobbyMapProvince.captured_by.is_(None),
-    ).all()
+    solved_by_user = {
+        u.id: get_solved_for_slugs(u.id, slugs, db, language=language)
+        for _, u in players
+    }
+    username_by_id = {u.id: u.leetcode_username for _, u in players}
 
-    captured = 0
-    for p in provinces:
-        solvers = solved.get(p.problem_title_slug, {})
-        if not solvers:
-            continue
-        uid = min(solvers, key=lambda u: solvers[u])
-        p.captured_by = uid
-        p.captured_at = solvers[uid]
-        for _, u in players:
-            if u.id != uid:
-                continue
-            for s in submissions_by_user.get(uid, []):
-                if s.title_slug == p.problem_title_slug and s.submission_url:
-                    p.captured_submission_url = s.submission_url
-                    p.capturer_leetcode_username = u.leetcode_username
-                    break
-        captured += 1
-
-    if captured:
+    changes = apply_capture_pass(
+        provinces=provinces,
+        solved_by_user=solved_by_user,
+        username_by_id=username_by_id,
+        since=lobby.started_at or lobby.created_at,
+        tiebreak_order=[u.id for _, u in players],
+        team_by_user=_team_by_user(lobby, players),
+    )
+    if changes:
         db.commit()
 
-    all_prov = db.query(LobbyMapProvince).filter_by(lobby_map_id=lmap.id).all()
-    slugs = {p.problem_title_slug for p in all_prov}
     problems = {p.title_slug: p for p in db.query(LeetCodeProblem).filter(LeetCodeProblem.title_slug.in_(slugs)).all()}
-    uids = {p.captured_by for p in all_prov if p.captured_by}
+
+    if changes:
+        record_lobby_events(
+            changes,
+            lobby,
+            problems,
+            username_by_id,
+            {u.id: (lp.faction_id if lobby.faction_mode else None) for lp, u in players},
+            db,
+        )
+
+    uids = {p.captured_by for p in provinces if p.captured_by}
     users = {u.id: u.leetcode_username for u in db.query(User).filter(User.id.in_(uids)).all()} if uids else {}
-    return LobbyMapSyncResponse(captured_count=captured, provinces=[_build_province(p, problems, users) for p in all_prov])
+    return LobbyMapSyncResponse(
+        captured_count=sum(1 for c in changes if c.kind == CAPTURE),
+        recaptured_count=sum(1 for c in changes if c.kind == RECAPTURE),
+        provinces=[_build_province(p, problems, users) for p in provinces],
+        score=_score_entries(lobby, provinces, players, problems),
+    )
+
+
+@router.get("/{lobby_id}/events", response_model=list[LobbyEventResponse])
+def get_events(
+    lobby_id: int,
+    after_id: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    lobby = db.get(Lobby, lobby_id)
+    if not lobby:
+        raise HTTPException(404, "Lobby not found")
+    limit = max(1, min(limit, 200))
+    return get_lobby_events(lobby_id, after_id, limit, db)

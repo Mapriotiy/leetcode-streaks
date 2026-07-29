@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class FactionResponse(BaseModel):
@@ -71,18 +71,55 @@ class LobbyMapProvinceResponse(BaseModel):
     captured_by: Optional[int] = None
     captured_by_username: Optional[str] = None
     captured_at: Optional[datetime] = None
+    captured_runtime_ms: Optional[int] = None
     captured_submission_url: Optional[str] = None
     capturer_leetcode_username: Optional[str] = None
+    first_captured_by: Optional[int] = None
+
+
+class LobbyScoreEntry(BaseModel):
+    """Score line for one team: a faction, or a single player in free-for-all."""
+
+    team_id: int
+    label: str
+    color: str
+    provinces: int
+    base_points: int
+    bonus_points: int
+    total_points: int
 
 
 class LobbyMapResponse(BaseModel):
     lobby_id: int
     provinces: list[LobbyMapProvinceResponse]
+    score: list[LobbyScoreEntry] = Field(default_factory=list)
 
 
 class LobbyMapSyncResponse(BaseModel):
     captured_count: int
+    recaptured_count: int = 0
     provinces: list[LobbyMapProvinceResponse]
+    score: list[LobbyScoreEntry] = Field(default_factory=list)
+
+
+class LobbyEventResponse(BaseModel):
+    id: int
+    province_id: str
+    event_type: str
+    actor_user_id: int
+    actor_username: str
+    actor_faction_id: Optional[int] = None
+    previous_owner_user_id: Optional[int] = None
+    previous_owner_username: Optional[str] = None
+    problem_title_slug: str
+    problem_title: Optional[str] = None
+    problem_difficulty: Optional[str] = None
+    points: Optional[int] = None
+    runtime_ms: Optional[int] = None
+    previous_runtime_ms: Optional[int] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UpdateFactionRequest(BaseModel):

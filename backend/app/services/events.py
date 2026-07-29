@@ -1,15 +1,79 @@
-"""Recording and reading map events (captures, recaptures, defenses)."""
+"""Recording and reading game events (captures, recaptures, defenses)."""
 
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models.friendship import Friendship
 from app.models.leetcode_problem import LeetCodeProblem
+from app.models.lobby import Lobby
+from app.models.lobby_event import LobbyEvent
 from app.models.map_event import MapEvent
 from app.models.user import User
 from app.models.weekly_map import WeeklyMap
 from app.services.capture_engine import CaptureChange
 from app.services.scoring import flag_points
+
+
+def record_lobby_events(
+    changes: list[CaptureChange],
+    lobby: Lobby,
+    problems: dict[str, LeetCodeProblem],
+    usernames: dict[int, str],
+    faction_by_user: dict[int, int | None],
+    db: Session,
+) -> list[LobbyEvent]:
+    events: list[LobbyEvent] = []
+
+    for change in changes:
+        slug = change.province.problem_title_slug
+        problem = problems.get(slug)
+        difficulty = problem.difficulty if problem else None
+
+        event = LobbyEvent(
+            lobby_id=lobby.id,
+            province_id=change.province.province_id,
+            event_type=change.kind,
+            actor_user_id=change.actor_user_id,
+            actor_username=usernames.get(change.actor_user_id, "?"),
+            actor_faction_id=faction_by_user.get(change.actor_user_id),
+            previous_owner_user_id=change.previous_owner_user_id,
+            previous_owner_username=(
+                usernames.get(change.previous_owner_user_id)
+                if change.previous_owner_user_id is not None
+                else None
+            ),
+            problem_title_slug=slug,
+            problem_title=problem.title if problem else None,
+            problem_difficulty=difficulty,
+            points=flag_points(difficulty),
+            runtime_ms=change.runtime_ms,
+            previous_runtime_ms=change.previous_runtime_ms,
+        )
+        db.add(event)
+        events.append(event)
+
+    if events:
+        db.commit()
+
+    return events
+
+
+def get_lobby_events(
+    lobby_id: int,
+    after_id: int,
+    limit: int,
+    db: Session,
+) -> list[LobbyEvent]:
+    return (
+        db.query(LobbyEvent)
+        .filter(
+            LobbyEvent.lobby_id == lobby_id,
+            LobbyEvent.id > after_id,
+        )
+        .order_by(LobbyEvent.id.asc())
+        .limit(limit)
+        .all()
+    )
 
 
 def record_capture_events(
