@@ -5,7 +5,6 @@ import {
     useRef,
     useState,
     type CSSProperties,
-    type MouseEvent,
     type PointerEvent,
     type WheelEvent,
 } from "react";
@@ -73,6 +72,34 @@ function pointerCenter(a: PointerPoint, b: PointerPoint): PointerPoint {
         x: (a.x + b.x) / 2,
         y: (a.y + b.y) / 2,
     };
+}
+
+function hexToRgb(hex: string) {
+    const normalized = hex.trim().replace("#", "");
+    if (!/^[0-9a-f]{6}$/i.test(normalized)) return null;
+    return {
+        r: parseInt(normalized.slice(0, 2), 16),
+        g: parseInt(normalized.slice(2, 4), 16),
+        b: parseInt(normalized.slice(4, 6), 16),
+    };
+}
+
+function rgbToHex({ r, g, b }: { r: number; g: number; b: number }) {
+    return `#${[r, g, b]
+        .map((value) => Math.max(0, Math.min(255, Math.round(value))).toString(16).padStart(2, "0"))
+        .join("")}`;
+}
+
+function mixHex(base: string, target: string, baseWeight: number) {
+    const a = hexToRgb(base);
+    const b = hexToRgb(target);
+    if (!a || !b) return base;
+    const targetWeight = 1 - baseWeight;
+    return rgbToHex({
+        r: a.r * baseWeight + b.r * targetWeight,
+        g: a.g * baseWeight + b.g * targetWeight,
+        b: a.b * baseWeight + b.b * targetWeight,
+    });
 }
 
 function setSvgAttr(tag: string, name: string, value: string) {
@@ -217,10 +244,12 @@ export function renderGeneratedIslandSvg({
             const regionColor = region?.color ?? "#8f7458";
             const fill = capturedColor ?? regionColor;
             const stroke = capturedColor ?? regionColor;
+            const regionFill = capturedColor ? capturedColor : mixHex(regionColor, "#d8c7a8", 0.42);
+            const regionStroke = capturedColor ? capturedColor : mixHex(regionColor, "#f0d9b2", 0.78);
             const filter = capturedColor ? `drop-shadow(0 0 6px ${capturedColor}) drop-shadow(0 0 12px ${capturedColor})` : "";
             const inlineStyle = [
-                `--generated-map-region-color: ${fill}`,
-                `--generated-map-region-stroke-color: ${stroke}`,
+                `--generated-map-region-color: ${regionFill}`,
+                `--generated-map-region-stroke-color: ${regionStroke}`,
                 `--generated-map-capture-color: ${capturedColor ?? "#ffad42"}`,
             ].join("; ");
             pathIndex += 1;
@@ -266,7 +295,6 @@ export function GeneratedMapRenderer({
     const dragRef = useRef<DragState | null>(null);
     const activePointersRef = useRef<Map<number, PointerPoint>>(new Map());
     const pinchRef = useRef<PinchState | null>(null);
-    const suppressClickRef = useRef(false);
 
     useEffect(() => {
         let cancelled = false;
@@ -394,7 +422,6 @@ export function GeneratedMapRenderer({
                           y: pinch.startPan.y + center.y - pinch.startCenter.y,
                       },
             );
-            suppressClickRef.current = true;
             return;
         }
 
@@ -406,6 +433,29 @@ export function GeneratedMapRenderer({
         setPan({ x: drag.originX + dx, y: drag.originY + dy });
     }
 
+    function findProvincePath(event: PointerEvent<HTMLDivElement>): SVGPathElement | null {
+        const directPath = (event.target as Element).closest<SVGPathElement>(".generated-map-province");
+        if (directPath) return directPath;
+
+        for (const element of document.elementsFromPoint(event.clientX, event.clientY)) {
+            const path = element.closest?.(".generated-map-province");
+            if (path instanceof SVGPathElement) return path;
+        }
+        return null;
+    }
+
+    function selectProvinceAt(event: PointerEvent<HTMLDivElement>) {
+        if (!onSelect) return;
+        const path = findProvincePath(event);
+        if (!path) return;
+        const provinceId = path.getAttribute("data-province-id") || path.id;
+        const rect = path.getBoundingClientRect();
+        onSelect(provinceId, {
+            x: rect.left + rect.width / 2,
+            y: rect.top + rect.height / 2,
+        });
+    }
+
     function handlePointerUp(event: PointerEvent<HTMLDivElement>) {
         const releasePointer = () => {
             if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -415,7 +465,6 @@ export function GeneratedMapRenderer({
 
         activePointersRef.current.delete(event.pointerId);
         if (pinchRef.current) {
-            suppressClickRef.current = true;
             if (activePointersRef.current.size < 2) {
                 pinchRef.current = null;
             }
@@ -425,29 +474,15 @@ export function GeneratedMapRenderer({
 
         const drag = dragRef.current;
         if (!drag || drag.pointerId !== event.pointerId) {
+            selectProvinceAt(event);
             releasePointer();
             return;
         }
-        if (drag.moved) suppressClickRef.current = true;
+        if (!drag.moved) {
+            selectProvinceAt(event);
+        }
         dragRef.current = null;
         releasePointer();
-    }
-
-    function handleClick(event: MouseEvent<HTMLDivElement>) {
-        if (suppressClickRef.current) {
-            suppressClickRef.current = false;
-            return;
-        }
-        if (!onSelect) return;
-        const target = event.target as Element;
-        const path = target.closest<SVGPathElement>(".generated-map-province");
-        if (!path) return;
-        const provinceId = path.getAttribute("data-province-id") || path.id;
-        const rect = path.getBoundingClientRect();
-        onSelect(provinceId, {
-            x: rect.left + rect.width / 2,
-            y: rect.top + rect.height / 2,
-        });
     }
 
     const mapLayerStyle: CSSProperties = {
@@ -468,7 +503,6 @@ export function GeneratedMapRenderer({
                 zoomable ? "touch-none select-none" : ""
             } ${className}`}
             style={rootStyle}
-            onClick={handleClick}
             onWheel={handleWheel}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
@@ -626,11 +660,11 @@ function GeneratedMapStyles() {
 
                 .generated-map-svg .generated-map-province {
                     cursor: pointer;
-                    fill: color-mix(in srgb, var(--generated-map-region-color) 44%, #d8c7a8 56%) !important;
+                    fill: var(--generated-map-region-color) !important;
                     fill-opacity: var(--generated-map-fill-opacity) !important;
                     opacity: var(--generated-map-layer-opacity) !important;
-                    stroke: color-mix(in srgb, var(--generated-map-region-stroke-color) 76%, #e7d2ad 24%) !important;
-                    stroke-opacity: 0.54 !important;
+                    stroke: var(--generated-map-region-stroke-color) !important;
+                    stroke-opacity: 0.72 !important;
                     stroke-width: var(--generated-map-stroke-width) !important;
                     stroke-linecap: round;
                     stroke-linejoin: round;
