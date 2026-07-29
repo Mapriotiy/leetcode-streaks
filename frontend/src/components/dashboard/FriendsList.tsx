@@ -1,17 +1,16 @@
 import { useState } from "react";
-import { Map as MapIcon, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { apiRequest } from "../../api/client";
 import type { CreateInviteResponse, FriendResponse } from "../../types/dashboard";
 import { FriendFlame } from "./FriendFlame";
 
 type FriendsListProps = {
     friends: FriendResponse[];
-    onOpenMap: (friendshipId: number, friendId: number, friendUsername: string) => void;
     onFriendRemoved: (friendshipId: number) => void;
     onError: (message: string | null) => void;
 };
 
-export function FriendsList({ friends, onOpenMap, onFriendRemoved, onError }: FriendsListProps) {
+export function FriendsList({ friends, onFriendRemoved, onError }: FriendsListProps) {
     const [inviteUrl, setInviteUrl] = useState<string | null>(null);
     const [isCreatingInvite, setIsCreatingInvite] = useState(false);
     const [deletingFriendshipId, setDeletingFriendshipId] = useState<number | null>(null);
@@ -160,22 +159,6 @@ export function FriendsList({ friends, onOpenMap, onFriendRemoved, onError }: Fr
                                     </div>
 
                                     <div className="flex items-center gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                onOpenMap(
-                                                    item.friendship_id,
-                                                    item.friend.id,
-                                                    item.friend.leetcode_username,
-                                                )
-                                            }
-                                            className="grid h-9 w-9 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#8a8a8a] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
-                                            aria-label={`Open map vs ${item.friend.leetcode_username}`}
-                                            title={`Map vs ${item.friend.leetcode_username}`}
-                                        >
-                                            <MapIcon size={16} />
-                                        </button>
-
                                         <button
                                             type="button"
                                             onClick={() =>

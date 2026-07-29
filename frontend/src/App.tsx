@@ -5,7 +5,6 @@ import { AuthPage } from "./pages/AuthPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LobbyPage } from "./pages/LobbyPage";
 import { LobbyMapPage } from "./pages/LobbyMapPage";
-import { MapPage } from "./pages/MapPage";
 import type { Faction, LobbyPlayer } from "./types/dashboard";
 
 type User = {
@@ -21,11 +20,6 @@ export default function App() {
     const [inviteToken, setInviteToken] = useState<string | null>(null);
     const [lobbyInviteToken, setLobbyInviteToken] = useState<string | null>(null);
     const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
-    const [activeMapFriendship, setActiveMapFriendship] = useState<{
-        friendshipId: number;
-        friendId: number;
-        friendUsername: string;
-    } | null>(null);
     const [activeLobbyId, setActiveLobbyId] = useState<number | null>(null);
     const [activeLobbyPlayers, setActiveLobbyPlayers] = useState<LobbyPlayer[]>([]);
     const [activeLobbyFactions, setActiveLobbyFactions] = useState<Faction[]>([]);
@@ -154,33 +148,19 @@ export default function App() {
 
     return (
         <>
-            {activeMapFriendship ? (
-                <MapPage
-                    currentUserId={user.id}
-                    currentUsername={user.leetcode_username}
-                    friendshipId={activeMapFriendship.friendshipId}
-                    friendId={activeMapFriendship.friendId}
-                    friendUsername={activeMapFriendship.friendUsername}
-                    onBack={() => setActiveMapFriendship(null)}
-                />
-            ) : (
-                <DashboardPage
-                    user={user}
-                    refreshKey={dashboardRefreshKey}
-                    onLogout={() => {
-                        localStorage.removeItem("accessToken");
-                        setUser(null);
-                    }}
-                    onOpenMap={(friendshipId, friendId, friendUsername) =>
-                        setActiveMapFriendship({ friendshipId, friendId, friendUsername })
-                    }
-                    onOpenLobby={(lobbyId, players, factions) => {
-                        setActiveLobbyId(lobbyId);
-                        setActiveLobbyPlayers(players ?? []);
-                        setActiveLobbyFactions(factions ?? []);
-                    }}
-                />
-            )}
+            <DashboardPage
+                user={user}
+                refreshKey={dashboardRefreshKey}
+                onLogout={() => {
+                    localStorage.removeItem("accessToken");
+                    setUser(null);
+                }}
+                onOpenLobby={(lobbyId, players, factions) => {
+                    setActiveLobbyId(lobbyId);
+                    setActiveLobbyPlayers(players ?? []);
+                    setActiveLobbyFactions(factions ?? []);
+                }}
+            />
 
             {inviteToken ? (
                 <InviteModal
