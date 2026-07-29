@@ -36,6 +36,7 @@ from app.models.lobby_invite import LobbyInvite
 from app.models.lobby_map import LobbyMap
 from app.models.lobby_map_province import LobbyMapProvince
 from app.models.lobby_event import LobbyEvent
+from app.models.lobby_board_cell import LobbyBoardCell
 
 target_metadata = Base.metadata
 

@@ -8,6 +8,7 @@ from app.models.friend_invite import FriendInvite  # noqa: F401
 from app.models.friendship import Friendship  # noqa: F401
 from app.models.leetcode_problem import LeetCodeProblem  # noqa: F401
 from app.models.lobby import Lobby  # noqa: F401
+from app.models.lobby_board_cell import LobbyBoardCell  # noqa: F401
 from app.models.lobby_event import LobbyEvent  # noqa: F401
 from app.models.lobby_invite import LobbyInvite  # noqa: F401
 from app.models.lobby_map import LobbyMap  # noqa: F401
