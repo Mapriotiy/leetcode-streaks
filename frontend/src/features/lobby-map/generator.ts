@@ -699,7 +699,7 @@ function mixHex(base: string, target: string, baseWeight: number) {
 function mutedTopicColor(color: string, index: number) {
     const fallback = REGION_FALLBACK_COLORS[index % REGION_FALLBACK_COLORS.length];
     const base = hexToRgb(color) ? color : fallback;
-    return mixHex(base, "#8b9188", 0.52);
+    return mixHex(base, "#343936", 0.58);
 }
 
 function normalizeTopics(topics: readonly LobbyMapTopic[], provinceCount: number) {

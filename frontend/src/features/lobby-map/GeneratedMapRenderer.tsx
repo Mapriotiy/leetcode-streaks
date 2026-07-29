@@ -102,6 +102,14 @@ function mixHex(base: string, target: string, baseWeight: number) {
     });
 }
 
+function captureFillColor(color: string) {
+    return mixHex(color, "#272323", 0.46);
+}
+
+function captureStrokeColor(color: string) {
+    return mixHex(color, "#3a2528", 0.72);
+}
+
 function setSvgAttr(tag: string, name: string, value: string) {
     const attrPattern = new RegExp(`\\s${name}="[^"]*"`);
     if (attrPattern.test(tag)) return tag.replace(attrPattern, ` ${name}="${value}"`);
@@ -244,13 +252,15 @@ export function renderGeneratedIslandSvg({
             const regionColor = region?.color ?? "#8f7458";
             const fill = capturedColor ?? regionColor;
             const stroke = capturedColor ?? regionColor;
-            const regionFill = capturedColor ? capturedColor : mixHex(regionColor, "#9ca29b", 0.58);
-            const regionStroke = capturedColor ? capturedColor : mixHex(regionColor, "#7a7f82", 0.86);
+            const regionFill = capturedColor ? captureFillColor(capturedColor) : mixHex(regionColor, "#242827", 0.7);
+            const regionStroke = capturedColor ? captureStrokeColor(capturedColor) : mixHex(regionColor, "#303332", 0.82);
             const filter = capturedColor ? `drop-shadow(0 0 6px ${capturedColor}) drop-shadow(0 0 12px ${capturedColor})` : "";
             const inlineStyle = [
                 `--generated-map-region-color: ${regionFill}`,
                 `--generated-map-region-stroke-color: ${regionStroke}`,
                 `--generated-map-capture-color: ${capturedColor ?? "#ffad42"}`,
+                `--generated-map-capture-fill-color: ${capturedColor ? captureFillColor(capturedColor) : "#5e4730"}`,
+                `--generated-map-capture-stroke-color: ${capturedColor ? captureStrokeColor(capturedColor) : "#8a5b35"}`,
             ].join("; ");
             pathIndex += 1;
 
@@ -680,12 +690,16 @@ function GeneratedMapStyles() {
                 }
 
                 .generated-map-svg .generated-map-province[data-captured="true"] {
-                    fill: var(--generated-map-capture-color) !important;
+                    fill: var(--generated-map-capture-fill-color) !important;
                     fill-opacity: var(--generated-map-capture-fill-opacity) !important;
-                    opacity: 0.38 !important;
-                    stroke: var(--generated-map-capture-color) !important;
-                    stroke-opacity: 1 !important;
-                    stroke-width: 5 !important;
+                    opacity: 0.82 !important;
+                    stroke: var(--generated-map-capture-stroke-color) !important;
+                    stroke-opacity: 0.82 !important;
+                    stroke-width: 2.8 !important;
+                    filter:
+                        saturate(0.94) brightness(0.9)
+                        drop-shadow(0 0 4px color-mix(in srgb, var(--generated-map-capture-stroke-color) 52%, transparent))
+                        drop-shadow(0 0 10px color-mix(in srgb, var(--generated-map-capture-stroke-color) 28%, transparent));
                 }
 
                 .generated-map-svg .generated-map-province:hover {
