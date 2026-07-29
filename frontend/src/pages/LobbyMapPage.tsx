@@ -9,7 +9,7 @@ import { apiRequest } from '../api/client';
 import { useLobbyEvents } from '../hooks/useLobbyEvents';
 import { GeneratedMapRenderer } from '../features/lobby-map/GeneratedMapRenderer';
 import { generatedRegionsAsLegend } from '../features/lobby-map/generator';
-import { readLobbyMapSelection, writeLobbyMapSelection } from '../features/lobby-map/storage';
+import { writeLobbyMapSelection } from '../features/lobby-map/storage';
 import { normalizeLobbyMapSelection } from '../features/lobby-map/api';
 import type { LobbyMapSelection } from '../features/lobby-map/types';
 
@@ -108,10 +108,10 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
     const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
     const [popPos, setPopPos] = useState<{ x: number; y: number } | null>(null);
     const [hoveredProvinces, setHoveredProvinces] = useState<string[] | null>(null);
-    const [mapSelection, setMapSelection] = useState<LobbyMapSelection>(() => readLobbyMapSelection(lobbyId));
+    const [mapSelection, setMapSelection] = useState<LobbyMapSelection>({ kind: 'default' });
 
     useEffect(() => {
-        setMapSelection(readLobbyMapSelection(lobbyId));
+        setMapSelection({ kind: 'default' });
         setHoveredProvinces(null);
         setSelectedProvince(null);
         setPopPos(null);
@@ -188,11 +188,9 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
     const loadMap = useCallback(async () => {
         try {
             const data = await apiRequest<MapApiResponse>(`/lobbies/${lobbyId}/map`);
-            if ('map_selection' in data) {
-                const serverSelection = normalizeLobbyMapSelection(data.map_selection);
-                setMapSelection(serverSelection);
-                writeLobbyMapSelection(lobbyId, serverSelection);
-            }
+            const serverSelection = normalizeLobbyMapSelection(data.map_selection);
+            setMapSelection(serverSelection);
+            writeLobbyMapSelection(lobbyId, serverSelection);
             setProvincesData(data.provinces);
             setScoreEntries(data.score ?? []);
             setGameStatus(data.status);
@@ -207,11 +205,9 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
             const data = await apiRequest<SyncApiResponse>(
                 `/lobbies/${lobbyId}/map/sync`, { method: 'POST' }
             );
-            if ('map_selection' in data) {
-                const serverSelection = normalizeLobbyMapSelection(data.map_selection);
-                setMapSelection(serverSelection);
-                writeLobbyMapSelection(lobbyId, serverSelection);
-            }
+            const serverSelection = normalizeLobbyMapSelection(data.map_selection);
+            setMapSelection(serverSelection);
+            writeLobbyMapSelection(lobbyId, serverSelection);
             if (data.provinces.length > 0) setProvincesData(data.provinces);
             setScoreEntries(data.score ?? []);
             setGameStatus(data.status);

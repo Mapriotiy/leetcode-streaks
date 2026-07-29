@@ -364,17 +364,20 @@ export function LobbyPage({ lobbyId, currentUserId, onBack, onGameStarted }: Lob
                         </div>
                         <div className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm">
                             <span className="text-[#8a8a8a]">Map</span>
-                            <div className="mt-1 flex items-center justify-between gap-2">
+                            <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                 <p className="min-w-0 truncate text-[#eff1f6]">{mapLabel}</p>
                                 {isCreator && !isActive ? (
                                     <button
                                         type="button"
                                         onClick={() => setIsMapChooserOpen(true)}
                                         disabled={isSavingMapSelection}
-                                        className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-white/10 bg-[#262626] text-[#bdbdbd] transition hover:border-[#ffa116]/60 hover:text-white"
+                                        className="inline-flex h-9 w-full shrink-0 items-center justify-center gap-2 rounded-md border border-white/10 bg-[#262626] px-3 text-xs font-semibold text-[#d7d7d7] transition hover:border-[#ffa116]/60 hover:text-white disabled:cursor-not-allowed disabled:text-[#777] sm:h-7 sm:w-7 sm:px-0"
                                         aria-label="Choose map"
                                     >
                                         <MapIcon size={14} />
+                                        <span className="sm:hidden">
+                                            {isSavingMapSelection ? 'Saving...' : 'Choose map'}
+                                        </span>
                                     </button>
                                 ) : null}
                             </div>
