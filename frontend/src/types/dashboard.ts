@@ -16,11 +16,40 @@ export type DashboardData = {
         topic_tags: string[];
     }[];
     activity_calendar: ActivityCalendarDay[];
+    lobbies: DashboardLobby[];
 };
 
 export type ActivityCalendarDay = {
     date: string;
     count: number;
+};
+
+export type LobbyPlayer = {
+    user_id: number;
+    leetcode_username: string;
+    faction_id: number | null;
+    status: string;
+};
+
+export type Faction = {
+    id: number;
+    name: string;
+    color: string;
+};
+
+export type DashboardLobby = {
+    id: number;
+    name: string;
+    status: string;
+    game_mode: string;
+    map_size: string;
+    max_players: number;
+    faction_mode: boolean;
+    faction_count: number;
+    factions: Faction[];
+    programming_language: string;
+    creator_id: number;
+    players: LobbyPlayer[];
 };
 
 export type CreateInviteResponse = {

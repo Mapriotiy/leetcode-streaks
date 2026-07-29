@@ -90,6 +90,11 @@ function applyCaptured(path: SVGPathElement, color: string) {
     path.style.filter = `drop-shadow(0 0 6px ${color}) drop-shadow(0 0 12px ${color})`;
 }
 
+function resolveCaptureColor(owner: string | undefined): string | null {
+    if (!owner) return null;
+    return COLORS[owner] ?? owner;
+}
+
 export default function ProvinceMap({ captured, onSelect, highlightedProvinces }: ProvinceMapProps) {
     const svgWrapRef = useRef<HTMLDivElement>(null);
     const markersRef = useRef<Map<string, Marker>>(new Map());
@@ -156,9 +161,9 @@ export default function ProvinceMap({ captured, onSelect, highlightedProvinces }
         svg.querySelectorAll<SVGPathElement>('.prov').forEach((path) => {
             const marker = markersRef.current.get(path.id);
             const owner = captured.get(path.id);
+            const color = resolveCaptureColor(owner);
 
-            if (owner && COLORS[owner]) {
-                const color = COLORS[owner];
+            if (color) {
                 applyCaptured(path, color);
                 if (marker) {
                     marker.ring.setAttribute('stroke', color);
@@ -176,17 +181,18 @@ export default function ProvinceMap({ captured, onSelect, highlightedProvinces }
         });
     }, [captured]);
 
-useEffect(() => {
+    useEffect(() => {
         const svg = svgWrapRef.current?.querySelector('svg');
         if (!svg) return;
 
         svg.querySelectorAll<SVGPathElement>('.prov').forEach((path) => {
             const owner = captured.get(path.id);
-            const isCaptured = owner && COLORS[owner];
+            const color = resolveCaptureColor(owner);
+            const isCaptured = Boolean(color);
 
             if (!highlightedProvinces) {
-                if (isCaptured) {
-                    applyCaptured(path, COLORS[owner]);
+                if (isCaptured && color) {
+                    applyCaptured(path, color);
                 } else {
                     path.setAttribute('style', pathStylesRef.current.get(path.id) || '');
                 }
@@ -196,16 +202,16 @@ useEffect(() => {
             const isHighlighted = highlightedProvinces.includes(path.id);
 
             if (isHighlighted) {
-                if (isCaptured) {
-                    applyCaptured(path, COLORS[owner]);
+                if (isCaptured && color) {
+                    applyCaptured(path, color);
                 } else {
                     path.setAttribute('style', pathStylesRef.current.get(path.id) || '');
                     path.style.opacity = '0.45';
                     path.style.filter = 'drop-shadow(0 0 5px rgba(255,255,255,0.4))';
                 }
             } else {
-                if (isCaptured) {
-                    applyCaptured(path, COLORS[owner]);
+                if (isCaptured && color) {
+                    applyCaptured(path, color);
                     path.style.opacity = '0.15';
                 } else {
                     path.setAttribute('style', pathStylesRef.current.get(path.id) || '');

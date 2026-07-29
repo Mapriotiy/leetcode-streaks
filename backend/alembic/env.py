@@ -26,10 +26,16 @@ from app.models.daily_activity import DailyActivity
 from app.models.friend_invite import FriendInvite
 from app.models.friendship import Friendship
 from app.models.leetcode_problem import LeetCodeProblem
-from app.models.map_event import MapEvent
 from app.models.user_solved import UserSolved
 from app.models.weekly_map import WeeklyMap
 from app.models.weekly_map_province import WeeklyMapProvince
+from app.models.map_event import MapEvent
+from app.models.lobby import Lobby
+from app.models.lobby_player import LobbyPlayer
+from app.models.lobby_invite import LobbyInvite
+from app.models.lobby_map import LobbyMap
+from app.models.lobby_map_province import LobbyMapProvince
+from app.models.win_condition import WinCondition
 
 target_metadata = Base.metadata
 

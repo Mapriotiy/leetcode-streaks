@@ -8,7 +8,7 @@ import type {
     WeeklyMapApiResponse,
 } from '../types/map';
 
-const POLL_INTERVAL_MS = 60_000;
+const POLL_INTERVAL_MS = 30_000;
 
 export function useMapSync(friendshipId: number) {
     const [provincesData, setProvincesData] = useState<ProvinceApiData[]>([]);

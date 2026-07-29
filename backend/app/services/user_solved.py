@@ -18,23 +18,48 @@ def _parse_submitted_at(submitted_at_iso: str) -> datetime:
 
 @dataclass
 class _BatchEntry:
+    language: str
     solved_at: datetime
     best_runtime_ms: int | None = None
     best_submission_url: str | None = None
     best_runtime_at: datetime | None = None
 
 
-def _fold_batch(submissions: list[RecentAcceptedSubmission]) -> dict[str, _BatchEntry]:
+LANGUAGE_ALIASES = {
+    "python3": "python3",
+    "python 3": "python3",
+    "python": "python3",
+    "c++": "cpp",
+    "cpp": "cpp",
+    "java": "java",
+    "javascript": "javascript",
+    "typescript": "typescript",
+    "c#": "csharp",
+    "csharp": "csharp",
+    "go": "golang",
+    "golang": "golang",
+    "rust": "rust",
+}
+
+
+def normalize_language(language: str | None) -> str:
+    value = (language or "unknown").strip().lower()
+    return LANGUAGE_ALIASES.get(value, value or "unknown")
+
+
+def _fold_batch(submissions: list[RecentAcceptedSubmission]) -> dict[tuple[str, str], _BatchEntry]:
     """Reduce a submission batch to earliest solve and fastest runtime per slug."""
-    batch: dict[str, _BatchEntry] = {}
+    batch: dict[tuple[str, str], _BatchEntry] = {}
 
     for sub in submissions:
         solved_at = _parse_submitted_at(sub.submitted_at)
-        entry = batch.get(sub.title_slug)
+        language = normalize_language(sub.language)
+        key = (sub.title_slug, language)
+        entry = batch.get(key)
 
         if entry is None:
-            entry = _BatchEntry(solved_at=solved_at)
-            batch[sub.title_slug] = entry
+            entry = _BatchEntry(language=language, solved_at=solved_at)
+            batch[key] = entry
         elif solved_at < entry.solved_at:
             entry.solved_at = solved_at
 
@@ -48,25 +73,29 @@ def _fold_batch(submissions: list[RecentAcceptedSubmission]) -> dict[str, _Batch
     return batch
 
 
-def _apply_batch(user_id: int, batch: dict[str, _BatchEntry], db: Session) -> None:
+def _apply_batch(user_id: int, batch: dict[tuple[str, str], _BatchEntry], db: Session) -> None:
+    slugs = {slug for slug, _ in batch}
+    languages = {language for _, language in batch}
     existing_rows = {
-        row.title_slug: row
+        (row.title_slug, row.language): row
         for row in db.query(UserSolved)
         .filter(
             UserSolved.user_id == user_id,
-            UserSolved.title_slug.in_(batch.keys()),
+            UserSolved.title_slug.in_(slugs),
+            UserSolved.language.in_(languages),
         )
         .all()
     }
 
-    for slug, entry in batch.items():
-        row = existing_rows.get(slug)
+    for (slug, language), entry in batch.items():
+        row = existing_rows.get((slug, language))
 
         if row is None:
             db.add(
                 UserSolved(
                     user_id=user_id,
                     title_slug=slug,
+                    language=entry.language,
                     solved_at=entry.solved_at,
                     best_runtime_ms=entry.best_runtime_ms,
                     best_submission_url=entry.best_submission_url,
@@ -101,6 +130,8 @@ def record_submissions(
         return
 
     batch = _fold_batch(submissions)
+    if not batch:
+        return
 
     _apply_batch(user_id, batch, db)
     try:
@@ -113,37 +144,54 @@ def record_submissions(
         db.commit()
 
 
-def get_solved_slugs(user_id: int, db: Session) -> set[str]:
+def get_solved_slugs(user_id: int, db: Session, language: str | None = None) -> set[str]:
+    filters = [UserSolved.user_id == user_id]
+    if language is not None:
+        filters.append(UserSolved.language == normalize_language(language))
     rows = (
         db.query(UserSolved.title_slug)
-        .filter(UserSolved.user_id == user_id)
+        .filter(*filters)
         .all()
     )
     return {row[0] for row in rows}
 
 
 def get_solved_slugs_with_timestamps(
-    user_id: int, db: Session,
+    user_id: int, db: Session, language: str | None = None,
 ) -> dict[str, datetime]:
+    filters = [UserSolved.user_id == user_id]
+    if language is not None:
+        filters.append(UserSolved.language == normalize_language(language))
     rows = (
         db.query(UserSolved.title_slug, UserSolved.solved_at)
-        .filter(UserSolved.user_id == user_id)
+        .filter(*filters)
+        .order_by(UserSolved.solved_at.asc())
         .all()
     )
-    return {row[0]: row[1] for row in rows}
+    solved: dict[str, datetime] = {}
+    for slug, solved_at in rows:
+        solved.setdefault(slug, solved_at)
+    return solved
 
 
 def get_solved_for_slugs(
-    user_id: int, slugs: set[str], db: Session,
+    user_id: int, slugs: set[str], db: Session, language: str | None = None,
 ) -> dict[str, UserSolved]:
     if not slugs:
         return {}
+    filters = [
+        UserSolved.user_id == user_id,
+        UserSolved.title_slug.in_(slugs),
+    ]
+    if language is not None:
+        filters.append(UserSolved.language == normalize_language(language))
     rows = (
         db.query(UserSolved)
-        .filter(
-            UserSolved.user_id == user_id,
-            UserSolved.title_slug.in_(slugs),
-        )
+        .filter(*filters)
+        .order_by(UserSolved.solved_at.asc())
         .all()
     )
-    return {row.title_slug: row for row in rows}
+    solved: dict[str, UserSolved] = {}
+    for row in rows:
+        solved.setdefault(row.title_slug, row)
+    return solved
