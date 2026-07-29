@@ -35,6 +35,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby }: Dashb
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
     const [friends, setFriends] = useState<FriendResponse[]>([]);
     const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
+    const [isLoadingFriends, setIsLoadingFriends] = useState(true);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [showLobbyModal, setShowLobbyModal] = useState(false);
     const currentStreakState = dashboardData?.current_streak_state ?? "broken";
@@ -47,27 +48,51 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby }: Dashb
               : "Solve today to start";
 
     useEffect(() => {
+        let isCancelled = false;
+
         async function loadDashboard() {
             setErrorMessage(null);
+            setIsLoadingDashboard(true);
 
             try {
-                const [dashboard, friendsList] = await Promise.all([
-                    apiRequest<DashboardData>("/dashboard/"),
-                    apiRequest<FriendResponse[]>("/friends/"),
-                ]);
-
+                const dashboard = await apiRequest<DashboardData>("/dashboard/");
+                if (isCancelled) return;
                 setDashboardData(dashboard);
-                setFriends(friendsList);
             } catch (error) {
+                if (isCancelled) return;
                 setErrorMessage(
                     error instanceof Error ? error.message : "Failed to load dashboard",
                 );
             } finally {
+                if (isCancelled) return;
                 setIsLoadingDashboard(false);
             }
         }
 
+        async function loadFriends() {
+            setIsLoadingFriends(true);
+
+            try {
+                const friendsList = await apiRequest<FriendResponse[]>("/friends/");
+                if (isCancelled) return;
+                setFriends(friendsList);
+            } catch (error) {
+                if (isCancelled) return;
+                setErrorMessage(
+                    error instanceof Error ? error.message : "Failed to load friends",
+                );
+            } finally {
+                if (isCancelled) return;
+                setIsLoadingFriends(false);
+            }
+        }
+
         void loadDashboard();
+        void loadFriends();
+
+        return () => {
+            isCancelled = true;
+        };
     }, [refreshKey]);
 
     return (
@@ -276,6 +301,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby }: Dashb
 
                 <FriendsList
                     friends={friends}
+                    isLoading={isLoadingFriends}
                     onFriendRemoved={(friendshipId) =>
                         setFriends((currentFriends) =>
                             currentFriends.filter(
