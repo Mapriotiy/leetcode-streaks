@@ -244,8 +244,8 @@ export function renderGeneratedIslandSvg({
             const regionColor = region?.color ?? "#8f7458";
             const fill = capturedColor ?? regionColor;
             const stroke = capturedColor ?? regionColor;
-            const regionFill = capturedColor ? capturedColor : mixHex(regionColor, "#d8c7a8", 0.42);
-            const regionStroke = capturedColor ? capturedColor : mixHex(regionColor, "#f0d9b2", 0.78);
+            const regionFill = capturedColor ? capturedColor : mixHex(regionColor, "#9ca29b", 0.58);
+            const regionStroke = capturedColor ? capturedColor : mixHex(regionColor, "#7a7f82", 0.86);
             const filter = capturedColor ? `drop-shadow(0 0 6px ${capturedColor}) drop-shadow(0 0 12px ${capturedColor})` : "";
             const inlineStyle = [
                 `--generated-map-region-color: ${regionFill}`,
@@ -693,7 +693,7 @@ function GeneratedMapStyles() {
                     opacity: 1 !important;
                     stroke-opacity: 0.82 !important;
                     stroke-width: calc(var(--generated-map-stroke-width) + 0.8) !important;
-                    filter: drop-shadow(0 0 5px rgba(255, 173, 66, 0.72));
+                    filter: drop-shadow(0 0 5px var(--generated-map-region-stroke-color));
                 }
 
                 .generated-map-marker {

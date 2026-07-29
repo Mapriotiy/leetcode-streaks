@@ -668,12 +668,46 @@ async function fetchSvgText(path: string) {
     return response.text();
 }
 
+function hexToRgb(hex: string) {
+    const normalized = hex.trim().replace("#", "");
+    if (!/^[0-9a-f]{6}$/i.test(normalized)) return null;
+    return {
+        r: parseInt(normalized.slice(0, 2), 16),
+        g: parseInt(normalized.slice(2, 4), 16),
+        b: parseInt(normalized.slice(4, 6), 16),
+    };
+}
+
+function rgbToHex({ r, g, b }: { r: number; g: number; b: number }) {
+    return `#${[r, g, b]
+        .map((value) => Math.max(0, Math.min(255, Math.round(value))).toString(16).padStart(2, "0"))
+        .join("")}`;
+}
+
+function mixHex(base: string, target: string, baseWeight: number) {
+    const a = hexToRgb(base);
+    const b = hexToRgb(target);
+    if (!a || !b) return base;
+    const targetWeight = 1 - baseWeight;
+    return rgbToHex({
+        r: a.r * baseWeight + b.r * targetWeight,
+        g: a.g * baseWeight + b.g * targetWeight,
+        b: a.b * baseWeight + b.b * targetWeight,
+    });
+}
+
+function mutedTopicColor(color: string, index: number) {
+    const fallback = REGION_FALLBACK_COLORS[index % REGION_FALLBACK_COLORS.length];
+    const base = hexToRgb(color) ? color : fallback;
+    return mixHex(base, "#8b9188", 0.52);
+}
+
 function normalizeTopics(topics: readonly LobbyMapTopic[], provinceCount: number) {
     const usable = topics.length ? topics : [DEFAULT_TOPIC];
     const maxCount = Math.max(1, Math.min(usable.length, provinceCount));
     return usable.slice(0, maxCount).map((topic, index) => ({
         ...topic,
-        color: topic.color || REGION_FALLBACK_COLORS[index % REGION_FALLBACK_COLORS.length],
+        color: mutedTopicColor(topic.color || REGION_FALLBACK_COLORS[index % REGION_FALLBACK_COLORS.length], index),
     }));
 }
 
