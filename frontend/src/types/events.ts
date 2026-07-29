@@ -1,13 +1,13 @@
 export type GameEventApiData = {
     id: number;
-    province_id: string;
+    province_id: string | null;
     event_type: string;
     actor_user_id: number;
     actor_username: string;
     actor_faction_id?: number | null;
     previous_owner_user_id: number | null;
     previous_owner_username: string | null;
-    problem_title_slug: string;
+    problem_title_slug: string | null;
     problem_title: string | null;
     problem_difficulty: string | null;
     points: number | null;

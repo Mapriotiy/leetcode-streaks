@@ -1,11 +1,13 @@
 import { PROVINCE_NAMES, REGIONS } from './mapRegions';
 import type { GameEventApiData } from './types/events';
 
-export function provinceName(provinceId: string): string {
+export function provinceName(provinceId: string | null): string {
+    if (!provinceId) return 'the board';
     return PROVINCE_NAMES[provinceId] ?? provinceId;
 }
 
-export function regionNameForProvince(provinceId: string): string {
+export function regionNameForProvince(provinceId: string | null): string {
+    if (!provinceId) return 'a region';
     return REGIONS.find((region) => region.provinces.includes(provinceId))?.name ?? 'a region';
 }
 
@@ -39,6 +41,10 @@ export function eventText(event: GameEventApiData, currentUserId: number): strin
             return `${actor} seized full control of ${regionNameForProvince(event.province_id)}${
                 event.points ? ` (+${event.points} while held)` : ''
             }`;
+        case 'game_won':
+            return event.actor_user_id === currentUserId
+                ? 'You won the game! 🏆'
+                : `${event.actor_username} won the game 🏆`;
         case 'region_control_lost': {
             const victim =
                 event.previous_owner_user_id === currentUserId

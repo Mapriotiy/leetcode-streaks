@@ -29,7 +29,8 @@ class LobbyEvent(Base):
         ForeignKey("lobbies.id", ondelete="CASCADE"),
         nullable=False,
     )
-    province_id: Mapped[str] = mapped_column(String, nullable=False)
+    # Null for game-level events (game_won); "cellN" keys for board modes.
+    province_id: Mapped[str | None] = mapped_column(String, nullable=True)
     event_type: Mapped[str] = mapped_column(String, nullable=False)
     actor_user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"),
@@ -43,7 +44,7 @@ class LobbyEvent(Base):
         nullable=True,
     )
     previous_owner_username: Mapped[str | None] = mapped_column(String, nullable=True)
-    problem_title_slug: Mapped[str] = mapped_column(String, nullable=False)
+    problem_title_slug: Mapped[str | None] = mapped_column(String, nullable=True)
     problem_title: Mapped[str | None] = mapped_column(String, nullable=True)
     problem_difficulty: Mapped[str | None] = mapped_column(String, nullable=True)
     points: Mapped[int | None] = mapped_column(Integer, nullable=True)

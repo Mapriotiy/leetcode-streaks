@@ -30,3 +30,4 @@ class Lobby(Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     winner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    winner_faction_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
