@@ -30,6 +30,7 @@ type ScoreEntry = {
     provinces: number;
     base_points: number;
     bonus_points: number;
+    region_control_points: number;
     total_points: number;
 };
 
@@ -199,14 +200,22 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
 
     const neutralCount = provincesData.filter((p) => !p.captured_by).length;
     const totalCount = provincesData.length;
-    const scoreRows = scoreEntries.map((entry) => ({
-        key: entry.team_id,
-        label: entry.label,
-        color: entry.color,
-        count: entry.provinces,
-        points: entry.total_points,
-        bonusPoints: entry.bonus_points,
-    }));
+    const scoreRows = scoreEntries.map((entry) => {
+        const breakdown = [
+            `${entry.base_points} flags`,
+            entry.bonus_points > 0 ? `+${entry.bonus_points} first captures` : null,
+            entry.region_control_points > 0 ? `+${entry.region_control_points} region control` : null,
+        ].filter(Boolean).join(', ');
+        return {
+            key: entry.team_id,
+            label: entry.label,
+            color: entry.color,
+            count: entry.provinces,
+            points: entry.total_points,
+            regionControlPoints: entry.region_control_points,
+            breakdown,
+        };
+    });
 
     return (
         <main className="min-h-screen bg-[#1a1a1a] p-6 text-white">
@@ -255,10 +264,15 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                                     </span>
                                     <span
                                         className="text-xs font-semibold tabular-nums text-[#ffa116]"
-                                        title={row.bonusPoints > 0 ? `includes +${row.bonusPoints} first-capture bonus` : undefined}
+                                        title={row.breakdown}
                                     >
                                         {row.points} pts
                                     </span>
+                                    {row.regionControlPoints > 0 && (
+                                        <span className="rounded-full bg-[#ffa116]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#ffd08a]" title={`Holding whole regions: +${row.regionControlPoints}`}>
+                                            👑
+                                        </span>
+                                    )}
                                 </div>
                             );
                         })}
