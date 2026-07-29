@@ -7,6 +7,7 @@ data-driven off lobby.faction_mode.
 """
 
 import logging
+import random
 from collections import Counter
 
 from sqlalchemy.orm import Session
@@ -35,8 +36,9 @@ from app.services.lobby_settings import (
     lobby_programming_language,
     team_by_user,
 )
-from app.services.map_config import PROVINCE_REGION, REGION_TOPICS
+from app.services.map_config import PROVINCE_REGION, REGION_NAMES, REGION_TOPICS
 from app.services.problem_picker import pick_problem
+from app.services.problem_catalog import get_problems_by_tags
 from app.services.scoring import (
     TeamScore,
     compute_team_scores,
@@ -62,23 +64,13 @@ class TerritoryMode(GameMode):
                 get_solved_slugs_with_timestamps(u.id, db, language=language).keys()
             )
 
-        lmap = LobbyMap(lobby_id=lobby.id, map_size=lobby.map_size)
-        db.add(lmap)
-        db.flush()
+        selection = _normalize_map_selection(lobby.map_config)
+        if selection["kind"] == "generated":
+            if _start_generated_map(lobby, selection, all_solved, db):
+                return
+            logger.warning("Generated map config for lobby %s is invalid or empty; falling back to default map", lobby.id)
 
-        used: set[str] = set()
-        for prov_id, region_id in PROVINCE_REGION.items():
-            cfg = REGION_TOPICS.get(region_id, {"tags": [], "difficulty": None})
-            prob = pick_problem(cfg["tags"], cfg["difficulty"], all_solved | used, db)
-            if not prob:
-                prob = pick_problem([], None, all_solved | used, db)
-            if not prob:
-                continue
-            used.add(prob.title_slug)
-            db.add(LobbyMapProvince(
-                lobby_map_id=lmap.id, province_id=prov_id,
-                region_id=region_id, problem_title_slug=prob.title_slug,
-            ))
+        _start_default_map(lobby, all_solved, db)
 
     async def sync(self, lobby: Lobby, players: Players, db: Session) -> dict:
         lmap = _get_lmap(lobby.id, db)
@@ -94,7 +86,7 @@ class TerritoryMode(GameMode):
             except Exception:
                 logger.warning("sync failed for %s", u.leetcode_username)
 
-        provinces = db.query(LobbyMapProvince).filter_by(lobby_map_id=lmap.id).all()
+        provinces = _get_lmap_provinces(lmap.id, db)
         slugs = {p.problem_title_slug for p in provinces}
 
         solved_by_user = {
@@ -138,7 +130,7 @@ class TerritoryMode(GameMode):
                 db.commit()
 
         return self._payload(
-            lobby, provinces, players, db, problems=problems,
+            lobby, provinces, players, db, problems=problems, lmap=lmap,
             captured_count=sum(1 for c in changes if c.kind == CAPTURE),
             recaptured_count=sum(1 for c in changes if c.kind == RECAPTURE),
         )
@@ -147,8 +139,8 @@ class TerritoryMode(GameMode):
         lmap = _get_lmap(lobby.id, db)
         if not lmap:
             return self._payload(lobby, [], [], db)
-        provinces = db.query(LobbyMapProvince).filter_by(lobby_map_id=lmap.id).all()
-        return self._payload(lobby, provinces, players, db)
+        provinces = _get_lmap_provinces(lmap.id, db)
+        return self._payload(lobby, provinces, players, db, lmap=lmap)
 
     def _payload(
         self,
@@ -157,6 +149,7 @@ class TerritoryMode(GameMode):
         players: Players,
         db: Session,
         problems: dict[str, LeetCodeProblem] | None = None,
+        lmap: LobbyMap | None = None,
         captured_count: int = 0,
         recaptured_count: int = 0,
     ) -> dict:
@@ -174,13 +167,219 @@ class TerritoryMode(GameMode):
             "winner": winner_info(lobby, db),
             "captured_count": captured_count,
             "recaptured_count": recaptured_count,
+            "map_selection": _active_map_selection(lmap),
             "provinces": [_build_province(p, problems, users) for p in provinces],
             "score": _score_entries(lobby, provinces, players, problems),
         }
 
 
+def _default_map_selection() -> dict:
+    return {"kind": "default"}
+
+
+def _normalize_map_selection(value: object) -> dict:
+    if not isinstance(value, dict):
+        return _default_map_selection()
+    if value.get("kind") != "generated":
+        return _default_map_selection()
+    draft = value.get("draft")
+    if not isinstance(draft, dict):
+        return _default_map_selection()
+    return {"kind": "generated", "draft": draft}
+
+
+def _active_map_selection(lmap: LobbyMap | None) -> dict:
+    if not lmap:
+        return _default_map_selection()
+    return _normalize_map_selection(lmap.map_config)
+
+
 def _get_lmap(lobby_id: int, db: Session) -> LobbyMap | None:
     return db.query(LobbyMap).filter_by(lobby_id=lobby_id).first()
+
+
+def _get_lmap_provinces(lobby_map_id: int, db: Session) -> list[LobbyMapProvince]:
+    return (
+        db.query(LobbyMapProvince)
+        .filter_by(lobby_map_id=lobby_map_id)
+        .order_by(LobbyMapProvince.order_index.asc(), LobbyMapProvince.id.asc())
+        .all()
+    )
+
+
+def _difficulty_plan(total: int, hard_indices: set[int] | None = None) -> list[str]:
+    if total <= 0:
+        return []
+
+    easy_target = round(total * 0.50)
+    medium_target = round(total * 0.35)
+    hard_target = max(0, total - easy_target - medium_target)
+    hard_indices = set(hard_indices or set())
+
+    difficulties = ["Easy"] * easy_target + ["Medium"] * medium_target + ["Hard"] * hard_target
+    random.shuffle(difficulties)
+
+    if not hard_indices or hard_target == 0:
+        return difficulties
+
+    for hard_index in list(hard_indices)[:hard_target]:
+        if hard_index < 0 or hard_index >= len(difficulties) or difficulties[hard_index] == "Hard":
+            continue
+        swap_index = next((index for index, value in enumerate(difficulties) if value == "Hard"), None)
+        if swap_index is None:
+            break
+        difficulties[hard_index], difficulties[swap_index] = difficulties[swap_index], difficulties[hard_index]
+
+    return difficulties
+
+
+def _random_problem(candidates: list[LeetCodeProblem]) -> LeetCodeProblem | None:
+    return random.choice(candidates) if candidates else None
+
+
+def _pick_for_region(
+    region_id: str,
+    topic_id: str | None,
+    target_difficulty: str,
+    used: set[str],
+    all_solved: set[str],
+    db: Session,
+) -> LeetCodeProblem | None:
+    cfg = REGION_TOPICS.get(topic_id or "") or REGION_TOPICS.get(region_id) or {"tags": [], "difficulty": None}
+    exclude = all_solved | used
+    tags = cfg["tags"]
+
+    # Keep the 50/35/15 lobby-wide difficulty budget as the first priority.
+    # Topic matching is preferred, but a missing topic+difficulty bucket should
+    # not silently turn the map into a hard-heavy roll.
+    prob = _random_problem(get_problems_by_tags(tags, target_difficulty, exclude, db))
+    if not prob:
+        prob = _random_problem(get_problems_by_tags([], target_difficulty, exclude, db))
+    if not prob:
+        prob = _random_problem(get_problems_by_tags(tags, None, exclude, db))
+    if not prob:
+        prob = pick_problem([], None, exclude, db)
+    return prob
+
+
+def _start_default_map(lobby: Lobby, all_solved: set[str], db: Session) -> None:
+    lmap = LobbyMap(
+        lobby_id=lobby.id,
+        map_size=lobby.map_size,
+        map_kind="default",
+        map_config=_default_map_selection(),
+    )
+    db.add(lmap)
+    db.flush()
+
+    used: set[str] = set()
+    prov_items = list(PROVINCE_REGION.items())
+    hard_indices = {
+        index
+        for index, (_prov_id, region_id) in enumerate(prov_items)
+        if REGION_TOPICS.get(region_id, {}).get("difficulty") == "Hard"
+    }
+    difficulties = _difficulty_plan(len(prov_items), hard_indices)
+    for order_index, (prov_id, region_id) in enumerate(prov_items):
+        prob = _pick_for_region(region_id, region_id, difficulties[order_index], used, all_solved, db)
+        if not prob:
+            continue
+        used.add(prob.title_slug)
+        db.add(LobbyMapProvince(
+            lobby_map_id=lmap.id,
+            province_id=prov_id,
+            region_id=region_id,
+            region_name=REGION_NAMES.get(region_id),
+            topic_id=region_id,
+            order_index=order_index,
+            problem_title_slug=prob.title_slug,
+        ))
+
+
+def _region_text(region: dict, key: str) -> str | None:
+    value = region.get(key)
+    return str(value) if value else None
+
+
+def _start_generated_map(lobby: Lobby, selection: dict, all_solved: set[str], db: Session) -> bool:
+    draft = selection.get("draft")
+    if not isinstance(draft, dict):
+        return False
+
+    provinces = draft.get("provinces")
+    regions = draft.get("regions")
+    if not isinstance(provinces, list) or not provinces or not isinstance(regions, list):
+        return False
+
+    region_by_id = {
+        str(region.get("regionId")): region
+        for region in regions
+        if isinstance(region, dict) and region.get("regionId")
+    }
+    if not region_by_id:
+        return False
+
+    rows: list[dict] = []
+    used_problem_slugs: set[str] = set()
+    used_province_ids: set[str] = set()
+    hard_indices = set()
+    for order_index, province in enumerate(provinces):
+        if not isinstance(province, dict):
+            continue
+        region = region_by_id.get(str(province.get("regionId"))) or {}
+        topic_id = _region_text(region, "topicId") or str(province.get("regionId") or "")
+        if REGION_TOPICS.get(topic_id, {}).get("difficulty") == "Hard":
+            hard_indices.add(order_index)
+
+    difficulties = _difficulty_plan(len(provinces), hard_indices)
+
+    for order_index, province in enumerate(provinces):
+        if not isinstance(province, dict):
+            continue
+        province_id = province.get("provinceId")
+        region_id = province.get("regionId")
+        if not province_id or not region_id:
+            continue
+        province_id = str(province_id)
+        region_id = str(region_id)
+        if province_id in used_province_ids:
+            continue
+
+        region = region_by_id.get(region_id) or {}
+        topic_id = _region_text(region, "topicId") or region_id
+        target_difficulty = difficulties[order_index] if order_index < len(difficulties) else "Medium"
+        prob = _pick_for_region(region_id, topic_id, target_difficulty, used_problem_slugs, all_solved, db)
+        if not prob:
+            continue
+
+        used_problem_slugs.add(prob.title_slug)
+        used_province_ids.add(province_id)
+        rows.append({
+            "province_id": province_id,
+            "province_name": str(province.get("name") or province_id),
+            "region_id": region_id,
+            "region_name": _region_text(region, "name"),
+            "topic_id": topic_id,
+            "order_index": order_index,
+            "problem_title_slug": prob.title_slug,
+        })
+
+    if not rows:
+        return False
+
+    map_size = str(draft.get("size") or lobby.map_size)
+    lmap = LobbyMap(
+        lobby_id=lobby.id,
+        map_size=map_size,
+        map_kind="generated",
+        map_config=selection,
+    )
+    db.add(lmap)
+    db.flush()
+
+    for row in rows:
+        db.add(LobbyMapProvince(lobby_map_id=lmap.id, **row))
+    return True
 
 
 def _load_problems(slugs: set[str], db: Session) -> dict[str, LeetCodeProblem]:
@@ -197,6 +396,8 @@ def _build_province(p: LobbyMapProvince, problems: dict, users: dict) -> LobbyMa
     return LobbyMapProvinceResponse(
         province_id=p.province_id,
         region_id=p.region_id,
+        province_name=p.province_name,
+        region_name=p.region_name,
         problem={"title": prob.title, "title_slug": prob.title_slug, "difficulty": prob.difficulty,
                  "url": f"https://leetcode.com/problems/{prob.title_slug}/"} if prob else None,
         captured_by=p.captured_by,
