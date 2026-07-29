@@ -6,7 +6,7 @@ import { EventLogPanel } from '../components/map/EventLogPanel';
 import { MapLegend } from '../components/map/MapLegend';
 import { REGIONS } from '../mapRegions';
 import { apiRequest } from '../api/client';
-import type { MapEventApiData } from '../types/events';
+import { useLobbyEvents } from '../hooks/useLobbyEvents';
 
 const FACTION_COLORS = ['#00c2ff', '#ff4d6d', '#ffb020', '#27d980'];
 
@@ -17,8 +17,33 @@ type ProvinceData = {
     captured_by: number | null;
     captured_by_username: string | null;
     captured_at: string | null;
+    captured_runtime_ms: number | null;
     captured_submission_url: string | null;
     capturer_leetcode_username: string | null;
+    first_captured_by: number | null;
+};
+
+type ScoreEntry = {
+    team_id: number;
+    label: string;
+    color: string;
+    provinces: number;
+    base_points: number;
+    bonus_points: number;
+    total_points: number;
+};
+
+type MapApiResponse = {
+    lobby_id: number;
+    provinces: ProvinceData[];
+    score: ScoreEntry[];
+};
+
+type SyncApiResponse = {
+    captured_count: number;
+    recaptured_count: number;
+    provinces: ProvinceData[];
+    score: ScoreEntry[];
 };
 
 type LobbyPlayer = {
@@ -47,6 +72,8 @@ const POLL_INTERVAL_MS = 30_000;
 
 export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack, onLeft }: LobbyMapPageProps) {
     const [provincesData, setProvincesData] = useState<ProvinceData[]>([]);
+    const [scoreEntries, setScoreEntries] = useState<ScoreEntry[]>([]);
+    const [syncTick, setSyncTick] = useState(0);
     const [loading, setLoading] = useState(true);
     const [isLeaving, setIsLeaving] = useState(false);
     const [leaveError, setLeaveError] = useState<string | null>(null);
@@ -87,34 +114,13 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
         return map;
     }, [provincesData, factionByPlayer, factionById]);
 
-    const events = useMemo<MapEventApiData[]>(() => {
-        return provincesData
-            .filter((province) => province.captured_by && province.captured_at)
-            .sort((a, b) => new Date(a.captured_at ?? '').getTime() - new Date(b.captured_at ?? '').getTime())
-            .map((province, index) => ({
-                id: index + 1,
-                friendship_id: 0,
-                weekly_map_id: lobbyId,
-                province_id: province.province_id,
-                event_type: 'capture',
-                actor_user_id: province.captured_by ?? 0,
-                actor_username: province.captured_by_username ?? province.capturer_leetcode_username ?? 'Unknown player',
-                previous_owner_user_id: null,
-                previous_owner_username: null,
-                problem_title_slug: province.problem?.title_slug ?? '',
-                problem_title: province.problem?.title ?? null,
-                problem_difficulty: province.problem?.difficulty ?? null,
-                points: null,
-                runtime_ms: null,
-                previous_runtime_ms: null,
-                created_at: province.captured_at ?? new Date().toISOString(),
-            }));
-    }, [lobbyId, provincesData]);
+    const { events } = useLobbyEvents(lobbyId, syncTick);
 
     const loadMap = useCallback(async () => {
         try {
-            const data = await apiRequest<{ lobby_id: number; provinces: ProvinceData[] }>(`/lobbies/${lobbyId}/map`);
+            const data = await apiRequest<MapApiResponse>(`/lobbies/${lobbyId}/map`);
             setProvincesData(data.provinces);
+            setScoreEntries(data.score ?? []);
         } catch (e) {
             console.error(e);
         }
@@ -122,10 +128,12 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
 
     const sync = useCallback(async () => {
         try {
-            const data = await apiRequest<{ captured_count: number; provinces: ProvinceData[] }>(
+            const data = await apiRequest<SyncApiResponse>(
                 `/lobbies/${lobbyId}/map/sync`, { method: 'POST' }
             );
             if (data.provinces.length > 0) setProvincesData(data.provinces);
+            setScoreEntries(data.score ?? []);
+            setSyncTick((tick) => tick + 1);
         } catch (e) {
             console.error(e);
         }
@@ -170,38 +178,35 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
         ? provincesData.find((p) => p.province_id === selectedProvince) ?? null
         : null;
 
-    const owner =
-        selectedProvinceData?.captured_by === currentUserId
+    const myFactionId = factionByPlayer.get(currentUserId);
+    const isSameTeam = (userId: number | null) => {
+        if (!userId) return false;
+        if (userId === currentUserId) return true;
+        return myFactionId != null && factionByPlayer.get(userId) === myFactionId;
+    };
+
+    const owner = selectedProvinceData?.captured_by
+        ? isSameTeam(selectedProvinceData.captured_by)
             ? 'player'
-            : selectedProvinceData?.captured_by
-              ? 'enemy'
-              : undefined;
+            : 'enemy'
+        : undefined;
+
+    const firstCaptureOwner = selectedProvinceData?.first_captured_by
+        ? isSameTeam(selectedProvinceData.first_captured_by)
+            ? ('player' as const)
+            : ('enemy' as const)
+        : undefined;
 
     const neutralCount = provincesData.filter((p) => !p.captured_by).length;
     const totalCount = provincesData.length;
-    const factionCounts = new Map<number, number>();
-    for (const p of provincesData) {
-        if (p.captured_by) {
-            const fid = factionByPlayer.get(p.captured_by) ?? 0;
-            factionCounts.set(fid, (factionCounts.get(fid) ?? 0) + 1);
-        }
-    }
-    const scoreRows = factions.length > 0
-        ? factions.map((faction) => ({
-              key: faction.id,
-              label: faction.name,
-              color: faction.color,
-              count: factionCounts.get(faction.id) ?? 0,
-          }))
-        : players.map((player) => {
-              const fid = player.faction_id ?? 0;
-              return {
-                  key: player.user_id,
-                  label: player.leetcode_username,
-                  color: fid > 0 && fid <= FACTION_COLORS.length ? FACTION_COLORS[fid - 1] : '#888',
-                  count: factionCounts.get(fid) ?? 0,
-              };
-          });
+    const scoreRows = scoreEntries.map((entry) => ({
+        key: entry.team_id,
+        label: entry.label,
+        color: entry.color,
+        count: entry.provinces,
+        points: entry.total_points,
+        bonusPoints: entry.bonus_points,
+    }));
 
     return (
         <main className="min-h-screen bg-[#1a1a1a] p-6 text-white">
@@ -247,6 +252,12 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                                     </span>
                                     <span className="text-xs tabular-nums" style={{ color: row.color }}>
                                         {row.count}/{totalCount}
+                                    </span>
+                                    <span
+                                        className="text-xs font-semibold tabular-nums text-[#ffa116]"
+                                        title={row.bonusPoints > 0 ? `includes +${row.bonusPoints} first-capture bonus` : undefined}
+                                    >
+                                        {row.points} pts
                                     </span>
                                 </div>
                             );
@@ -331,6 +342,8 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                     problem={selectedProvinceData?.problem ?? null}
                     submissionUrl={selectedProvinceData?.captured_submission_url ?? null}
                     capturerLeetcodeUsername={selectedProvinceData?.capturer_leetcode_username ?? null}
+                    firstCaptureOwner={firstCaptureOwner}
+                    capturedRuntimeMs={selectedProvinceData?.captured_runtime_ms}
                     onClose={handleClose}
                 />
             </div>

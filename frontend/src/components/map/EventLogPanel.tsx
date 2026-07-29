@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { ScrollText } from 'lucide-react';
 import { eventText, relativeTime } from '../../eventText';
-import type { MapEventApiData } from '../../types/events';
+import type { GameEventApiData } from '../../types/events';
 
 type EventLogPanelProps = {
-    events: MapEventApiData[];
+    events: GameEventApiData[];
     currentUserId: number;
     className?: string;
 };
@@ -31,8 +31,8 @@ export function EventLogPanel({ events, currentUserId, className = '' }: EventLo
             <div ref={listRef} className="flex-1 space-y-2 overflow-y-auto p-3">
                 {events.length === 0 ? (
                     <p className="text-xs text-[#8a8a8a]">
-                        No captures yet this week. Solve a province's problem to
-                        plant the first flag.
+                        No captures yet. Solve a province's problem to plant
+                        the first flag.
                     </p>
                 ) : (
                     events.map((event) => {

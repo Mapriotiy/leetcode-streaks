@@ -15,5 +15,8 @@ class LobbyMapProvince(Base):
     problem_title_slug: Mapped[str] = mapped_column(String, nullable=False)
     captured_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     captured_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    captured_runtime_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     captured_submission_url: Mapped[str | None] = mapped_column(String, nullable=True)
     capturer_leetcode_username: Mapped[str | None] = mapped_column(String, nullable=True)
+    first_captured_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    first_captured_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

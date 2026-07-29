@@ -4,7 +4,6 @@ import { apiRequest } from "../api/client";
 import { ActivityCalendar } from "../components/dashboard/ActivityCalendar";
 import { FriendFlame } from "../components/dashboard/FriendFlame";
 import { FriendsList } from "../components/dashboard/FriendsList";
-import { NotificationsBell } from "../components/dashboard/NotificationsBell";
 import { CreateLobbyModal } from "../components/CreateLobbyModal";
 import { DIFFICULTY_COLORS } from "../mapRegions";
 import type { DashboardData, Faction, FriendResponse, LobbyPlayer } from "../types/dashboard";
@@ -18,7 +17,6 @@ type DashboardPageProps = {
     user: User;
     refreshKey: number;
     onLogout: () => void;
-    onOpenMap: (friendshipId: number, friendId: number, friendUsername: string) => void;
     onOpenLobby: (lobbyId: number, players?: LobbyPlayer[], factions?: Faction[]) => void;
 };
 
@@ -33,7 +31,7 @@ const LANGUAGE_LABELS: Record<string, string> = {
     rust: "Rust",
 };
 
-export function DashboardPage({ user, refreshKey, onLogout, onOpenMap, onOpenLobby }: DashboardPageProps) {
+export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby }: DashboardPageProps) {
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
     const [friends, setFriends] = useState<FriendResponse[]>([]);
     const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
@@ -109,12 +107,6 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenMap, onOpenLob
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <NotificationsBell
-                            userId={user.id}
-                            refreshKey={refreshKey}
-                            onOpenMap={onOpenMap}
-                        />
-
                         <button
                             type="button"
                             onClick={onLogout}
@@ -139,6 +131,63 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenMap, onOpenLob
                     </section>
                 ) : (
                     <section className="mt-6 grid gap-4 sm:grid-cols-3">
+                        <article className="flex flex-col rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <p className="text-sm font-medium text-[#a3a3a3]">Lobby</p>
+                                    <p className="mt-1 text-xs text-[#8a8a8a]">Create or rejoin games</p>
+                                </div>
+                                <span className="rounded-full bg-[#333333] px-2.5 py-1 text-xs font-semibold text-[#ffa116]">
+                                    {dashboardData?.lobbies.length ?? 0}
+                                </span>
+                            </div>
+
+                            <div className="mt-4 flex min-h-0 max-h-[13.25rem] flex-col gap-2 overflow-y-auto pr-1">
+                                {!dashboardData?.lobbies.length ? (
+                                    <p className="text-sm text-[#8a8a8a]">No active lobbies yet.</p>
+                                ) : (
+                                    dashboardData.lobbies.map((lobby) => {
+                                        const isActive = lobby.status === "active";
+                                        return (
+                                            <button
+                                                key={lobby.id}
+                                                type="button"
+                                                onClick={() => onOpenLobby(lobby.id, isActive ? lobby.players : undefined, lobby.factions)}
+                                                className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-left text-sm transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                                            >
+                                                <span className="block truncate font-medium text-[#eff1f6]">
+                                                    {lobby.name}
+                                                </span>
+                                                <span className="mt-1 flex items-center justify-between gap-2 text-xs text-[#8a8a8a]">
+                                                    <span>
+                                                        {lobby.faction_mode
+                                                            ? `${lobby.players.length} players, ${lobby.faction_count} factions`
+                                                            : `${lobby.players.length}/${lobby.max_players} players`}
+                                                        {", "}
+                                                        {LANGUAGE_LABELS[lobby.programming_language] ?? lobby.programming_language}
+                                                    </span>
+                                                    <span className={isActive ? "text-[#ffa116]" : "text-[#a3a3a3]"}>
+                                                        {isActive ? "Open map" : "Waiting"}
+                                                    </span>
+                                                </span>
+                                            </button>
+                                        );
+                                    })
+                                )}
+                            </div>
+
+                            <div className="mt-auto flex flex-col gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowLobbyModal(true)}
+                                    className="mt-4 rounded-md bg-[#ffa116] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#ffb84d]"
+                                >
+                                    <Gamepad2 size={16} className="inline-block mr-2" />
+                                    Create Lobby
+                                </button>
+                            </div>
+                        </article>
+
                         <ActivityCalendar
                             activityCalendar={dashboardData?.activity_calendar ?? []}
                             activeDaysCount={dashboardData?.active_days_count ?? 0}
@@ -213,63 +262,6 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenMap, onOpenLob
                                 )}
                             </div>
                         </article>
-
-                        <article className="flex flex-col rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
-                            <div className="flex items-start justify-between gap-3">
-                                <div>
-                                    <p className="text-sm font-medium text-[#a3a3a3]">Lobby</p>
-                                    <p className="mt-1 text-xs text-[#8a8a8a]">Create or rejoin games</p>
-                                </div>
-                                <span className="rounded-full bg-[#333333] px-2.5 py-1 text-xs font-semibold text-[#ffa116]">
-                                    {dashboardData?.lobbies.length ?? 0}
-                                </span>
-                            </div>
-
-                            <div className="mt-4 flex min-h-0 max-h-[13.25rem] flex-col gap-2 overflow-y-auto pr-1">
-                                {!dashboardData?.lobbies.length ? (
-                                    <p className="text-sm text-[#8a8a8a]">No active lobbies yet.</p>
-                                ) : (
-                                    dashboardData.lobbies.map((lobby) => {
-                                        const isActive = lobby.status === "active";
-                                        return (
-                                            <button
-                                                key={lobby.id}
-                                                type="button"
-                                                onClick={() => onOpenLobby(lobby.id, isActive ? lobby.players : undefined, lobby.factions)}
-                                                className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-left text-sm transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
-                                            >
-                                                <span className="block truncate font-medium text-[#eff1f6]">
-                                                    {lobby.name}
-                                                </span>
-                                                <span className="mt-1 flex items-center justify-between gap-2 text-xs text-[#8a8a8a]">
-                                                    <span>
-                                                        {lobby.faction_mode
-                                                            ? `${lobby.players.length} players, ${lobby.faction_count} factions`
-                                                            : `${lobby.players.length}/${lobby.max_players} players`}
-                                                        {", "}
-                                                        {LANGUAGE_LABELS[lobby.programming_language] ?? lobby.programming_language}
-                                                    </span>
-                                                    <span className={isActive ? "text-[#ffa116]" : "text-[#a3a3a3]"}>
-                                                        {isActive ? "Open map" : "Waiting"}
-                                                    </span>
-                                                </span>
-                                            </button>
-                                        );
-                                    })
-                                )}
-                            </div>
-
-                            <div className="mt-auto flex flex-col gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowLobbyModal(true)}
-                                    className="mt-4 rounded-md bg-[#ffa116] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#ffb84d]"
-                                >
-                                    <Gamepad2 size={16} className="inline-block mr-2" />
-                                    Create Lobby
-                                </button>
-                            </div>
-                        </article>
                     </section>
                 )}
 
@@ -284,7 +276,6 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenMap, onOpenLob
 
                 <FriendsList
                     friends={friends}
-                    onOpenMap={onOpenMap}
                     onFriendRemoved={(friendshipId) =>
                         setFriends((currentFriends) =>
                             currentFriends.filter(

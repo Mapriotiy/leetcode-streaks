@@ -1,11 +1,11 @@
 import { PROVINCE_NAMES } from './mapRegions';
-import type { MapEventApiData } from './types/events';
+import type { GameEventApiData } from './types/events';
 
 export function provinceName(provinceId: string): string {
     return PROVINCE_NAMES[provinceId] ?? provinceId;
 }
 
-export function eventText(event: MapEventApiData, currentUserId: number): string {
+export function eventText(event: GameEventApiData, currentUserId: number): string {
     const actor = event.actor_user_id === currentUserId ? 'You' : event.actor_username;
     const province = provinceName(event.province_id);
 

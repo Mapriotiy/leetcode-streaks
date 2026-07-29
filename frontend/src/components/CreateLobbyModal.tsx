@@ -19,12 +19,6 @@ const GAME_MODES = [
     { value: 'team_battle', label: 'Team Battle' },
 ];
 
-const MAP_SIZES = [
-    { value: 'small', label: 'Small', desc: '14 provinces' },
-    { value: 'medium', label: 'Medium', desc: '28 provinces' },
-    { value: 'large', label: 'Large', desc: '42 provinces' },
-];
-
 const WIN_CONDITIONS = [
     { value: 'territory_control', label: 'Territory Control', desc: 'Hold 50%+ provinces', threshold: 0.5 },
     { value: 'region_domination', label: 'Region Domination', desc: 'Control majority of regions', threshold: 0.5 },
@@ -44,7 +38,6 @@ const PROGRAMMING_LANGUAGES = [
 export function CreateLobbyModal({ username, friends, onClose, onCreated }: CreateLobbyModalProps) {
     const [name, setName] = useState(`${username}'s game`);
     const [gameMode, setGameMode] = useState('free_for_all');
-    const [mapSize, setMapSize] = useState('medium');
     const [programmingLanguage, setProgrammingLanguage] = useState('python3');
     const [maxPlayers, setMaxPlayers] = useState(2);
     const [factionMode, setFactionMode] = useState(false);
@@ -86,7 +79,7 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
                 body: JSON.stringify({
                     name,
                     game_mode: gameMode,
-                    map_size: mapSize,
+                    map_size: 'medium',
                     programming_language: programmingLanguage,
                     max_players: factionMode ? 0 : maxPlayers,
                     faction_mode: factionMode,
@@ -170,27 +163,6 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
                                 </option>
                             ))}
                         </select>
-                    </div>
-
-                    <div>
-                        <label className="text-xs font-medium text-[#8a8a8a] block mb-1">Map Size</label>
-                        <div className="flex gap-2">
-                            {MAP_SIZES.map((s) => (
-                                <button
-                                    key={s.value}
-                                    type="button"
-                                    onClick={() => setMapSize(s.value)}
-                                    className={`flex-1 rounded-md border py-2 text-center text-sm transition ${
-                                        mapSize === s.value
-                                            ? 'border-[#ffa116] bg-[#ffa116]/10 text-[#ffa116]'
-                                            : 'border-[#3a3a3a] bg-[#1f1f1f] text-[#eff1f6] hover:border-white/30'
-                                    }`}
-                                >
-                                    <span className="font-medium">{s.label}</span>
-                                    <p className="text-xs text-[#8a8a8a]">{s.desc}</p>
-                                </button>
-                            ))}
-                        </div>
                     </div>
 
                     <div>

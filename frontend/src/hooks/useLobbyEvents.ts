@@ -1,20 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { apiRequest } from '../api/client';
-import type { MapEventApiData } from '../types/events';
+import type { GameEventApiData } from '../types/events';
 
-export function useMapEvents(friendshipId: number, syncTick: number) {
-    const [events, setEvents] = useState<MapEventApiData[]>([]);
+export function useLobbyEvents(lobbyId: number, syncTick: number) {
+    const [events, setEvents] = useState<GameEventApiData[]>([]);
     const lastIdRef = useRef(0);
 
     useEffect(() => {
         setEvents([]);
         lastIdRef.current = 0;
-    }, [friendshipId]);
+    }, [lobbyId]);
 
-    // Refetches incrementally after every successful map sync (syncTick).
+    // Refetches incrementally after every successful sync (syncTick).
     useEffect(() => {
-        apiRequest<MapEventApiData[]>(
-            `/events/map/${friendshipId}?after_id=${lastIdRef.current}&limit=100`,
+        apiRequest<GameEventApiData[]>(
+            `/lobbies/${lobbyId}/events?after_id=${lastIdRef.current}&limit=100`,
         )
             .then((newEvents) => {
                 if (newEvents.length === 0) return;
@@ -26,7 +26,7 @@ export function useMapEvents(friendshipId: number, syncTick: number) {
                 });
             })
             .catch(() => {});
-    }, [friendshipId, syncTick]);
+    }, [lobbyId, syncTick]);
 
     return { events };
 }
