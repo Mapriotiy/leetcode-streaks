@@ -199,7 +199,7 @@ async def get_dashboard(
 ):
     today = get_utc_today()
 
-    recent_sync = await maybe_sync_user_recent(current_user, db, limit=30)
+    recent_sync = await maybe_sync_user_recent(current_user, db, limit=50)
     profile_sync = await maybe_sync_user_profile(current_user, db)
     db.refresh(current_user)
 

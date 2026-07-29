@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -57,6 +58,15 @@ class ProfileSyncResult:
     profile: LeetCodeProfileResponse | None = None
 
 
+@dataclass
+class UsersRecentSyncResult:
+    meta_by_user_id: dict[int, SyncMeta]
+    fetched_users: int = 0
+    skipped_users: int = 0
+    failed_users: int = 0
+    rate_limited_users: int = 0
+
+
 def utcnow_naive() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
@@ -103,6 +113,22 @@ def _locked_user(user_id: int, db: Session) -> User:
     return query.one()
 
 
+def _set_recent_started(user: User, started_at: datetime) -> None:
+    user.leetcode_recent_sync_started_at = started_at
+    user.leetcode_recent_sync_error = None
+
+
+def _clear_recent_success(user: User, synced_at: datetime) -> None:
+    user.leetcode_recent_last_synced_at = synced_at
+    user.leetcode_recent_sync_started_at = None
+    user.leetcode_recent_sync_error = None
+
+
+def _clear_recent_error(user: User, error: str) -> None:
+    user.leetcode_recent_sync_started_at = None
+    user.leetcode_recent_sync_error = error
+
+
 def _recent_meta(user: User, status: SyncStatus, error: str | None = None) -> SyncMeta:
     return SyncMeta(
         status=status,
@@ -147,8 +173,7 @@ async def maybe_sync_user_recent(
         return RecentSyncResult(meta=_recent_meta(locked, "recently_synced"), submissions=[])
 
     username = locked.leetcode_username
-    locked.leetcode_recent_sync_started_at = now
-    locked.leetcode_recent_sync_error = None
+    _set_recent_started(locked, now)
     db.commit()
 
     client = LeetCodeClient()
@@ -158,8 +183,7 @@ async def maybe_sync_user_recent(
         )
     except LeetCodeRateLimited as exc:
         locked = _locked_user(user.id, db)
-        locked.leetcode_recent_sync_started_at = None
-        locked.leetcode_recent_sync_error = f"rate_limited:{exc.retry_after_seconds}"
+        _clear_recent_error(locked, f"rate_limited:{exc.retry_after_seconds}")
         db.commit()
         return RecentSyncResult(
             meta=_recent_meta(locked, "rate_limited", locked.leetcode_recent_sync_error),
@@ -168,8 +192,7 @@ async def maybe_sync_user_recent(
     except Exception as exc:
         logger.warning("recent LeetCode sync failed for user_id=%s", user.id, exc_info=True)
         locked = _locked_user(user.id, db)
-        locked.leetcode_recent_sync_started_at = None
-        locked.leetcode_recent_sync_error = _error_text(exc)
+        _clear_recent_error(locked, _error_text(exc))
         db.commit()
         return RecentSyncResult(
             meta=_recent_meta(locked, "failed", locked.leetcode_recent_sync_error),
@@ -180,12 +203,104 @@ async def maybe_sync_user_recent(
         record_submissions(user.id, submissions, db)
 
     locked = _locked_user(user.id, db)
-    locked.leetcode_recent_last_synced_at = utcnow_naive()
-    locked.leetcode_recent_sync_started_at = None
-    locked.leetcode_recent_sync_error = None
+    _clear_recent_success(locked, utcnow_naive())
     db.commit()
 
     return RecentSyncResult(meta=_recent_meta(locked, "synced"), submissions=submissions)
+
+
+async def sync_users_recent(
+    users: list[User],
+    db: Session,
+    cooldown_seconds: int = RECENT_SYNC_COOLDOWN_SECONDS,
+    limit: int = 50,
+    context: str | None = None,
+) -> UsersRecentSyncResult:
+    now = utcnow_naive()
+    to_fetch: list[tuple[int, str]] = []
+    meta_by_user_id: dict[int, SyncMeta] = {}
+
+    for user in users:
+        locked = _locked_user(user.id, db)
+
+        if _is_fresh_in_progress(
+            locked.leetcode_recent_sync_started_at,
+            USER_SYNC_STALE_AFTER_SECONDS,
+            now,
+        ):
+            meta_by_user_id[locked.id] = _recent_meta(locked, "in_progress")
+            continue
+
+        if _is_recent(locked.leetcode_recent_last_synced_at, cooldown_seconds, now):
+            meta_by_user_id[locked.id] = _recent_meta(locked, "recently_synced")
+            continue
+
+        _set_recent_started(locked, now)
+        to_fetch.append((locked.id, locked.leetcode_username))
+
+    db.commit()
+
+    result = UsersRecentSyncResult(
+        meta_by_user_id=meta_by_user_id,
+        skipped_users=len(meta_by_user_id),
+    )
+
+    async def fetch(user_id: int, username: str):
+        client = LeetCodeClient()
+        try:
+            submissions = await run_limited(
+                lambda: client.get_recent_accepted_submissions(username, limit=limit)
+            )
+            return user_id, submissions, None
+        except Exception as exc:
+            return user_id, [], exc
+
+    fetch_results = await asyncio.gather(
+        *(fetch(user_id, username) for user_id, username in to_fetch)
+    )
+
+    for user_id, submissions, exc in fetch_results:
+        locked = _locked_user(user_id, db)
+
+        if exc is None:
+            if submissions:
+                record_submissions(user_id, submissions, db)
+            locked = _locked_user(user_id, db)
+            _clear_recent_success(locked, utcnow_naive())
+            db.commit()
+            result.meta_by_user_id[user_id] = _recent_meta(locked, "synced")
+            result.fetched_users += 1
+            continue
+
+        if isinstance(exc, LeetCodeRateLimited):
+            _clear_recent_error(locked, f"rate_limited:{exc.retry_after_seconds}")
+            db.commit()
+            result.meta_by_user_id[user_id] = _recent_meta(
+                locked, "rate_limited", locked.leetcode_recent_sync_error
+            )
+            result.rate_limited_users += 1
+            continue
+
+        logger.warning("recent LeetCode sync failed for user_id=%s: %s", user_id, _error_text(exc))
+        _clear_recent_error(locked, _error_text(exc))
+        db.commit()
+        result.meta_by_user_id[user_id] = _recent_meta(
+            locked, "failed", locked.leetcode_recent_sync_error
+        )
+        result.failed_users += 1
+
+    if context:
+        logger.info(
+            "leetcode_recent_sync context=%s users=%s fetched=%s skipped=%s failed=%s rate_limited=%s",
+            context,
+            len(users),
+            result.fetched_users,
+            result.skipped_users,
+            result.failed_users,
+            result.rate_limited_users,
+        )
+
+    return result
 
 
 async def maybe_sync_user_profile(

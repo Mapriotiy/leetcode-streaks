@@ -28,10 +28,9 @@ from app.services.game_modes.base import (
     winner_info,
 )
 from app.services.game_modes.registry import register
-from app.services.leetcode_client import LeetCodeClient
+from app.services.leetcode_sync import sync_users_recent
 from app.services.lobby_settings import (
     FACTION_COLORS,
-    filter_submissions_by_language,
     lobby_factions,
     lobby_programming_language,
     team_by_user,
@@ -47,7 +46,6 @@ from app.services.scoring import (
 from app.services.user_solved import (
     get_solved_for_slugs,
     get_solved_slugs_with_timestamps,
-    record_submissions,
 )
 
 logger = logging.getLogger(__name__)
@@ -77,14 +75,8 @@ class TerritoryMode(GameMode):
         if not lmap:
             return self._payload(lobby, [], [], db)
 
-        client = LeetCodeClient()
         language = lobby_programming_language(lobby)
-        for _, u in players:
-            try:
-                subs = await client.get_recent_accepted_submissions(u.leetcode_username, limit=50)
-                record_submissions(u.id, filter_submissions_by_language(subs, language), db)
-            except Exception:
-                logger.warning("sync failed for %s", u.leetcode_username)
+        await sync_users_recent([u for _, u in players], db, limit=50, context=f"lobby:{lobby.id}:territory")
 
         provinces = _get_lmap_provinces(lmap.id, db)
         slugs = {p.problem_title_slug for p in provinces}
