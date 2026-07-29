@@ -33,6 +33,8 @@ class LobbyResponse(BaseModel):
     created_at: datetime
     started_at: Optional[datetime] = None
     finished_at: Optional[datetime] = None
+    winner_id: Optional[int] = None
+    winner_faction_id: Optional[int] = None
     invite_url: Optional[str] = None
 
 
@@ -77,6 +79,14 @@ class LobbyMapProvinceResponse(BaseModel):
     first_captured_by: Optional[int] = None
 
 
+class WinnerInfo(BaseModel):
+    """Winner block on game-state payloads; label None means a draw."""
+
+    winner_user_id: Optional[int] = None
+    winner_faction_id: Optional[int] = None
+    label: Optional[str] = None
+
+
 class LobbyScoreEntry(BaseModel):
     """Score line for one team: a faction, or a single player in free-for-all."""
 
@@ -105,14 +115,14 @@ class LobbyMapSyncResponse(BaseModel):
 
 class LobbyEventResponse(BaseModel):
     id: int
-    province_id: str
+    province_id: Optional[str] = None
     event_type: str
     actor_user_id: int
     actor_username: str
     actor_faction_id: Optional[int] = None
     previous_owner_user_id: Optional[int] = None
     previous_owner_username: Optional[str] = None
-    problem_title_slug: str
+    problem_title_slug: Optional[str] = None
     problem_title: Optional[str] = None
     problem_difficulty: Optional[str] = None
     points: Optional[int] = None
