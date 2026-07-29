@@ -4,7 +4,7 @@ import { InviteModal } from "./components/InviteModal";
 import { AuthPage } from "./pages/AuthPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LobbyPage } from "./pages/LobbyPage";
-import { LobbyMapPage } from "./pages/LobbyMapPage";
+import { LobbyGamePage } from "./pages/LobbyGamePage";
 import type { Faction, LobbyPlayer } from "./types/dashboard";
 
 type User = {
@@ -106,7 +106,7 @@ export default function App() {
 
     if (activeLobbyId && activeLobbyPlayers.length > 0) {
         return (
-            <LobbyMapPage
+            <LobbyGamePage
                 lobbyId={activeLobbyId}
                 currentUserId={user.id}
                 players={activeLobbyPlayers}

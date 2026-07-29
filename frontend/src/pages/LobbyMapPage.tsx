@@ -34,17 +34,23 @@ type ScoreEntry = {
     total_points: number;
 };
 
+type WinnerInfo = {
+    winner_user_id: number | null;
+    winner_faction_id: number | null;
+    label: string | null;
+};
+
 type MapApiResponse = {
     lobby_id: number;
+    status: string;
+    winner: WinnerInfo | null;
     provinces: ProvinceData[];
     score: ScoreEntry[];
 };
 
-type SyncApiResponse = {
+type SyncApiResponse = MapApiResponse & {
     captured_count: number;
     recaptured_count: number;
-    provinces: ProvinceData[];
-    score: ScoreEntry[];
 };
 
 type LobbyPlayer = {
@@ -74,6 +80,8 @@ const POLL_INTERVAL_MS = 30_000;
 export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack, onLeft }: LobbyMapPageProps) {
     const [provincesData, setProvincesData] = useState<ProvinceData[]>([]);
     const [scoreEntries, setScoreEntries] = useState<ScoreEntry[]>([]);
+    const [gameStatus, setGameStatus] = useState<string>('active');
+    const [winner, setWinner] = useState<WinnerInfo | null>(null);
     const [syncTick, setSyncTick] = useState(0);
     const [loading, setLoading] = useState(true);
     const [isLeaving, setIsLeaving] = useState(false);
@@ -122,6 +130,8 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
             const data = await apiRequest<MapApiResponse>(`/lobbies/${lobbyId}/map`);
             setProvincesData(data.provinces);
             setScoreEntries(data.score ?? []);
+            setGameStatus(data.status);
+            setWinner(data.winner ?? null);
         } catch (e) {
             console.error(e);
         }
@@ -134,6 +144,8 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
             );
             if (data.provinces.length > 0) setProvincesData(data.provinces);
             setScoreEntries(data.score ?? []);
+            setGameStatus(data.status);
+            setWinner(data.winner ?? null);
             setSyncTick((tick) => tick + 1);
         } catch (e) {
             console.error(e);
@@ -145,9 +157,13 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
         loadMap()
             .then(() => sync())
             .finally(() => setLoading(false));
+    }, [loadMap, sync]);
+
+    useEffect(() => {
+        if (gameStatus === 'finished') return;
         const interval = setInterval(sync, POLL_INTERVAL_MS);
         return () => clearInterval(interval);
-    }, [loadMap, sync]);
+    }, [sync, gameStatus]);
 
     const handleSelect = useCallback((id: string, pos: { x: number; y: number }) => {
         setSelectedProvince(id);
@@ -248,6 +264,19 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                     <p className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
                         {leaveError}
                     </p>
+                )}
+
+                {gameStatus === 'finished' && (
+                    <section className="mt-6 rounded-lg border border-[#ffa116]/40 bg-[#ffa116]/10 px-4 py-4 text-center shadow-xl shadow-black/20">
+                        <p className="text-xl font-semibold text-[#ffa116]">
+                            {winner?.label
+                                ? winner.winner_user_id === currentUserId
+                                    ? '🏆 You win!'
+                                    : `🏆 ${winner.label} wins!`
+                                : "It's a draw"}
+                        </p>
+                        <p className="mt-1 text-sm text-[#b3b3b3]">Game over — the map is frozen.</p>
+                    </section>
                 )}
 
                 <section className="mt-6 rounded-lg border border-[#3a3a3a] bg-[#262626] p-4 shadow-xl shadow-black/20">
