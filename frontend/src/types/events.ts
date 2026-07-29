@@ -1,6 +1,8 @@
 export type GameEventApiData = {
     id: number;
     province_id: string | null;
+    province_name?: string | null;
+    region_name?: string | null;
     event_type: string;
     actor_user_id: number;
     actor_username: string;

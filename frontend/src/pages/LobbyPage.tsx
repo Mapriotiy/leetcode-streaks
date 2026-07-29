@@ -1,6 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Copy, Gamepad2, LogOut, Plus, UserCheck, UserPlus } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { ArrowLeft, Copy, Gamepad2, LogOut, Map as MapIcon, Plus, UserCheck, UserPlus } from 'lucide-react';
 import { apiRequest } from '../api/client';
+import { MapChooserModal } from '../features/lobby-map/MapChooserModal';
+import { MAP_SIZE_CONFIG } from '../features/lobby-map/assets';
+import { readLobbyMapSelection, writeLobbyMapSelection } from '../features/lobby-map/storage';
+import { normalizeLobbyMapSelection, saveLobbyMapSelection } from '../features/lobby-map/api';
+import type { LobbyMapSelection, LobbyMapTopic } from '../features/lobby-map/types';
+import { REGIONS } from '../mapRegions';
 
 type LobbyPlayer = {
     user_id: number;
@@ -26,6 +32,7 @@ type LobbyData = {
     faction_mode: boolean;
     faction_count: number;
     factions: Faction[];
+    map_selection?: LobbyMapSelection | null;
     programming_language: string;
     win_condition: Record<string, unknown>;
     players: LobbyPlayer[];
@@ -102,12 +109,32 @@ export function LobbyPage({ lobbyId, currentUserId, onBack, onGameStarted }: Lob
     const [startError, setStartError] = useState<string | null>(null);
     const [leaveError, setLeaveError] = useState<string | null>(null);
     const [factionError, setFactionError] = useState<string | null>(null);
+    const [isMapChooserOpen, setIsMapChooserOpen] = useState(false);
+    const [mapSelection, setMapSelection] = useState<LobbyMapSelection>(() => readLobbyMapSelection(lobbyId));
+    const [mapSelectionError, setMapSelectionError] = useState<string | null>(null);
+    const [isSavingMapSelection, setIsSavingMapSelection] = useState(false);
+
+    const mapTopics: LobbyMapTopic[] = useMemo(
+        () =>
+            REGIONS.map((region) => ({
+                id: region.id,
+                name: region.name,
+                color: region.color,
+            })),
+        [],
+    );
 
     const loadLobby = useCallback(async () => {
         try {
             const data = await apiRequest<LobbyData>(`/lobbies/${lobbyId}`);
             setLobby(data);
             if (data.invite_url) setInviteUrl(data.invite_url);
+            const serverSelection =
+                'map_selection' in data
+                    ? normalizeLobbyMapSelection(data.map_selection)
+                    : readLobbyMapSelection(lobbyId);
+            setMapSelection(serverSelection);
+            writeLobbyMapSelection(lobbyId, serverSelection);
         } catch (e) {
             console.error(e);
         } finally {
@@ -213,6 +240,34 @@ export function LobbyPage({ lobbyId, currentUserId, onBack, onGameStarted }: Lob
         }
     }, [lobbyId]);
 
+    const handleMapSelection = useCallback(async (selection: LobbyMapSelection) => {
+        setIsSavingMapSelection(true);
+        setMapSelectionError(null);
+        try {
+            const savedSelection = await saveLobbyMapSelection(lobbyId, selection);
+            setMapSelection(savedSelection);
+            writeLobbyMapSelection(lobbyId, savedSelection);
+            setLobby((current) =>
+                current
+                    ? {
+                          ...current,
+                          map_selection: savedSelection,
+                          map_size:
+                              savedSelection.kind === 'generated'
+                                  ? savedSelection.draft.size
+                                  : current.map_size,
+                      }
+                    : current,
+            );
+        } catch (e) {
+            const message = e instanceof Error ? e.message : 'Failed to save map';
+            setMapSelectionError(message);
+            throw e;
+        } finally {
+            setIsSavingMapSelection(false);
+        }
+    }, [lobbyId]);
+
     if (loading) {
         return (
             <main className="min-h-screen bg-[#1a1a1a] p-6 text-white">
@@ -232,7 +287,7 @@ export function LobbyPage({ lobbyId, currentUserId, onBack, onGameStarted }: Lob
     const isCreator = lobby.creator_id === currentUserId;
     const isActive = lobby.status === 'active';
     const playerCount = lobby.players.length;
-    const canStart = isCreator && !isActive && playerCount >= 2;
+    const canStart = isCreator && !isActive && playerCount >= 2 && !isSavingMapSelection;
     const inLobby = lobby.players.some((p) => p.user_id === currentUserId);
     const availableFriends = friends.filter(
         (f) => !lobby.players.some((p) => p.user_id === f.friend.id),
@@ -250,6 +305,11 @@ export function LobbyPage({ lobbyId, currentUserId, onBack, onGameStarted }: Lob
             groupedByFaction.get(fid)!.push(p);
         }
     }
+
+    const mapLabel =
+        mapSelection.kind === 'generated'
+            ? `${MAP_SIZE_CONFIG[mapSelection.draft.size].label} custom (${mapSelection.draft.provinceCount})`
+            : MAP_LABELS[lobby.map_size] ?? lobby.map_size;
 
     return (
         <main className="min-h-screen bg-[#1a1a1a] p-6 text-white">
@@ -304,7 +364,20 @@ export function LobbyPage({ lobbyId, currentUserId, onBack, onGameStarted }: Lob
                         </div>
                         <div className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm">
                             <span className="text-[#8a8a8a]">Map</span>
-                            <p className="text-[#eff1f6]">{MAP_LABELS[lobby.map_size] ?? lobby.map_size}</p>
+                            <div className="mt-1 flex items-center justify-between gap-2">
+                                <p className="min-w-0 truncate text-[#eff1f6]">{mapLabel}</p>
+                                {isCreator && !isActive ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsMapChooserOpen(true)}
+                                        disabled={isSavingMapSelection}
+                                        className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-white/10 bg-[#262626] text-[#bdbdbd] transition hover:border-[#ffa116]/60 hover:text-white"
+                                        aria-label="Choose map"
+                                    >
+                                        <MapIcon size={14} />
+                                    </button>
+                                ) : null}
+                            </div>
                         </div>
                         <div className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm">
                             <span className="text-[#8a8a8a]">
@@ -315,6 +388,11 @@ export function LobbyPage({ lobbyId, currentUserId, onBack, onGameStarted }: Lob
                             </p>
                         </div>
                     </div>
+                    {mapSelectionError ? (
+                        <p className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+                            {mapSelectionError}
+                        </p>
+                    ) : null}
                 </section>
 
                 <section className="mt-6 rounded-lg border border-[#3a3a3a] bg-[#262626] p-6">
@@ -507,6 +585,13 @@ export function LobbyPage({ lobbyId, currentUserId, onBack, onGameStarted }: Lob
                         {leaveError}
                     </p>
                 )}
+                <MapChooserModal
+                    open={isMapChooserOpen}
+                    availableTopics={mapTopics}
+                    currentSelection={mapSelection}
+                    onClose={() => setIsMapChooserOpen(false)}
+                    onSelect={handleMapSelection}
+                />
             </div>
         </main>
     );

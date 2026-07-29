@@ -12,6 +12,7 @@ type ProblemInfo = {
 
 type ProvincePopupProps = {
     provinceId: string | null;
+    provinceName?: string | null;
     pos: { x: number; y: number } | null;
     owner: Owner | undefined;
     capturedByUsername: string | undefined;
@@ -25,6 +26,7 @@ type ProvincePopupProps = {
 
 export default function ProvincePopup({
     provinceId,
+    provinceName,
     pos,
     owner,
     capturedByUsername,
@@ -62,7 +64,7 @@ export default function ProvincePopup({
             >
                 <div className="flex items-center justify-between mb-2">
                     <h3 className="text-white text-sm font-semibold">
-                        {PROVINCE_NAMES[provinceId] || provinceId}
+                        {provinceName || PROVINCE_NAMES[provinceId] || provinceId}
                     </h3>
                     <button
                         onClick={onClose}

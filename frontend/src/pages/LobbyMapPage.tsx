@@ -7,12 +7,19 @@ import { MapLegend } from '../components/map/MapLegend';
 import { REGIONS } from '../mapRegions';
 import { apiRequest } from '../api/client';
 import { useLobbyEvents } from '../hooks/useLobbyEvents';
+import { GeneratedMapRenderer } from '../features/lobby-map/GeneratedMapRenderer';
+import { generatedRegionsAsLegend } from '../features/lobby-map/generator';
+import { readLobbyMapSelection, writeLobbyMapSelection } from '../features/lobby-map/storage';
+import { normalizeLobbyMapSelection } from '../features/lobby-map/api';
+import type { LobbyMapSelection } from '../features/lobby-map/types';
 
 const FACTION_COLORS = ['#00c2ff', '#ff4d6d', '#ffb020', '#27d980'];
 
 type ProvinceData = {
     province_id: string;
     region_id: string;
+    province_name?: string | null;
+    region_name?: string | null;
     problem: { title: string; title_slug: string; difficulty: string; url: string } | null;
     captured_by: number | null;
     captured_by_username: string | null;
@@ -42,6 +49,7 @@ type WinnerInfo = {
 
 type MapApiResponse = {
     lobby_id: number;
+    map_selection?: LobbyMapSelection | null;
     status: string;
     winner: WinnerInfo | null;
     provinces: ProvinceData[];
@@ -76,6 +84,17 @@ type LobbyMapPageProps = {
 };
 
 const POLL_INTERVAL_MS = 30_000;
+const STATIC_PROVINCE_ORDER = REGIONS.flatMap((region) => region.provinces);
+const STATIC_PROVINCE_ORDER_INDEX = new Map(STATIC_PROVINCE_ORDER.map((provinceId, index) => [provinceId, index]));
+
+function orderServerProvincesForGeneratedMap(provinces: ProvinceData[]) {
+    return [...provinces].sort((a, b) => {
+        const aIndex = STATIC_PROVINCE_ORDER_INDEX.get(a.province_id) ?? Number.MAX_SAFE_INTEGER;
+        const bIndex = STATIC_PROVINCE_ORDER_INDEX.get(b.province_id) ?? Number.MAX_SAFE_INTEGER;
+        if (aIndex !== bIndex) return aIndex - bIndex;
+        return a.province_id.localeCompare(b.province_id);
+    });
+}
 
 export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack, onLeft }: LobbyMapPageProps) {
     const [provincesData, setProvincesData] = useState<ProvinceData[]>([]);
@@ -89,6 +108,14 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
     const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
     const [popPos, setPopPos] = useState<{ x: number; y: number } | null>(null);
     const [hoveredProvinces, setHoveredProvinces] = useState<string[] | null>(null);
+    const [mapSelection, setMapSelection] = useState<LobbyMapSelection>(() => readLobbyMapSelection(lobbyId));
+
+    useEffect(() => {
+        setMapSelection(readLobbyMapSelection(lobbyId));
+        setHoveredProvinces(null);
+        setSelectedProvince(null);
+        setPopPos(null);
+    }, [lobbyId]);
 
     const factionByPlayer = useMemo(() => {
         const map = new Map<number, number>();
@@ -106,9 +133,37 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
         return map;
     }, [factions]);
 
+    const displayedProvincesData = useMemo(() => {
+        if (mapSelection.kind !== 'generated') return provincesData;
+
+        const generatedIds = new Set(mapSelection.draft.provinces.map((province) => province.provinceId));
+        if (provincesData.some((province) => generatedIds.has(province.province_id))) {
+            return provincesData;
+        }
+
+        const orderedServerProvinces = orderServerProvincesForGeneratedMap(provincesData);
+        return mapSelection.draft.provinces.map((generatedProvince, index) => {
+            const source = orderedServerProvinces[index] ?? null;
+            return {
+                province_id: generatedProvince.provinceId,
+                region_id: generatedProvince.regionId,
+                province_name: generatedProvince.name,
+                region_name: mapSelection.draft.regions.find((region) => region.regionId === generatedProvince.regionId)?.name ?? null,
+                problem: source?.problem ?? null,
+                captured_by: source?.captured_by ?? null,
+                captured_by_username: source?.captured_by_username ?? null,
+                captured_at: source?.captured_at ?? null,
+                captured_runtime_ms: source?.captured_runtime_ms ?? null,
+                captured_submission_url: source?.captured_submission_url ?? null,
+                capturer_leetcode_username: source?.capturer_leetcode_username ?? null,
+                first_captured_by: source?.first_captured_by ?? null,
+            } satisfies ProvinceData;
+        });
+    }, [mapSelection, provincesData]);
+
     const captured = useMemo(() => {
         const map = new Map<string, string>();
-        for (const p of provincesData) {
+        for (const p of displayedProvincesData) {
             if (!p.captured_by) continue;
             const fid = factionByPlayer.get(p.captured_by) ?? 0;
             const faction = factionById.get(fid);
@@ -121,13 +176,23 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
             }
         }
         return map;
-    }, [provincesData, factionByPlayer, factionById]);
+    }, [displayedProvincesData, factionByPlayer, factionById]);
 
     const { events } = useLobbyEvents(lobbyId, syncTick);
+
+    const legendRegions = useMemo(
+        () => (mapSelection.kind === 'generated' ? generatedRegionsAsLegend(mapSelection.draft) : REGIONS),
+        [mapSelection],
+    );
 
     const loadMap = useCallback(async () => {
         try {
             const data = await apiRequest<MapApiResponse>(`/lobbies/${lobbyId}/map`);
+            if ('map_selection' in data) {
+                const serverSelection = normalizeLobbyMapSelection(data.map_selection);
+                setMapSelection(serverSelection);
+                writeLobbyMapSelection(lobbyId, serverSelection);
+            }
             setProvincesData(data.provinces);
             setScoreEntries(data.score ?? []);
             setGameStatus(data.status);
@@ -142,6 +207,11 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
             const data = await apiRequest<SyncApiResponse>(
                 `/lobbies/${lobbyId}/map/sync`, { method: 'POST' }
             );
+            if ('map_selection' in data) {
+                const serverSelection = normalizeLobbyMapSelection(data.map_selection);
+                setMapSelection(serverSelection);
+                writeLobbyMapSelection(lobbyId, serverSelection);
+            }
             if (data.provinces.length > 0) setProvincesData(data.provinces);
             setScoreEntries(data.score ?? []);
             setGameStatus(data.status);
@@ -191,8 +261,32 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
         }
     }, [lobbyId, onLeft]);
 
+    const selectedGeneratedProvince =
+        selectedProvince && mapSelection.kind === 'generated'
+            ? mapSelection.draft.provinces.find((p) => p.provinceId === selectedProvince) ?? null
+            : null;
+
     const selectedProvinceData = selectedProvince
-        ? provincesData.find((p) => p.province_id === selectedProvince) ?? null
+        ? displayedProvincesData.find((p) => p.province_id === selectedProvince) ??
+          (mapSelection.kind === 'generated'
+              ? ({
+                    province_id: selectedProvince,
+                    region_id: selectedGeneratedProvince?.regionId ?? '',
+                    province_name: selectedGeneratedProvince?.name ?? null,
+                    region_name:
+                        mapSelection.kind === 'generated'
+                            ? mapSelection.draft.regions.find((region) => region.regionId === selectedGeneratedProvince?.regionId)?.name ?? null
+                            : null,
+                    problem: null,
+                    captured_by: null,
+                    captured_by_username: null,
+                    captured_at: null,
+                    captured_runtime_ms: null,
+                    captured_submission_url: null,
+                    capturer_leetcode_username: null,
+                    first_captured_by: null,
+                } satisfies ProvinceData)
+              : null)
         : null;
 
     const myFactionId = factionByPlayer.get(currentUserId);
@@ -214,8 +308,8 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
             : ('enemy' as const)
         : undefined;
 
-    const neutralCount = provincesData.filter((p) => !p.captured_by).length;
-    const totalCount = provincesData.length;
+    const neutralCount = displayedProvincesData.filter((p) => !p.captured_by).length;
+    const totalCount = displayedProvincesData.length;
     const scoreRows = scoreEntries.map((entry) => {
         const breakdown = [
             `${entry.base_points} flags`,
@@ -250,15 +344,17 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                             <p className="mt-1 text-sm text-[#8a8a8a]">Capture provinces by solving problems</p>
                         </div>
                     </div>
-                    <button
-                        type="button"
-                        onClick={handleLeave}
-                        disabled={isLeaving}
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#3a3a3a] bg-[#262626] px-4 text-sm font-medium text-[#d7d7d7] transition hover:border-red-400/60 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:border-[#3a3a3a] disabled:bg-[#262626] disabled:text-[#777]"
-                    >
-                        <LogOut size={16} />
-                        {isLeaving ? 'Leaving...' : 'Leave Lobby'}
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={handleLeave}
+                            disabled={isLeaving}
+                            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#3a3a3a] bg-[#262626] px-4 text-sm font-medium text-[#d7d7d7] transition hover:border-red-400/60 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:border-[#3a3a3a] disabled:bg-[#262626] disabled:text-[#777]"
+                        >
+                            <LogOut size={16} />
+                            {isLeaving ? 'Leaving...' : 'Leave Lobby'}
+                        </button>
+                    </div>
                 </header>
                 {leaveError && (
                     <p className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
@@ -338,22 +434,31 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                         ) : (
                             <div className="flex items-start justify-center gap-3">
                                 <MapLegend
-                                    regions={REGIONS}
+                                    regions={legendRegions}
                                     onHover={setHoveredProvinces}
                                     className="hidden w-40 shrink-0 list-none space-y-2 md:flex md:flex-col"
                                 />
                                 <div className="min-w-0 flex-1">
-                                    <ProvinceMap
-                                        captured={captured}
-                                        onSelect={handleSelect}
-                                        highlightedProvinces={hoveredProvinces}
-                                    />
+                                    {mapSelection.kind === 'generated' ? (
+                                        <GeneratedMapRenderer
+                                            draft={mapSelection.draft}
+                                            captured={captured}
+                                            onSelect={handleSelect}
+                                            highlightedProvinces={hoveredProvinces}
+                                        />
+                                    ) : (
+                                        <ProvinceMap
+                                            captured={captured}
+                                            onSelect={handleSelect}
+                                            highlightedProvinces={hoveredProvinces}
+                                        />
+                                    )}
                                 </div>
                             </div>
                         )}
                         {provincesData.length > 0 && (
                             <MapLegend
-                                regions={REGIONS}
+                                regions={legendRegions}
                                 onHover={setHoveredProvinces}
                                 className="mt-4 flex list-none flex-col gap-2 md:hidden"
                             />
@@ -379,6 +484,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
 
                 <ProvincePopup
                     provinceId={selectedProvince}
+                    provinceName={selectedProvinceData?.province_name ?? selectedGeneratedProvince?.name ?? null}
                     pos={popPos}
                     owner={owner}
                     capturedByUsername={selectedProvinceData?.captured_by_username ?? undefined}

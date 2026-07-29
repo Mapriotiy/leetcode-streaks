@@ -13,7 +13,8 @@ export function regionNameForProvince(provinceId: string | null): string {
 
 export function eventText(event: GameEventApiData, currentUserId: number): string {
     const actor = event.actor_user_id === currentUserId ? 'You' : event.actor_username;
-    const province = provinceName(event.province_id);
+    const province = event.province_name ?? provinceName(event.province_id);
+    const region = event.region_name ?? regionNameForProvince(event.province_id);
 
     switch (event.event_type) {
         case 'capture':
@@ -38,7 +39,7 @@ export function eventText(event: GameEventApiData, currentUserId: number): strin
                 event.runtime_ms != null ? ` — improved to ${event.runtime_ms} ms` : ''
             }`;
         case 'region_control':
-            return `${actor} seized full control of ${regionNameForProvince(event.province_id)}${
+            return `${actor} seized full control of ${region}${
                 event.points ? ` (+${event.points} while held)` : ''
             }`;
         case 'cell_claimed':
@@ -58,7 +59,7 @@ export function eventText(event: GameEventApiData, currentUserId: number): strin
                     : event.previous_owner_username
                       ? `${event.previous_owner_username}'s`
                       : "the enemy's"
-            return `${actor} broke ${victim} control of ${regionNameForProvince(event.province_id)}`;
+            return `${actor} broke ${victim} control of ${region}`;
         }
         default:
             return `${actor}: ${event.event_type} on ${province}`;
