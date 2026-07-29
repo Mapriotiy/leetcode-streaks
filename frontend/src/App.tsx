@@ -5,6 +5,7 @@ import { AuthPage } from "./pages/AuthPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LobbyPage } from "./pages/LobbyPage";
 import { LobbyGamePage } from "./pages/LobbyGamePage";
+import { MapTestPage } from "./pages/MapTestPage";
 import type { Faction, LobbyPlayer } from "./types/dashboard";
 
 type User = {
@@ -15,6 +16,11 @@ type User = {
 const KEEP_ALIVE_INTERVAL_MS = 10 * 60 * 1000;
 
 export default function App() {
+    const isMapTest = new URLSearchParams(window.location.search).get("mapTest") === "1";
+    return isMapTest ? <MapTestPage /> : <MainApp />;
+}
+
+function MainApp() {
     const [user, setUser] = useState<User | null>(null);
     const [isLoadingSession, setIsLoadingSession] = useState(true);
     const [inviteToken, setInviteToken] = useState<string | null>(null);
