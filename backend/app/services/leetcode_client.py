@@ -322,6 +322,16 @@ class LeetCodeClient:
                 detail="Could not connect to LeetCode API",
             ) from exc
 
+        if response.status_code in {status.HTTP_403_FORBIDDEN, status.HTTP_429_TOO_MANY_REQUESTS}:
+            logger.warning(
+                "LeetCode API rate limited or blocked request with %s",
+                response.status_code,
+            )
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"LeetCode API returned status {response.status_code}",
+            )
+
         if response.status_code != status.HTTP_200_OK:
             logger.warning(
                 "LeetCode API returned %s for query %s",
