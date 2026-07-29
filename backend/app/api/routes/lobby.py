@@ -3,6 +3,7 @@ these routes dispatch on lobby.game_mode via the mode registry."""
 
 import logging
 import secrets
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -13,12 +14,15 @@ from app.db.session import get_db
 from app.models.lobby import Lobby
 from app.models.lobby_player import LobbyPlayer
 from app.models.lobby_invite import LobbyInvite
+from app.models.lobby_map import LobbyMap
 from app.models.user import User
 from app.schemas.lobby import (
     CreateLobbyRequest,
     CreateLobbyResponse,
     InviteLobbyResponse,
     LobbyEventResponse,
+    LobbyMapSelectionRequest,
+    LobbyMapSelectionResponse,
     LobbyPlayerResponse,
     LobbyResponse,
     FactionResponse,
@@ -48,6 +52,85 @@ def _invite_url(token: str) -> str:
     return f"{settings.frontend_url.rstrip('/')}/?lobby={token}"
 
 
+def _default_map_selection() -> dict[str, Any]:
+    return {"kind": "default"}
+
+
+def _normalize_map_selection(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return _default_map_selection()
+    if value.get("kind") != "generated":
+        return _default_map_selection()
+    draft = value.get("draft")
+    if not isinstance(draft, dict):
+        return _default_map_selection()
+    return {"kind": "generated", "draft": draft}
+
+
+def _active_or_pending_map_selection(lobby: Lobby, db: Session) -> dict[str, Any]:
+    if lobby.status in {"active", "finished"}:
+        lmap = db.query(LobbyMap).filter_by(lobby_id=lobby.id).first()
+        if lmap:
+            return _normalize_map_selection(lmap.map_config)
+    return _normalize_map_selection(lobby.map_config)
+
+
+def _require_lobby_member(lobby: Lobby, user_id: int, db: Session) -> None:
+    is_member = db.query(LobbyPlayer).filter_by(lobby_id=lobby.id, user_id=user_id).first()
+    if not is_member:
+        raise HTTPException(403, "Not a lobby member")
+
+
+def _validate_generated_draft(draft: Any) -> dict[str, Any]:
+    if not isinstance(draft, dict):
+        raise HTTPException(400, "Generated map draft is required")
+    if draft.get("schemaVersion") != 1:
+        raise HTTPException(400, "Unsupported generated map schema")
+    if draft.get("size") not in {"small", "medium", "large"}:
+        raise HTTPException(400, "Invalid generated map size")
+
+    islands = draft.get("islands")
+    provinces = draft.get("provinces")
+    regions = draft.get("regions")
+    if not isinstance(islands, list) or not islands:
+        raise HTTPException(400, "Generated map must contain islands")
+    if not isinstance(provinces, list) or not provinces:
+        raise HTTPException(400, "Generated map must contain provinces")
+    if not isinstance(regions, list) or not regions:
+        raise HTTPException(400, "Generated map must contain regions")
+
+    region_ids = {
+        str(region.get("regionId"))
+        for region in regions
+        if isinstance(region, dict) and region.get("regionId")
+    }
+    if not region_ids:
+        raise HTTPException(400, "Generated map regions are invalid")
+
+    province_ids: set[str] = set()
+    for province in provinces:
+        if not isinstance(province, dict):
+            raise HTTPException(400, "Generated map provinces are invalid")
+        province_id = province.get("provinceId")
+        region_id = province.get("regionId")
+        if not province_id or not region_id:
+            raise HTTPException(400, "Generated map province is missing ids")
+        if str(province_id) in province_ids:
+            raise HTTPException(400, "Generated map province ids must be unique")
+        if str(region_id) not in region_ids:
+            raise HTTPException(400, "Generated map province references an unknown region")
+        province_ids.add(str(province_id))
+
+    return draft
+
+
+def _selection_from_payload(payload: LobbyMapSelectionRequest) -> dict[str, Any]:
+    if payload.kind == "default":
+        return _default_map_selection()
+    draft = _validate_generated_draft(payload.draft)
+    return {"kind": "generated", "draft": draft}
+
+
 def _to_lobby_response(lobby: Lobby, db: Session, invite_url: str | None = None) -> LobbyResponse:
     players = [
         LobbyPlayerResponse(
@@ -69,6 +152,7 @@ def _to_lobby_response(lobby: Lobby, db: Session, invite_url: str | None = None)
         faction_mode=lobby.faction_mode,
         faction_count=lobby.faction_count,
         factions=[FactionResponse(**faction) for faction in lobby_factions(lobby)],
+        map_selection=_active_or_pending_map_selection(lobby, db),
         programming_language=lobby_programming_language(lobby),
         win_condition=lobby.win_condition,
         players=players,
@@ -150,6 +234,43 @@ def get_lobby(lobby_id: int, current_user: User = Depends(get_current_user), db:
     invite = db.query(LobbyInvite).filter_by(lobby_id=lobby.id).first()
     url = _invite_url(invite.token) if invite else None
     return _to_lobby_response(lobby, db, url)
+
+
+@router.get("/{lobby_id}/map-selection", response_model=LobbyMapSelectionResponse)
+def get_map_selection(
+    lobby_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    lobby = db.get(Lobby, lobby_id)
+    if not lobby:
+        raise HTTPException(404, "Lobby not found")
+    _require_lobby_member(lobby, current_user.id, db)
+    return LobbyMapSelectionResponse(selection=_active_or_pending_map_selection(lobby, db))
+
+
+@router.put("/{lobby_id}/map-selection", response_model=LobbyMapSelectionResponse)
+def update_map_selection(
+    lobby_id: int,
+    payload: LobbyMapSelectionRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    lobby = db.get(Lobby, lobby_id)
+    if not lobby:
+        raise HTTPException(404, "Lobby not found")
+    if lobby.creator_id != current_user.id:
+        raise HTTPException(403, "Only creator can choose the map")
+    if lobby.status != "waiting":
+        raise HTTPException(409, "Game already started")
+
+    selection = _selection_from_payload(payload)
+    lobby.map_config = selection
+    if selection["kind"] == "generated":
+        lobby.map_size = str(selection["draft"].get("size") or lobby.map_size)
+    db.commit()
+    db.refresh(lobby)
+    return LobbyMapSelectionResponse(selection=_active_or_pending_map_selection(lobby, db))
 
 
 # ── Invite via token ──
