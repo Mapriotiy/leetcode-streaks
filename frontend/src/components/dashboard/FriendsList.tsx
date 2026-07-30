@@ -6,12 +6,11 @@ import { FriendFlame } from "./FriendFlame";
 
 type FriendsListProps = {
     friends: FriendResponse[];
-    isLoading?: boolean;
     onFriendRemoved: (friendshipId: number) => void;
     onError: (message: string | null) => void;
 };
 
-export function FriendsList({ friends, isLoading = false, onFriendRemoved, onError }: FriendsListProps) {
+export function FriendsList({ friends, onFriendRemoved, onError }: FriendsListProps) {
     const [inviteUrl, setInviteUrl] = useState<string | null>(null);
     const [isCreatingInvite, setIsCreatingInvite] = useState(false);
     const [deletingFriendshipId, setDeletingFriendshipId] = useState<number | null>(null);
@@ -124,9 +123,7 @@ export function FriendsList({ friends, isLoading = false, onFriendRemoved, onErr
             <div className="mt-6">
                 <h3 className="text-sm font-semibold text-[#d7d7d7]">Friends</h3>
 
-                {isLoading ? (
-                    <p className="mt-2 text-sm text-[#8a8a8a]">Syncing friend streaks...</p>
-                ) : friends.length === 0 ? (
+                {friends.length === 0 ? (
                     <p className="mt-2 text-sm text-[#8a8a8a]">No friends yet.</p>
                 ) : (
                     <ul className="mt-3 grid gap-2">

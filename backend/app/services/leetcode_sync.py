@@ -1,360 +1,418 @@
 import asyncio
 import logging
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Literal
+from typing import Any
 
-from fastapi import HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session, sessionmaker
 
+from app.db.session import SessionLocal
+from app.models.leetcode_sync_state import LeetCodeSyncState
 from app.models.user import User
 from app.schemas.leetcode import LeetCodeProfileResponse, RecentAcceptedSubmission
-from app.services.activity_sync import upsert_daily_activity
+from app.services.activity_sync import sync_user_daily_activity
 from app.services.leetcode_client import LeetCodeClient
-from app.services.leetcode_limiter import LeetCodeRateLimited, run_limited
-from app.services.user_solved import record_submissions
+from app.services.lobby_settings import filter_submissions_by_language
 
 logger = logging.getLogger(__name__)
 
-SyncStatus = Literal[
-    "synced",
-    "recently_synced",
-    "in_progress",
-    "rate_limited",
-    "failed",
-    "skipped",
-]
-
 RECENT_SYNC_COOLDOWN_SECONDS = 60
 PROFILE_SYNC_COOLDOWN_SECONDS = 300
-USER_SYNC_STALE_AFTER_SECONDS = 180
+LOBBY_SYNC_COOLDOWN_SECONDS = 60
+LOBBY_SYNC_STALE_SECONDS = 180
 
 
-@dataclass
-class SyncMeta:
-    status: SyncStatus
-    last_synced_at: datetime | None = None
-    next_sync_after: datetime | None = None
-    error: str | None = None
-
-    def as_dict(self) -> dict:
-        return {
-            "status": self.status,
-            "last_synced_at": self.last_synced_at,
-            "next_sync_after": self.next_sync_after,
-            "error": self.error,
-        }
-
-
-@dataclass
-class RecentSyncResult:
-    meta: SyncMeta
-    submissions: list[RecentAcceptedSubmission]
-
-
-@dataclass
-class ProfileSyncResult:
-    meta: SyncMeta
-    profile: LeetCodeProfileResponse | None = None
-
-
-@dataclass
-class UsersRecentSyncResult:
-    meta_by_user_id: dict[int, SyncMeta]
-    fetched_users: int = 0
-    skipped_users: int = 0
-    failed_users: int = 0
-    rate_limited_users: int = 0
-
-
-def utcnow_naive() -> datetime:
+def _utcnow() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-def _as_naive_utc(value: datetime | None) -> datetime | None:
-    if value is None:
+def _user_key(user: User) -> str:
+    return (user.leetcode_username or str(user.id)).strip().lower()
+
+
+def _next_after(state: LeetCodeSyncState, cooldown_seconds: int) -> datetime | None:
+    if state.last_synced_at is None:
         return None
-    if value.tzinfo is None:
-        return value
-    return value.astimezone(timezone.utc).replace(tzinfo=None)
+    return state.last_synced_at + timedelta(seconds=cooldown_seconds)
 
 
-def _next_sync_after(last_synced_at: datetime | None, cooldown_seconds: int) -> datetime | None:
-    last_synced_at = _as_naive_utc(last_synced_at)
-    if last_synced_at is None:
+def _state_meta(
+    status: str,
+    state: LeetCodeSyncState,
+    cooldown_seconds: int,
+    **extra: Any,
+) -> dict[str, Any]:
+    return {
+        "status": status,
+        "last_synced_at": state.last_synced_at,
+        "next_sync_after": _next_after(state, cooldown_seconds),
+        "started_at": state.started_at,
+        "error": state.error,
+        **extra,
+    }
+
+
+def _cached_profile(state: LeetCodeSyncState) -> LeetCodeProfileResponse | None:
+    metadata = state.sync_metadata or {}
+    profile_data = metadata.get("profile")
+    if not isinstance(profile_data, dict):
         return None
-    return last_synced_at + timedelta(seconds=cooldown_seconds)
+    try:
+        return LeetCodeProfileResponse.model_validate(profile_data)
+    except Exception:
+        logger.warning("Invalid cached LeetCode profile in sync state %s", state.id)
+        return None
 
 
-def _is_recent(last_synced_at: datetime | None, cooldown_seconds: int, now: datetime) -> bool:
-    last_synced_at = _as_naive_utc(last_synced_at)
-    if last_synced_at is None:
-        return False
-    return now - last_synced_at < timedelta(seconds=cooldown_seconds)
+def get_cached_user_profile(user: User, db: Session) -> LeetCodeProfileResponse | None:
+    state = (
+        db.query(LeetCodeSyncState)
+        .filter_by(scope="profile", sync_key=_user_key(user))
+        .first()
+    )
+    return _cached_profile(state) if state else None
 
 
-def _is_fresh_in_progress(started_at: datetime | None, stale_after_seconds: int, now: datetime) -> bool:
-    started_at = _as_naive_utc(started_at)
-    if started_at is None:
-        return False
-    return now - started_at < timedelta(seconds=stale_after_seconds)
+async def sync_user_daily_activity_by_id(user_id: int) -> None:
+    db = SessionLocal()
+    try:
+        user = db.get(User, user_id)
+        if user is None:
+            return
+        await maybe_sync_user_daily_activity(user, db)
+    except Exception:
+        logger.exception("background LeetCode sync failed for user_id=%s", user_id)
+    finally:
+        db.close()
 
 
-def _error_text(exc: Exception) -> str:
-    if isinstance(exc, HTTPException):
-        return str(exc.detail)[:500]
-    return str(exc)[:500] or exc.__class__.__name__
-
-
-def _locked_user(user_id: int, db: Session) -> User:
-    query = db.query(User).filter(User.id == user_id)
-    if db.bind is not None and db.bind.dialect.name == "postgresql":
-        query = query.with_for_update()
-    return query.one()
-
-
-def _set_recent_started(user: User, started_at: datetime) -> None:
-    user.leetcode_recent_sync_started_at = started_at
-    user.leetcode_recent_sync_error = None
-
-
-def _clear_recent_success(user: User, synced_at: datetime) -> None:
-    user.leetcode_recent_last_synced_at = synced_at
-    user.leetcode_recent_sync_started_at = None
-    user.leetcode_recent_sync_error = None
-
-
-def _clear_recent_error(user: User, error: str) -> None:
-    user.leetcode_recent_sync_started_at = None
-    user.leetcode_recent_sync_error = error
-
-
-def _recent_meta(user: User, status: SyncStatus, error: str | None = None) -> SyncMeta:
-    return SyncMeta(
-        status=status,
-        last_synced_at=user.leetcode_recent_last_synced_at,
-        next_sync_after=_next_sync_after(
-            user.leetcode_recent_last_synced_at,
-            RECENT_SYNC_COOLDOWN_SECONDS,
-        ),
-        error=error,
+def _within_cooldown(state: LeetCodeSyncState, cooldown_seconds: int) -> bool:
+    return (
+        state.last_synced_at is not None
+        and _utcnow() - state.last_synced_at < timedelta(seconds=cooldown_seconds)
     )
 
 
-def _profile_meta(user: User, status: SyncStatus, error: str | None = None) -> SyncMeta:
-    return SyncMeta(
-        status=status,
-        last_synced_at=user.leetcode_profile_last_synced_at,
-        next_sync_after=_next_sync_after(
-            user.leetcode_profile_last_synced_at,
-            PROFILE_SYNC_COOLDOWN_SECONDS,
-        ),
-        error=error,
+def _ensure_state_row(db: Session, scope: str, sync_key: str) -> None:
+    exists = (
+        db.query(LeetCodeSyncState.id)
+        .filter_by(scope=scope, sync_key=sync_key)
+        .first()
+    )
+    if exists:
+        return
+
+    db.add(LeetCodeSyncState(scope=scope, sync_key=sync_key))
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+
+
+def _locked_state(db: Session, scope: str, sync_key: str) -> LeetCodeSyncState:
+    _ensure_state_row(db, scope, sync_key)
+    return (
+        db.query(LeetCodeSyncState)
+        .filter_by(scope=scope, sync_key=sync_key)
+        .with_for_update()
+        .one()
     )
 
 
-async def maybe_sync_user_recent(
+def _begin_sync(
+    db: Session,
+    scope: str,
+    sync_key: str,
+    *,
+    cooldown_seconds: int,
+    stale_seconds: int | None = None,
+    require_metadata_key: str | None = None,
+) -> tuple[bool, dict[str, Any]]:
+    state = _locked_state(db, scope, sync_key)
+    now = _utcnow()
+
+    if (
+        stale_seconds is not None
+        and state.started_at is not None
+        and now - state.started_at < timedelta(seconds=stale_seconds)
+    ):
+        meta = _state_meta("in_progress", state, cooldown_seconds)
+        db.commit()
+        return False, meta
+
+    has_required_metadata = (
+        require_metadata_key is None
+        or isinstance(state.sync_metadata, dict)
+        and require_metadata_key in state.sync_metadata
+    )
+    if _within_cooldown(state, cooldown_seconds) and has_required_metadata:
+        meta = _state_meta("recently_synced", state, cooldown_seconds)
+        db.commit()
+        return False, meta
+
+    state.status = "syncing"
+    state.started_at = now
+    state.error = None
+    db.commit()
+    return True, _state_meta("syncing", state, cooldown_seconds)
+
+
+def _finish_sync(
+    db: Session,
+    scope: str,
+    sync_key: str,
+    *,
+    status: str,
+    cooldown_seconds: int,
+    error: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    state = _locked_state(db, scope, sync_key)
+    state.status = status
+    state.started_at = None
+    state.error = error
+    state.sync_metadata = metadata
+    if status == "synced":
+        state.last_synced_at = _utcnow()
+    db.commit()
+    return _state_meta(status, state, cooldown_seconds, metadata=metadata)
+
+
+def _session_factory_for(db: Session):
+    return sessionmaker(autocommit=False, autoflush=False, bind=db.get_bind())
+
+
+async def _begin_user_recent(
     user: User,
     db: Session,
-    cooldown_seconds: int = RECENT_SYNC_COOLDOWN_SECONDS,
-    limit: int = 50,
-) -> RecentSyncResult:
-    locked = _locked_user(user.id, db)
-    now = utcnow_naive()
-
-    if _is_fresh_in_progress(
-        locked.leetcode_recent_sync_started_at,
-        USER_SYNC_STALE_AFTER_SECONDS,
-        now,
-    ):
-        return RecentSyncResult(meta=_recent_meta(locked, "in_progress"), submissions=[])
-
-    if _is_recent(locked.leetcode_recent_last_synced_at, cooldown_seconds, now):
-        return RecentSyncResult(meta=_recent_meta(locked, "recently_synced"), submissions=[])
-
-    username = locked.leetcode_username
-    _set_recent_started(locked, now)
-    db.commit()
-
-    client = LeetCodeClient()
-    try:
-        submissions = await run_limited(
-            lambda: client.get_recent_accepted_submissions(username, limit=limit)
-        )
-    except LeetCodeRateLimited as exc:
-        locked = _locked_user(user.id, db)
-        _clear_recent_error(locked, f"rate_limited:{exc.retry_after_seconds}")
-        db.commit()
-        return RecentSyncResult(
-            meta=_recent_meta(locked, "rate_limited", locked.leetcode_recent_sync_error),
-            submissions=[],
-        )
-    except Exception as exc:
-        logger.warning("recent LeetCode sync failed for user_id=%s", user.id, exc_info=True)
-        locked = _locked_user(user.id, db)
-        _clear_recent_error(locked, _error_text(exc))
-        db.commit()
-        return RecentSyncResult(
-            meta=_recent_meta(locked, "failed", locked.leetcode_recent_sync_error),
-            submissions=[],
+    cooldown_seconds: int,
+) -> tuple[bool, dict[str, Any]]:
+    sync_key = _user_key(user)
+    if db.bind and db.bind.dialect.name == "sqlite":
+        return _begin_sync(
+            db,
+            "recent_submissions",
+            sync_key,
+            cooldown_seconds=cooldown_seconds,
+            stale_seconds=LOBBY_SYNC_STALE_SECONDS,
         )
 
-    if submissions:
-        record_submissions(user.id, submissions, db)
+    session_factory = _session_factory_for(db)
 
-    locked = _locked_user(user.id, db)
-    _clear_recent_success(locked, utcnow_naive())
-    db.commit()
-
-    return RecentSyncResult(meta=_recent_meta(locked, "synced"), submissions=submissions)
-
-
-async def sync_users_recent(
-    users: list[User],
-    db: Session,
-    cooldown_seconds: int = RECENT_SYNC_COOLDOWN_SECONDS,
-    limit: int = 50,
-    context: str | None = None,
-) -> UsersRecentSyncResult:
-    now = utcnow_naive()
-    to_fetch: list[tuple[int, str]] = []
-    meta_by_user_id: dict[int, SyncMeta] = {}
-
-    for user in users:
-        locked = _locked_user(user.id, db)
-
-        if _is_fresh_in_progress(
-            locked.leetcode_recent_sync_started_at,
-            USER_SYNC_STALE_AFTER_SECONDS,
-            now,
-        ):
-            meta_by_user_id[locked.id] = _recent_meta(locked, "in_progress")
-            continue
-
-        if _is_recent(locked.leetcode_recent_last_synced_at, cooldown_seconds, now):
-            meta_by_user_id[locked.id] = _recent_meta(locked, "recently_synced")
-            continue
-
-        _set_recent_started(locked, now)
-        to_fetch.append((locked.id, locked.leetcode_username))
-
-    db.commit()
-
-    result = UsersRecentSyncResult(
-        meta_by_user_id=meta_by_user_id,
-        skipped_users=len(meta_by_user_id),
-    )
-
-    async def fetch(user_id: int, username: str):
-        client = LeetCodeClient()
+    def begin() -> tuple[bool, dict[str, Any]]:
+        local_db = session_factory()
         try:
-            submissions = await run_limited(
-                lambda: client.get_recent_accepted_submissions(username, limit=limit)
+            return _begin_sync(
+                local_db,
+                "recent_submissions",
+                sync_key,
+                cooldown_seconds=cooldown_seconds,
+                stale_seconds=LOBBY_SYNC_STALE_SECONDS,
             )
-            return user_id, submissions, None
-        except Exception as exc:
-            return user_id, [], exc
+        finally:
+            local_db.close()
 
-    fetch_results = await asyncio.gather(
-        *(fetch(user_id, username) for user_id, username in to_fetch)
-    )
-
-    for user_id, submissions, exc in fetch_results:
-        locked = _locked_user(user_id, db)
-
-        if exc is None:
-            if submissions:
-                record_submissions(user_id, submissions, db)
-            locked = _locked_user(user_id, db)
-            _clear_recent_success(locked, utcnow_naive())
-            db.commit()
-            result.meta_by_user_id[user_id] = _recent_meta(locked, "synced")
-            result.fetched_users += 1
-            continue
-
-        if isinstance(exc, LeetCodeRateLimited):
-            _clear_recent_error(locked, f"rate_limited:{exc.retry_after_seconds}")
-            db.commit()
-            result.meta_by_user_id[user_id] = _recent_meta(
-                locked, "rate_limited", locked.leetcode_recent_sync_error
-            )
-            result.rate_limited_users += 1
-            continue
-
-        logger.warning("recent LeetCode sync failed for user_id=%s: %s", user_id, _error_text(exc))
-        _clear_recent_error(locked, _error_text(exc))
-        db.commit()
-        result.meta_by_user_id[user_id] = _recent_meta(
-            locked, "failed", locked.leetcode_recent_sync_error
-        )
-        result.failed_users += 1
-
-    if context:
-        logger.info(
-            "leetcode_recent_sync context=%s users=%s fetched=%s skipped=%s failed=%s rate_limited=%s",
-            context,
-            len(users),
-            result.fetched_users,
-            result.skipped_users,
-            result.failed_users,
-            result.rate_limited_users,
-        )
-
-    return result
+    return await asyncio.to_thread(begin)
 
 
-async def maybe_sync_user_profile(
+async def _finish_user_recent(
     user: User,
     db: Session,
-    cooldown_seconds: int = PROFILE_SYNC_COOLDOWN_SECONDS,
-) -> ProfileSyncResult:
-    locked = _locked_user(user.id, db)
-    now = utcnow_naive()
+    *,
+    status: str,
+    cooldown_seconds: int,
+    error: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    sync_key = _user_key(user)
+    if db.bind and db.bind.dialect.name == "sqlite":
+        return _finish_sync(
+            db,
+            "recent_submissions",
+            sync_key,
+            status=status,
+            cooldown_seconds=cooldown_seconds,
+            error=error,
+            metadata=metadata,
+        )
 
-    if _is_fresh_in_progress(
-        locked.leetcode_profile_sync_started_at,
-        USER_SYNC_STALE_AFTER_SECONDS,
-        now,
-    ):
-        return ProfileSyncResult(meta=_profile_meta(locked, "in_progress"))
+    session_factory = _session_factory_for(db)
 
-    if _is_recent(locked.leetcode_profile_last_synced_at, cooldown_seconds, now):
-        return ProfileSyncResult(meta=_profile_meta(locked, "recently_synced"))
+    def finish() -> dict[str, Any]:
+        local_db = session_factory()
+        try:
+            return _finish_sync(
+                local_db,
+                "recent_submissions",
+                sync_key,
+                status=status,
+                cooldown_seconds=cooldown_seconds,
+                error=error,
+                metadata=metadata,
+            )
+        finally:
+            local_db.close()
 
-    username = locked.leetcode_username
-    locked.leetcode_profile_sync_started_at = now
-    locked.leetcode_profile_sync_error = None
-    db.commit()
+    return await asyncio.to_thread(finish)
 
-    client = LeetCodeClient()
+
+async def fetch_user_recent_submissions(
+    user: User,
+    language: str,
+    db: Session,
+    *,
+    limit: int = 50,
+    cooldown_seconds: int = RECENT_SYNC_COOLDOWN_SECONDS,
+) -> tuple[str, list[RecentAcceptedSubmission], dict[str, Any]]:
+    can_sync, meta = await _begin_user_recent(user, db, cooldown_seconds)
+    if not can_sync:
+        return meta["status"], [], meta
+
     try:
-        profile = await run_limited(lambda: client.get_user_profile(username))
-    except LeetCodeRateLimited as exc:
-        locked = _locked_user(user.id, db)
-        locked.leetcode_profile_sync_started_at = None
-        locked.leetcode_profile_sync_error = f"rate_limited:{exc.retry_after_seconds}"
-        db.commit()
-        return ProfileSyncResult(
-            meta=_profile_meta(locked, "rate_limited", locked.leetcode_profile_sync_error)
+        submissions = await LeetCodeClient().get_recent_accepted_submissions(user.leetcode_username, limit=limit)
+        filtered = filter_submissions_by_language(submissions, language)
+        meta = await _finish_user_recent(
+            user,
+            db,
+            status="synced",
+            cooldown_seconds=cooldown_seconds,
+            metadata={"fetched": len(filtered)},
         )
+        return "synced", filtered, meta
     except Exception as exc:
-        logger.warning("profile LeetCode sync failed for user_id=%s", user.id, exc_info=True)
-        locked = _locked_user(user.id, db)
-        locked.leetcode_profile_sync_started_at = None
-        locked.leetcode_profile_sync_error = _error_text(exc)
-        db.commit()
-        return ProfileSyncResult(
-            meta=_profile_meta(locked, "failed", locked.leetcode_profile_sync_error)
+        logger.warning("LeetCode recent sync failed for %s: %s", user.leetcode_username, exc)
+        meta = await _finish_user_recent(
+            user,
+            db,
+            status="failed",
+            cooldown_seconds=cooldown_seconds,
+            error=str(exc),
+        )
+        return "failed", [], meta
+
+
+async def fetch_lobby_recent_submissions(
+    players: list[tuple[Any, User]],
+    language: str,
+    db: Session,
+    *,
+    limit: int = 50,
+    cooldown_seconds: int = RECENT_SYNC_COOLDOWN_SECONDS,
+) -> tuple[dict[int, list[RecentAcceptedSubmission]], dict[str, Any]]:
+    if db.bind and db.bind.dialect.name == "sqlite":
+        results = [
+            await fetch_user_recent_submissions(
+                user, language, db, limit=limit, cooldown_seconds=cooldown_seconds,
+            )
+            for _, user in players
+        ]
+    else:
+        results = await asyncio.gather(
+            *[
+                fetch_user_recent_submissions(
+                    user, language, db, limit=limit, cooldown_seconds=cooldown_seconds,
+                )
+                for _, user in players
+            ]
         )
 
-    upsert_daily_activity(user.id, profile.submission_calendar, db)
+    submissions_by_user: dict[int, list[RecentAcceptedSubmission]] = {}
+    counts: dict[str, int] = {}
+    fetched_submissions = 0
+    for (_, user), (status, submissions, _) in zip(players, results):
+        counts[status] = counts.get(status, 0) + 1
+        if submissions:
+            submissions_by_user[user.id] = submissions
+            fetched_submissions += len(submissions)
 
-    locked = _locked_user(user.id, db)
-    locked.leetcode_avatar_url = profile.avatar_url
-    locked.leetcode_ranking = profile.ranking
-    locked.leetcode_profile_last_synced_at = utcnow_naive()
-    locked.leetcode_profile_sync_started_at = None
-    locked.leetcode_profile_sync_error = None
-    db.commit()
+    return submissions_by_user, {
+        "status": "synced" if counts.get("synced") else "cached",
+        "players": len(players),
+        "counts": counts,
+        "fetched_submissions": fetched_submissions,
+    }
 
-    return ProfileSyncResult(meta=_profile_meta(locked, "synced"), profile=profile)
+
+async def maybe_sync_user_daily_activity(
+    user: User,
+    db: Session,
+    *,
+    cooldown_seconds: int = PROFILE_SYNC_COOLDOWN_SECONDS,
+) -> tuple[LeetCodeProfileResponse | None, list[RecentAcceptedSubmission], dict[str, Any]]:
+    sync_key = _user_key(user)
+    can_sync, meta = _begin_sync(
+        db,
+        "profile",
+        sync_key,
+        cooldown_seconds=cooldown_seconds,
+        stale_seconds=LOBBY_SYNC_STALE_SECONDS,
+        require_metadata_key="profile",
+    )
+    if not can_sync:
+        db_state = (
+            db.query(LeetCodeSyncState)
+            .filter_by(scope="profile", sync_key=sync_key)
+            .first()
+        )
+        profile = _cached_profile(db_state) if db_state else None
+        return profile, [], meta
+
+    try:
+        profile, submissions = await sync_user_daily_activity(user, db)
+    except Exception as exc:
+        meta = _finish_sync(
+            db,
+            "profile",
+            sync_key,
+            status="failed",
+            cooldown_seconds=cooldown_seconds,
+            error=str(exc),
+        )
+        raise
+
+    meta = _finish_sync(
+        db,
+        "profile",
+        sync_key,
+        status="synced",
+        cooldown_seconds=cooldown_seconds,
+        metadata={
+            "profile": profile.model_dump(),
+            "recent_submissions": len(submissions),
+        },
+    )
+    return profile, submissions, meta
+
+
+async def maybe_enter_lobby_sync(
+    lobby_id: int,
+    db: Session,
+    *,
+    cooldown_seconds: int = LOBBY_SYNC_COOLDOWN_SECONDS,
+    stale_seconds: int = LOBBY_SYNC_STALE_SECONDS,
+) -> tuple[bool, dict[str, Any]]:
+    return _begin_sync(
+        db,
+        "lobby",
+        str(lobby_id),
+        cooldown_seconds=cooldown_seconds,
+        stale_seconds=stale_seconds,
+    )
+
+
+def finish_lobby_sync(
+    lobby_id: int,
+    db: Session,
+    *,
+    status: str = "synced",
+    error: str | None = None,
+    cooldown_seconds: int = LOBBY_SYNC_COOLDOWN_SECONDS,
+) -> dict[str, Any]:
+    return _finish_sync(
+        db,
+        "lobby",
+        str(lobby_id),
+        status=status,
+        cooldown_seconds=cooldown_seconds,
+        error=error,
+    )

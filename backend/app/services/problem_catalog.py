@@ -132,6 +132,14 @@ def needs_refresh(db: Session) -> bool:
     return age.days >= CATALOG_REFRESH_INTERVAL_DAYS
 
 
+def catalog_problem_count(db: Session) -> int:
+    return db.query(LeetCodeProblem).count()
+
+
+def catalog_has_minimum(db: Session, minimum: int = MIN_PROBLEMS) -> bool:
+    return catalog_problem_count(db) >= minimum
+
+
 def get_problems_by_tags(
     tags: list[str],
     difficulty: str | None,

@@ -1,7 +1,8 @@
-from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
+
+from app.schemas.friends import FriendResponse
 
 
 class TodaySubmissionResponse(BaseModel):
@@ -17,25 +18,6 @@ class TodaySubmissionResponse(BaseModel):
 class ActivityCalendarDayResponse(BaseModel):
     date: str
     count: int
-
-
-class SyncMetaResponse(BaseModel):
-    status: Literal[
-        "synced",
-        "recently_synced",
-        "in_progress",
-        "rate_limited",
-        "failed",
-        "skipped",
-    ]
-    last_synced_at: datetime | None = None
-    next_sync_after: datetime | None = None
-    error: str | None = None
-
-
-class DashboardSyncResponse(BaseModel):
-    recent: SyncMetaResponse
-    profile: SyncMetaResponse
 
 
 class DashboardLobbyPlayerResponse(BaseModel):
@@ -77,4 +59,4 @@ class DashboardResponse(BaseModel):
     today_submissions: list[TodaySubmissionResponse] = Field(default_factory=list)
     activity_calendar: list[ActivityCalendarDayResponse] = Field(default_factory=list)
     lobbies: list[DashboardLobbyResponse] = Field(default_factory=list)
-    sync: DashboardSyncResponse | None = None
+    friends: list[FriendResponse] = Field(default_factory=list)

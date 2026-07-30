@@ -14,6 +14,7 @@ from app.schemas.leetcode import (
     RecentAcceptedSubmission,
     SolvedStats,
 )
+from app.services.leetcode_limiter import register_rate_limit, release_slot, wait_for_slot
 
 
 logger = logging.getLogger(__name__)
@@ -308,30 +309,25 @@ class LeetCodeClient:
     async def _post_graphql(self, query: str, variables: dict) -> dict:
         client = await _get_client()
         try:
-            response = await client.post(
-                LEETCODE_GRAPHQL_URL,
-                json={
-                    "query": query,
-                    "variables": variables,
-                },
-                headers=_HEADERS,
-            )
+            await wait_for_slot()
+            try:
+                response = await client.post(
+                    LEETCODE_GRAPHQL_URL,
+                    json={
+                        "query": query,
+                        "variables": variables,
+                    },
+                    headers=_HEADERS,
+                )
+            finally:
+                release_slot()
         except httpx.HTTPError as exc:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
                 detail="Could not connect to LeetCode API",
             ) from exc
 
-        if response.status_code in {status.HTTP_403_FORBIDDEN, status.HTTP_429_TOO_MANY_REQUESTS}:
-            logger.warning(
-                "LeetCode API rate limited or blocked request with %s",
-                response.status_code,
-            )
-            raise HTTPException(
-                status_code=response.status_code,
-                detail=f"LeetCode API returned status {response.status_code}",
-            )
-
+        register_rate_limit(response.status_code)
         if response.status_code != status.HTTP_200_OK:
             logger.warning(
                 "LeetCode API returned %s for query %s",

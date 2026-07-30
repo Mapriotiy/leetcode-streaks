@@ -28,7 +28,7 @@ from app.services.game_modes.base import (
     winner_info,
 )
 from app.services.game_modes.registry import register
-from app.services.leetcode_sync import sync_users_recent
+from app.services.leetcode_sync import fetch_lobby_recent_submissions
 from app.services.lobby_settings import (
     FACTION_COLORS,
     lobby_factions,
@@ -46,6 +46,7 @@ from app.services.scoring import (
 from app.services.user_solved import (
     get_solved_for_slugs,
     get_solved_slugs_with_timestamps,
+    record_submissions,
 )
 
 logger = logging.getLogger(__name__)
@@ -76,7 +77,11 @@ class TerritoryMode(GameMode):
             return self._payload(lobby, [], [], db)
 
         language = lobby_programming_language(lobby)
-        await sync_users_recent([u for _, u in players], db, limit=50, context=f"lobby:{lobby.id}:territory")
+        submissions_by_user, player_sync = await fetch_lobby_recent_submissions(players, language, db)
+        for _, u in players:
+            subs = submissions_by_user.get(u.id, [])
+            if subs:
+                record_submissions(u.id, subs, db)
 
         provinces = _get_lmap_provinces(lmap.id, db)
         slugs = {p.problem_title_slug for p in provinces}
@@ -121,11 +126,13 @@ class TerritoryMode(GameMode):
                 finish_lobby(lobby, winner, players, db)
                 db.commit()
 
-        return self._payload(
+        payload = self._payload(
             lobby, provinces, players, db, problems=problems, lmap=lmap,
             captured_count=sum(1 for c in changes if c.kind == CAPTURE),
             recaptured_count=sum(1 for c in changes if c.kind == RECAPTURE),
         )
+        payload["player_sync"] = player_sync
+        return payload
 
     def get_state(self, lobby: Lobby, players: Players, db: Session) -> dict:
         lmap = _get_lmap(lobby.id, db)

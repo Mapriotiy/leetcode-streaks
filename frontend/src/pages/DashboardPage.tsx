@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Gamepad2, UserCircle } from "lucide-react";
 import { apiRequest } from "../api/client";
 import { ActivityCalendar } from "../components/dashboard/ActivityCalendar";
@@ -35,7 +35,6 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby }: Dashb
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
     const [friends, setFriends] = useState<FriendResponse[]>([]);
     const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
-    const [isLoadingFriends, setIsLoadingFriends] = useState(true);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [showLobbyModal, setShowLobbyModal] = useState(false);
     const currentStreakState = dashboardData?.current_streak_state ?? "broken";
@@ -47,53 +46,33 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby }: Dashb
               ? "Waiting for today's solve"
               : "Solve today to start";
 
-    useEffect(() => {
-        let isCancelled = false;
-
-        async function loadDashboard() {
-            setErrorMessage(null);
+    const loadDashboard = useCallback(async (showLoading = false) => {
+        if (showLoading) {
             setIsLoadingDashboard(true);
-
-            try {
-                const dashboard = await apiRequest<DashboardData>("/dashboard/");
-                if (isCancelled) return;
-                setDashboardData(dashboard);
-            } catch (error) {
-                if (isCancelled) return;
-                setErrorMessage(
-                    error instanceof Error ? error.message : "Failed to load dashboard",
-                );
-            } finally {
-                if (isCancelled) return;
-                setIsLoadingDashboard(false);
-            }
         }
+        setErrorMessage(null);
 
-        async function loadFriends() {
-            setIsLoadingFriends(true);
+        try {
+            const dashboard = await apiRequest<DashboardData>("/dashboard/");
 
-            try {
-                const friendsList = await apiRequest<FriendResponse[]>("/friends/");
-                if (isCancelled) return;
-                setFriends(friendsList);
-            } catch (error) {
-                if (isCancelled) return;
-                setErrorMessage(
-                    error instanceof Error ? error.message : "Failed to load friends",
-                );
-            } finally {
-                if (isCancelled) return;
-                setIsLoadingFriends(false);
-            }
+            setDashboardData(dashboard);
+            setFriends(dashboard.friends ?? []);
+        } catch (error) {
+            setErrorMessage(
+                error instanceof Error ? error.message : "Failed to load dashboard",
+            );
+        } finally {
+            setIsLoadingDashboard(false);
         }
+    }, []);
 
-        void loadDashboard();
-        void loadFriends();
-
-        return () => {
-            isCancelled = true;
-        };
-    }, [refreshKey]);
+    useEffect(() => {
+        void loadDashboard(true);
+        const refreshId = window.setTimeout(() => {
+            void loadDashboard(false);
+        }, 2500);
+        return () => window.clearTimeout(refreshId);
+    }, [loadDashboard, refreshKey]);
 
     return (
         <main className="min-h-screen bg-[#1a1a1a] p-6 text-white">
@@ -151,7 +130,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby }: Dashb
                 {isLoadingDashboard ? (
                     <section className="mt-6 rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
                         <p className="text-sm text-[#a3a3a3]">
-                            Syncing LeetCode activity...
+                            Loading dashboard...
                         </p>
                     </section>
                 ) : (
@@ -301,7 +280,6 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby }: Dashb
 
                 <FriendsList
                     friends={friends}
-                    isLoading={isLoadingFriends}
                     onFriendRemoved={(friendshipId) =>
                         setFriends((currentFriends) =>
                             currentFriends.filter(

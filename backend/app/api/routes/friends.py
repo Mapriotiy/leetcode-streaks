@@ -1,8 +1,7 @@
-import logging
 import secrets
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -23,10 +22,8 @@ from app.schemas.friends import (
 )
 
 from app.services.activity_sync import get_utc_today
-from app.services.leetcode_sync import maybe_sync_user_profile
+from app.services.leetcode_sync import sync_user_daily_activity_by_id
 from app.services.streaks import calculate_friend_streak, get_active_dates
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -45,14 +42,6 @@ def user_to_friend_response(user: User) -> FriendUserResponse:
 def build_invite_url(token: str) -> str:
     frontend_url = settings.frontend_url.rstrip("/")
     return f"{frontend_url}/?invite={token}"
-
-
-async def sync_user_activity_if_available(user: User, db: Session) -> None:
-    try:
-        await maybe_sync_user_profile(user, db)
-    except Exception:
-        logger.exception("maybe_sync_user_profile failed for user_id=%s", user.id)
-        return
 
 
 @router.post("/invites", response_model=CreateInviteResponse)
@@ -180,6 +169,7 @@ def accept_invite(
 
 @router.get("/", response_model=list[FriendResponse])
 async def list_friends(
+        background_tasks: BackgroundTasks,
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db),
 ):
@@ -206,13 +196,10 @@ async def list_friends(
         for u in db.query(User).filter(User.id.in_(friend_ids)).all()
     }
 
-    users_to_sync = [current_user]
+    background_tasks.add_task(sync_user_daily_activity_by_id, current_user.id)
     for fid in friend_ids:
         if fid in friends:
-            users_to_sync.append(friends[fid])
-
-    for user in users_to_sync:
-        await sync_user_activity_if_available(user, db)
+            background_tasks.add_task(sync_user_daily_activity_by_id, fid)
 
     current_user_dates = get_active_dates(current_user, db)
     today = get_utc_today()

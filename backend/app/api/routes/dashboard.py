@@ -1,34 +1,40 @@
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.daily_activity import DailyActivity
+from app.models.friendship import Friendship
 from app.models.leetcode_problem import LeetCodeProblem
 from app.models.lobby import Lobby
 from app.models.lobby_player import LobbyPlayer
 from app.models.user import User
 from app.models.user_solved import UserSolved
 from app.schemas.dashboard import (
-    DashboardSyncResponse,
     DashboardFactionResponse,
     DashboardLobbyPlayerResponse,
     DashboardLobbyResponse,
     DashboardResponse,
-    SyncMetaResponse,
     TodaySubmissionResponse,
+)
+from app.schemas.friends import (
+    FriendResponse,
+    FriendStreakResponse,
+    FriendUserResponse,
+    TodayFriendStatusResponse,
 )
 from app.services.streaks import (
     calculate_longest_streak,
     calculate_personal_streak,
-    get_active_dates,
+    calculate_friend_streak,
 )
 from app.services.activity_sync import (
     get_utc_today,
 )
-from app.services.leetcode_sync import maybe_sync_user_profile, maybe_sync_user_recent
+from app.services.leetcode_sync import get_cached_user_profile, sync_user_daily_activity_by_id
+from sqlalchemy import or_
 
 router = APIRouter()
 
@@ -106,14 +112,21 @@ def build_user_lobbies(current_user: User, db: Session) -> list[DashboardLobbyRe
         .all()
     )
 
-    responses: list[DashboardLobbyResponse] = []
-    for _, lobby in memberships:
+    lobby_ids = [lobby.id for _, lobby in memberships]
+    player_rows_by_lobby: dict[int, list[tuple[LobbyPlayer, User]]] = {lobby_id: [] for lobby_id in lobby_ids}
+    if lobby_ids:
         player_rows = (
             db.query(LobbyPlayer, User)
             .join(User, LobbyPlayer.user_id == User.id)
-            .filter(LobbyPlayer.lobby_id == lobby.id)
+            .filter(LobbyPlayer.lobby_id.in_(lobby_ids))
             .all()
         )
+        for player, user in player_rows:
+            player_rows_by_lobby.setdefault(player.lobby_id, []).append((player, user))
+
+    responses: list[DashboardLobbyResponse] = []
+    for _, lobby in memberships:
+        player_rows = player_rows_by_lobby.get(lobby.id, [])
         responses.append(
             DashboardLobbyResponse(
                 id=lobby.id,
@@ -141,14 +154,76 @@ def build_user_lobbies(current_user: User, db: Session) -> list[DashboardLobbyRe
     return responses
 
 
-def build_today_submissions(
-        current_user: User,
-        db: Session,
-        today: date,
-) -> list[TodaySubmissionResponse]:
-    start = datetime.combine(today, time.min)
-    end = start + timedelta(days=1)
+def get_active_dates_by_user_ids(user_ids: list[int], db: Session) -> dict[int, set[date]]:
+    if not user_ids:
+        return {}
+    result = {user_id: set() for user_id in user_ids}
+    rows = (
+        db.query(DailyActivity.user_id, DailyActivity.date)
+        .filter(
+            DailyActivity.user_id.in_(user_ids),
+            DailyActivity.submissions_count > 0,
+        )
+        .all()
+    )
+    for user_id, activity_date in rows:
+        result.setdefault(user_id, set()).add(activity_date)
+    return result
 
+
+def build_friends(
+    current_user: User,
+    db: Session,
+    active_dates_by_user_id: dict[int, set[date]],
+    today: date,
+    friendships,
+    friend_ids: list[int],
+) -> tuple[list[FriendResponse], list[int]]:
+    friends = {
+        user.id: user
+        for user in db.query(User).filter(User.id.in_(friend_ids)).all()
+    } if friend_ids else {}
+
+    current_user_dates = active_dates_by_user_id.get(current_user.id, set())
+    responses: list[FriendResponse] = []
+    for friendship in friendships:
+        friend_id = friendship.user_b_id if friendship.user_a_id == current_user.id else friendship.user_a_id
+        friend = friends.get(friend_id)
+        if friend is None:
+            continue
+
+        streak = calculate_friend_streak(
+            user_dates=current_user_dates,
+            friend_dates=active_dates_by_user_id.get(friend.id, set()),
+            start_date=friendship.created_at.date(),
+            today=today,
+        )
+        responses.append(
+            FriendResponse(
+                friendship_id=friendship.id,
+                friend=FriendUserResponse(id=friend.id, leetcode_username=friend.leetcode_username),
+                streak=FriendStreakResponse(
+                    display_count=streak.display_count,
+                    current_count=streak.current_count,
+                    longest_count=streak.longest_count,
+                    state=streak.state,
+                    last_shared_active_date=streak.last_shared_active_date,
+                    started_at=streak.started_at,
+                    today=TodayFriendStatusResponse(
+                        you_active=streak.today.you_active,
+                        friend_active=streak.today.friend_active,
+                        shared_active=streak.today.shared_active,
+                    ),
+                ),
+            )
+        )
+
+    return responses, friend_ids
+
+
+def build_today_submissions(current_user: User, db: Session, today: date) -> list[TodaySubmissionResponse]:
+    start = datetime.combine(today, datetime.min.time())
+    end = start + timedelta(days=1)
     solved_rows = (
         db.query(UserSolved)
         .filter(
@@ -159,66 +234,89 @@ def build_today_submissions(
         .order_by(UserSolved.solved_at.desc())
         .all()
     )
-
-    solved_by_slug: dict[str, UserSolved] = {}
-    for solved in solved_rows:
-        solved_by_slug.setdefault(solved.title_slug, solved)
-
-    if not solved_by_slug:
+    if not solved_rows:
         return []
 
     problems = {
         p.title_slug: p
         for p in db.query(LeetCodeProblem).filter(
-            LeetCodeProblem.title_slug.in_(list(solved_by_slug.keys()))
+            LeetCodeProblem.title_slug.in_([row.title_slug for row in solved_rows])
         ).all()
     }
 
+    seen: set[str] = set()
     submissions: list[TodaySubmissionResponse] = []
-    for slug, solved in solved_by_slug.items():
-        problem = problems.get(slug)
+    for row in solved_rows:
+        if row.title_slug in seen:
+            continue
+        seen.add(row.title_slug)
+        problem = problems.get(row.title_slug)
         submissions.append(
             TodaySubmissionResponse(
-                title=problem.title if problem else slug.replace("-", " ").title(),
-                title_slug=slug,
-                url=f"https://leetcode.com/problems/{slug}/",
-                submitted_at=solved.solved_at.isoformat(),
-                language=solved.language,
+                title=problem.title if problem else row.title_slug,
+                title_slug=row.title_slug,
+                url=f"https://leetcode.com/problems/{row.title_slug}/",
+                submitted_at=row.solved_at.replace(tzinfo=timezone.utc).isoformat(),
+                language=row.language,
                 difficulty=problem.difficulty if problem else None,
                 topic_tags=(problem.topic_tags or [])[:2] if problem else [],
             )
         )
-
     return submissions
 
 
 @router.get("/", response_model=DashboardResponse)
 async def get_dashboard(
+        background_tasks: BackgroundTasks,
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db),
 ):
+    cached_profile = get_cached_user_profile(current_user, db)
+    avatar_url = cached_profile.avatar_url if cached_profile else None
     today = get_utc_today()
 
-    recent_sync = await maybe_sync_user_recent(current_user, db, limit=50)
-    profile_sync = await maybe_sync_user_profile(current_user, db)
-    db.refresh(current_user)
+    today_submissions = build_today_submissions(current_user, db, today)
 
-    active_dates = get_active_dates(current_user, db)
+    friendships = (
+        db.query(Friendship)
+        .filter(
+            or_(
+                Friendship.user_a_id == current_user.id,
+                Friendship.user_b_id == current_user.id,
+            )
+        )
+        .all()
+    )
+    friend_ids = [
+        friendship.user_b_id if friendship.user_a_id == current_user.id else friendship.user_a_id
+        for friendship in friendships
+    ]
+    active_dates_by_user_id = get_active_dates_by_user_ids([current_user.id, *friend_ids], db)
+    active_dates = active_dates_by_user_id.get(current_user.id, set())
     personal_streak = calculate_personal_streak(active_dates, today=today)
+    friends, friend_ids = build_friends(
+        current_user,
+        db,
+        active_dates_by_user_id,
+        today,
+        friendships,
+        friend_ids,
+    )
+
+    background_tasks.add_task(sync_user_daily_activity_by_id, current_user.id)
+    for friend_id in friend_ids:
+        background_tasks.add_task(sync_user_daily_activity_by_id, friend_id)
 
     return DashboardResponse(
         leetcode_username=current_user.leetcode_username,
-        avatar_url=current_user.leetcode_avatar_url,
+        avatar_url=avatar_url,
         current_streak=personal_streak.display_count,
         current_streak_state=personal_streak.state,
         today_active=personal_streak.today_active,
         longest_streak=calculate_longest_streak(active_dates),
         active_days_count=len(active_dates),
-        today_submissions=build_today_submissions(current_user, db, today=today),
+        today_submissions=today_submissions,
         activity_calendar=build_activity_calendar(current_user, db, today=today),
         lobbies=build_user_lobbies(current_user, db),
-        sync=DashboardSyncResponse(
-            recent=SyncMetaResponse(**recent_sync.meta.as_dict()),
-            profile=SyncMetaResponse(**profile_sync.meta.as_dict()),
-        ),
+        friends=friends,
     )

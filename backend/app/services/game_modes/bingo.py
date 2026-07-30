@@ -7,6 +7,7 @@ or diagonal wins instantly. If the board fills with no line, the team with
 the most cells wins; an exact tie is a draw.
 """
 
+import logging
 import random
 from datetime import timezone
 
@@ -23,7 +24,7 @@ from app.services.game_modes.base import (
     winner_info,
 )
 from app.services.game_modes.registry import register
-from app.services.leetcode_sync import sync_users_recent
+from app.services.leetcode_sync import fetch_lobby_recent_submissions
 from app.services.lobby_settings import (
     FACTION_COLORS,
     lobby_factions,
@@ -35,7 +36,10 @@ from app.services.scoring import flag_points
 from app.services.user_solved import (
     get_solved_for_slugs,
     get_solved_slugs_with_timestamps,
+    record_submissions,
 )
+
+logger = logging.getLogger(__name__)
 
 CELL_CLAIMED = "cell_claimed"
 BINGO_LINE = "bingo_line"
@@ -87,7 +91,11 @@ class BingoMode(GameMode):
             return self._payload(lobby, [], players, db)
 
         language = lobby_programming_language(lobby)
-        await sync_users_recent([u for _, u in players], db, limit=50, context=f"lobby:{lobby.id}:bingo")
+        submissions_by_user, player_sync = await fetch_lobby_recent_submissions(players, language, db)
+        for _, u in players:
+            subs = submissions_by_user.get(u.id, [])
+            if subs:
+                record_submissions(u.id, subs, db)
 
         slugs = {c.problem_title_slug for c in cells}
         solved_by_user = {
@@ -147,8 +155,10 @@ class BingoMode(GameMode):
         if claimed_count or winner is not None:
             db.commit()
 
-        return self._payload(lobby, cells, players, db, problems=problems,
-                             claimed_count=claimed_count)
+        payload = self._payload(lobby, cells, players, db, problems=problems,
+                                claimed_count=claimed_count)
+        payload["player_sync"] = player_sync
+        return payload
 
     def get_state(self, lobby: Lobby, players: Players, db: Session) -> dict:
         return self._payload(lobby, _get_cells(lobby.id, db), players, db)

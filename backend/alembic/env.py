@@ -37,6 +37,7 @@ from app.models.lobby_map import LobbyMap
 from app.models.lobby_map_province import LobbyMapProvince
 from app.models.lobby_event import LobbyEvent
 from app.models.lobby_board_cell import LobbyBoardCell
+from app.models.leetcode_sync_state import LeetCodeSyncState
 
 target_metadata = Base.metadata
 

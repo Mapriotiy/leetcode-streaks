@@ -3,8 +3,6 @@ these routes dispatch on lobby.game_mode via the mode registry."""
 
 import logging
 import secrets
-from datetime import datetime, timedelta, timezone
-from time import perf_counter
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -44,14 +42,11 @@ from app.services.lobby_settings import (
     set_lobby_factions,
     utcnow,
 )
-from app.services.leetcode_sync import SyncMeta, utcnow_naive
-from app.services.problem_catalog import ensure_catalog
+from app.services.leetcode_sync import finish_lobby_sync, maybe_enter_lobby_sync
+from app.services.problem_catalog import catalog_problem_count, catalog_has_minimum
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-LOBBY_SYNC_COOLDOWN_SECONDS = 60
-LOBBY_SYNC_STALE_AFTER_SECONDS = 180
 
 
 def _invite_url(token: str) -> str:
@@ -60,55 +55,6 @@ def _invite_url(token: str) -> str:
 
 def _default_map_selection() -> dict[str, Any]:
     return {"kind": "default"}
-
-
-def _as_naive_utc(value: datetime | None) -> datetime | None:
-    if value is None:
-        return None
-    if value.tzinfo is None:
-        return value
-    return value.astimezone(timezone.utc).replace(tzinfo=None)
-
-
-def _is_recent_lobby_sync(lobby: Lobby, now: datetime) -> bool:
-    last_synced_at = _as_naive_utc(lobby.last_synced_at)
-    if last_synced_at is None:
-        return False
-    return now - last_synced_at < timedelta(seconds=LOBBY_SYNC_COOLDOWN_SECONDS)
-
-
-def _is_fresh_lobby_sync(lobby: Lobby, now: datetime) -> bool:
-    started_at = _as_naive_utc(lobby.sync_started_at)
-    if started_at is None:
-        return False
-    return now - started_at < timedelta(seconds=LOBBY_SYNC_STALE_AFTER_SECONDS)
-
-
-def _next_lobby_sync_after(lobby: Lobby) -> datetime | None:
-    last_synced_at = _as_naive_utc(lobby.last_synced_at)
-    if last_synced_at is None:
-        return None
-    return last_synced_at + timedelta(seconds=LOBBY_SYNC_COOLDOWN_SECONDS)
-
-
-def _lobby_sync_meta(lobby: Lobby, status: str, error: str | None = None) -> dict:
-    return SyncMeta(
-        status=status,
-        last_synced_at=lobby.last_synced_at,
-        next_sync_after=_next_lobby_sync_after(lobby),
-        error=error,
-    ).as_dict()
-
-
-def _with_sync_meta(payload: dict, sync: dict) -> dict:
-    return {**payload, "sync": sync}
-
-
-def _locked_lobby(lobby_id: int, db: Session) -> Lobby | None:
-    query = db.query(Lobby).filter(Lobby.id == lobby_id)
-    if db.bind is not None and db.bind.dialect.name == "postgresql":
-        query = query.with_for_update()
-    return query.first()
 
 
 def _normalize_map_selection(value: Any) -> dict[str, Any]:
@@ -501,7 +447,11 @@ async def start_game(lobby_id: int, current_user: User = Depends(get_current_use
     if len(players) < 2:
         raise HTTPException(400, "Need at least 2 players")
 
-    await ensure_catalog(db)
+    if not catalog_has_minimum(db):
+        raise HTTPException(
+            503,
+            f"Problem catalog has {catalog_problem_count(db)} problems; preload it before starting a game",
+        )
     await get_mode(lobby.game_mode).start(lobby, players, db)
 
     lobby.status = "active"
@@ -522,64 +472,30 @@ def get_game_state(lobby_id: int, current_user: User = Depends(get_current_user)
 
 @router.post("/{lobby_id}/map/sync")
 async def sync_game(lobby_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    lobby = _locked_lobby(lobby_id, db)
+    lobby = db.get(Lobby, lobby_id)
     if not lobby:
         raise HTTPException(404, "Lobby not found")
     mode = get_mode(lobby.game_mode)
     players = ordered_players(lobby.id, db)
     if lobby.status == "finished":
-        return _with_sync_meta(mode.get_state(lobby, players, db), _lobby_sync_meta(lobby, "skipped"))
-
-    now = utcnow_naive()
-    if _is_fresh_lobby_sync(lobby, now):
         payload = mode.get_state(lobby, players, db)
-        return _with_sync_meta(payload, _lobby_sync_meta(lobby, "in_progress"))
+        payload["sync"] = {"status": "finished"}
+        return payload
 
-    if _is_recent_lobby_sync(lobby, now):
+    can_sync, sync_meta = await maybe_enter_lobby_sync(lobby.id, db)
+    if not can_sync:
         payload = mode.get_state(lobby, players, db)
-        return _with_sync_meta(payload, _lobby_sync_meta(lobby, "recently_synced"))
+        payload["sync"] = sync_meta
+        return payload
 
-    lobby.sync_started_at = now
-    lobby.sync_error = None
-    db.commit()
-
-    started_at = perf_counter()
     try:
         payload = await mode.sync(lobby, players, db)
     except Exception as exc:
-        logger.exception("lobby sync failed for lobby_id=%s", lobby_id)
-        db.rollback()
-        locked = _locked_lobby(lobby_id, db)
-        if locked is None:
-            raise
-        locked.sync_started_at = None
-        locked.sync_error = str(exc)[:500] or exc.__class__.__name__
-        db.commit()
-        return _with_sync_meta(
-            mode.get_state(locked, ordered_players(locked.id, db), db),
-            _lobby_sync_meta(locked, "failed", locked.sync_error),
-        )
+        finish_lobby_sync(lobby.id, db, status="failed", error=str(exc))
+        raise
 
-    locked = _locked_lobby(lobby_id, db)
-    if locked is None:
-        return payload
-    locked.last_synced_at = utcnow_naive()
-    locked.sync_started_at = None
-    locked.sync_error = None
-    db.commit()
-
-    duration_ms = int((perf_counter() - started_at) * 1000)
-    logger.info(
-        "lobby_sync lobby=%s mode=%s status=synced players=%s duration_ms=%s captured=%s claimed=%s",
-        lobby_id,
-        lobby.game_mode,
-        len(players),
-        duration_ms,
-        payload.get("captured_count", 0) + payload.get("recaptured_count", 0),
-        payload.get("claimed_count", 0),
-    )
-
-    return _with_sync_meta(payload, _lobby_sync_meta(locked, "synced"))
+    payload["sync"] = finish_lobby_sync(lobby.id, db)
+    return payload
 
 
 @router.get("/{lobby_id}/events", response_model=list[LobbyEventResponse])
