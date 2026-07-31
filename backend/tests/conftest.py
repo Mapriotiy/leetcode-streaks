@@ -7,6 +7,9 @@ from app.models.daily_activity import DailyActivity  # noqa: F401
 from app.models.friend_invite import FriendInvite  # noqa: F401
 from app.models.friendship import Friendship  # noqa: F401
 from app.models.leetcode_problem import LeetCodeProblem  # noqa: F401
+from app.models.leetcode_sync_state import LeetCodeSyncState  # noqa: F401
+from app.models.leetcode_account_verification import LeetCodeAccountVerification  # noqa: F401
+from app.models.oauth_session import OAuthSession  # noqa: F401
 from app.models.lobby import Lobby  # noqa: F401
 from app.models.lobby_board_cell import LobbyBoardCell  # noqa: F401
 from app.models.lobby_event import LobbyEvent  # noqa: F401

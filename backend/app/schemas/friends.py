@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 class FriendUserResponse(BaseModel):
     id: int
-    leetcode_username: str
+    leetcode_username: str | None = None
 
 
 class CreateInviteResponse(BaseModel):

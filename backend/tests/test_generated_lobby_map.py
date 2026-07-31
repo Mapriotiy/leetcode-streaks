@@ -1,5 +1,6 @@
 import asyncio
 from collections import Counter
+from datetime import datetime
 
 from app.models.leetcode_problem import LeetCodeProblem
 from app.models.lobby import Lobby
@@ -92,7 +93,11 @@ def test_generated_map_start_persists_draft_and_topic_problems(db):
     )
     players = []
     for user_id, username in [(1, "alice"), (2, "bob")]:
-        user = User(id=user_id, leetcode_username=username, password_hash="x")
+        user = User(
+            id=user_id,
+            leetcode_username=username,
+            leetcode_verified_at=datetime(2026, 7, 27, 12, 0),
+        )
         lobby_player = LobbyPlayer(
             lobby_id=lobby.id,
             user_id=user_id,

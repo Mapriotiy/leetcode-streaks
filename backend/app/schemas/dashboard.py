@@ -3,6 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.schemas.friends import FriendResponse
+from datetime import datetime
 
 
 class TodaySubmissionResponse(BaseModel):
@@ -22,7 +23,7 @@ class ActivityCalendarDayResponse(BaseModel):
 
 class DashboardLobbyPlayerResponse(BaseModel):
     user_id: int
-    leetcode_username: str
+    leetcode_username: str | None = None
     faction_id: int | None = None
     status: str
 
@@ -49,8 +50,10 @@ class DashboardLobbyResponse(BaseModel):
 
 
 class DashboardResponse(BaseModel):
-    leetcode_username: str
+    leetcode_username: str | None = None
+    display_name: str | None = None
     avatar_url: str | None = None
+    leetcode_verified_at: datetime | None = None
     current_streak: int
     current_streak_state: Literal["lit", "pending", "broken"]
     today_active: bool

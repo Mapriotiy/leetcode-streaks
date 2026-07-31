@@ -1,14 +1,16 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 
-class RegisterRequest(BaseModel):
-    leetcode_username: str = Field(min_length=1, max_length=64)
-    password: str = Field(min_length=8, max_length=128)
+class GoogleLoginUrlResponse(BaseModel):
+    auth_url: str
+    state: str
 
 
-class LoginRequest(BaseModel):
-    leetcode_username: str
-    password: str
+class GoogleCodeRequest(BaseModel):
+    code: str = Field(min_length=1)
+    state: str = Field(min_length=1)
 
 
 class TokenResponse(BaseModel):
@@ -18,4 +20,9 @@ class TokenResponse(BaseModel):
 
 class MeResponse(BaseModel):
     id: int
-    leetcode_username: str
+    google_sub: str | None = None
+    email: str | None = None
+    display_name: str | None = None
+    avatar_url: str | None = None
+    leetcode_username: str | None = None
+    leetcode_verified_at: datetime | None = None

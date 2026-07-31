@@ -24,7 +24,7 @@ def make_submission(
 
 
 def make_user(db, username: str = "alice") -> User:
-    user = User(leetcode_username=username, password_hash="x")
+    user = User(leetcode_username=username, leetcode_verified_at=datetime(2026, 7, 27, 12, 0))
     db.add(user)
     db.commit()
     return user

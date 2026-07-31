@@ -1,4 +1,6 @@
-from pydantic import BaseModel
+from datetime import datetime
+
+from pydantic import BaseModel, Field
 
 
 class SolvedStats(BaseModel):
@@ -26,3 +28,30 @@ class RecentAcceptedSubmission(BaseModel):
     submission_id: int | None = None
     submission_url: str | None = None
     runtime_ms: int | None = None
+
+
+class LeetCodeLinkStartRequest(BaseModel):
+    leetcode_username: str = Field(min_length=1, max_length=64)
+
+
+class LeetCodeVerificationResponse(BaseModel):
+    id: int
+    leetcode_username: str
+    problem_slug: str
+    status: str
+    attempts: int
+    max_attempts: int
+    created_at: datetime
+    expires_at: datetime
+    verified_at: datetime | None = None
+    verified_submission_id: int | None = None
+    verified_submission_at: datetime | None = None
+    failure_reason: str | None = None
+    cooldown_until: datetime | None = None
+
+
+class LeetCodeLinkStatusResponse(BaseModel):
+    linked: bool
+    leetcode_username: str | None = None
+    leetcode_verified_at: datetime | None = None
+    verification: LeetCodeVerificationResponse | None = None

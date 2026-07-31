@@ -117,7 +117,7 @@ def test_region_domination_needs_strict_majority():
 def _seed_players(db, lobby, faction_ids):
     players = []
     for i, fid in enumerate(faction_ids, start=1):
-        user = User(id=i, leetcode_username=f"user{i}", password_hash="x")
+        user = User(id=i, leetcode_username=f"user{i}", leetcode_verified_at=datetime(2026, 7, 27, 12, 0))
         lp = LobbyPlayer(lobby_id=lobby.id, user_id=i, faction_id=fid, status="ready")
         db.add(user)
         db.add(lp)

@@ -30,6 +30,10 @@ def _user_key(user: User) -> str:
     return (user.leetcode_username or str(user.id)).strip().lower()
 
 
+def is_leetcode_verified(user: User) -> bool:
+    return user.leetcode_verified_at is not None and bool(user.leetcode_username)
+
+
 def _next_after(state: LeetCodeSyncState, cooldown_seconds: int) -> datetime | None:
     if state.last_synced_at is None:
         return None
@@ -77,7 +81,7 @@ async def sync_user_daily_activity_by_id(user_id: int) -> None:
     db = SessionLocal()
     try:
         user = db.get(User, user_id)
-        if user is None:
+        if user is None or not is_leetcode_verified(user):
             return
         await maybe_sync_user_daily_activity(user, db)
     except Exception:
@@ -264,6 +268,9 @@ async def fetch_user_recent_submissions(
     limit: int = 50,
     cooldown_seconds: int = RECENT_SYNC_COOLDOWN_SECONDS,
 ) -> tuple[str, list[RecentAcceptedSubmission], dict[str, Any]]:
+    if not is_leetcode_verified(user):
+        return "skipped", [], {"status": "skipped", "reason": "not_verified"}
+
     can_sync, meta = await _begin_user_recent(user, db, cooldown_seconds)
     if not can_sync:
         return meta["status"], [], meta
@@ -339,6 +346,9 @@ async def maybe_sync_user_daily_activity(
     *,
     cooldown_seconds: int = PROFILE_SYNC_COOLDOWN_SECONDS,
 ) -> tuple[LeetCodeProfileResponse | None, list[RecentAcceptedSubmission], dict[str, Any]]:
+    if not is_leetcode_verified(user):
+        return None, [], {"status": "skipped", "reason": "not_verified"}
+
     sync_key = _user_key(user)
     can_sync, meta = _begin_sync(
         db,

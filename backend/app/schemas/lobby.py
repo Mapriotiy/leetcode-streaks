@@ -11,7 +11,7 @@ class FactionResponse(BaseModel):
 
 class LobbyPlayerResponse(BaseModel):
     user_id: int
-    leetcode_username: str
+    leetcode_username: Optional[str] = None
     faction_id: Optional[int] = None
     status: str
 

@@ -309,7 +309,9 @@ async def get_dashboard(
 
     return DashboardResponse(
         leetcode_username=current_user.leetcode_username,
-        avatar_url=avatar_url,
+        display_name=current_user.display_name,
+        avatar_url=avatar_url or current_user.avatar_url,
+        leetcode_verified_at=current_user.leetcode_verified_at,
         current_streak=personal_streak.display_count,
         current_streak_state=personal_streak.state,
         today_active=personal_streak.today_active,
