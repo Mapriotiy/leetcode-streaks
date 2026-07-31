@@ -444,8 +444,8 @@ async def start_game(lobby_id: int, current_user: User = Depends(get_current_use
     if lobby.status != "waiting":
         raise HTTPException(409, "Already started")
     players = ordered_players(lobby.id, db)
-    if len(players) < 2:
-        raise HTTPException(400, "Need at least 2 players")
+    if len(players) < 1:
+        raise HTTPException(400, "Need at least 1 player")
 
     if not catalog_has_minimum(db):
         raise HTTPException(

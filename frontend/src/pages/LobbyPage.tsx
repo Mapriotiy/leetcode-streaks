@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ArrowLeft, Copy, Gamepad2, LogOut, Map as MapIcon, Plus, UserCheck, UserPlus } from 'lucide-react';
 import { apiRequest } from '../api/client';
+import { lobbyCacheKey, readCache, writeCache } from '../api/localCache';
 import { MapChooserModal } from '../features/lobby-map/MapChooserModal';
 import { MAP_SIZE_CONFIG } from '../features/lobby-map/assets';
 import { readLobbyMapSelection, writeLobbyMapSelection } from '../features/lobby-map/storage';
@@ -73,6 +74,9 @@ function defaultFactions(count: number): Faction[] {
     }));
 }
 
+// Bump when LobbyData's shape changes so stale-shaped cache is dropped.
+const LOBBY_CACHE_VERSION = 1;
+
 const MODE_LABELS: Record<string, string> = {
     free_for_all: 'Free for All',
     team_battle: 'Team Battle',
@@ -97,8 +101,10 @@ const LANGUAGE_LABELS: Record<string, string> = {
 };
 
 export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack, onGameStarted }: LobbyPageProps) {
-    const [lobby, setLobby] = useState<LobbyData | null>(null);
-    const [loading, setLoading] = useState(true);
+    // Paint the last-seen lobby instantly on re-entry, then revalidate.
+    const cachedLobby = readCache<LobbyData>(lobbyCacheKey(lobbyId), LOBBY_CACHE_VERSION);
+    const [lobby, setLobby] = useState<LobbyData | null>(cachedLobby?.data ?? null);
+    const [loading, setLoading] = useState(!cachedLobby);
     const [copied, setCopied] = useState(false);
     const [showFriends, setShowFriends] = useState(false);
     const [inviteUrl, setInviteUrl] = useState('');
@@ -129,6 +135,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
         try {
             const data = await apiRequest<LobbyData>(`/lobbies/${lobbyId}`);
             setLobby(data);
+            writeCache(lobbyCacheKey(lobbyId), LOBBY_CACHE_VERSION, data);
             if (data.invite_url) setInviteUrl(data.invite_url);
             const serverSelection =
                 'map_selection' in data
@@ -192,6 +199,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
         try {
             const data = await apiRequest<LobbyData>(`/lobbies/${lobbyId}/start`, { method: 'POST' });
             setLobby(data);
+            writeCache(lobbyCacheKey(lobbyId), LOBBY_CACHE_VERSION, data);
             onGameStarted(lobbyId, data.players, data.factions);
         } catch (e) {
             console.error(e);
@@ -295,7 +303,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
     const canStart =
         isCreator &&
         !isActive &&
-        playerCount >= 2 &&
+        playerCount >= 1 &&
         !isSavingMapSelection &&
         currentUserVerified &&
         allPlayersVerified;
@@ -594,7 +602,9 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                             className="flex-1 rounded-md bg-[#ffa116] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#ffb84d] disabled:cursor-not-allowed disabled:bg-[#3a3a3a] disabled:text-[#777]"
                         >
                             <Gamepad2 size={16} className="inline-block mr-2" />
-                            {isStarting ? 'Starting...' : `Start Game (${playerCount} players)`}
+                            {isStarting
+                                ? 'Starting...'
+                                : `Start Game (${playerCount} ${playerCount === 1 ? 'player' : 'players'})`}
                         </button>
                     )}
                     {isCreator && !isActive && canStartBlockReason ? (
