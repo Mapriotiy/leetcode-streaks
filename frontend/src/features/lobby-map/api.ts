@@ -41,3 +41,42 @@ export async function saveLobbyMapSelection(
     });
     return normalizeLobbyMapSelection(data.selection);
 }
+
+export type MapPreset = {
+    id: number;
+    name: string;
+    draft: GeneratedMapDraft;
+};
+
+type MapPresetResponse = {
+    id: number;
+    name: string;
+    draft: unknown;
+    created_at: string;
+};
+
+// Drop any server row whose stored draft no longer matches the current schema
+// rather than rendering a malformed preset.
+function toMapPreset(row: MapPresetResponse): MapPreset | null {
+    if (!isGeneratedMapDraft(row.draft)) return null;
+    return { id: row.id, name: row.name, draft: row.draft };
+}
+
+export async function listMapPresets(): Promise<MapPreset[]> {
+    const rows = await apiRequest<MapPresetResponse[]>("/map-presets/");
+    return rows.map(toMapPreset).filter((preset): preset is MapPreset => preset !== null);
+}
+
+export async function createMapPreset(name: string, draft: GeneratedMapDraft): Promise<MapPreset> {
+    const row = await apiRequest<MapPresetResponse>("/map-presets/", {
+        method: "POST",
+        body: JSON.stringify({ name, draft }),
+    });
+    const preset = toMapPreset(row);
+    if (!preset) throw new Error("Saved preset is invalid");
+    return preset;
+}
+
+export async function deleteMapPreset(id: number): Promise<void> {
+    await apiRequest<void>(`/map-presets/${id}`, { method: "DELETE" });
+}

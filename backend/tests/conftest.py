@@ -18,6 +18,7 @@ from app.models.lobby_map import LobbyMap  # noqa: F401
 from app.models.lobby_map_province import LobbyMapProvince  # noqa: F401
 from app.models.lobby_player import LobbyPlayer  # noqa: F401
 from app.models.map_event import MapEvent  # noqa: F401
+from app.models.map_preset import MapPreset  # noqa: F401
 from app.models.user import User  # noqa: F401
 from app.models.user_solved import UserSolved  # noqa: F401
 from app.models.weekly_map import WeeklyMap  # noqa: F401
