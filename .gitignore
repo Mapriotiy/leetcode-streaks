@@ -36,3 +36,6 @@ logs/
 !.vscode/extensions.json
 .DS_Store
 Thumbs.db
+
+# Claude Code local machine settings
+.claude/settings.local.json
