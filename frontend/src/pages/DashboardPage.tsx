@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Gamepad2, Link2, UserCircle } from "lucide-react";
 import { apiRequest } from "../api/client";
+import { dashboardCacheKey, readCache, writeCache } from "../api/localCache";
 import { ActivityCalendar } from "../components/dashboard/ActivityCalendar";
 import { FriendFlame } from "../components/dashboard/FriendFlame";
 import { FriendsList } from "../components/dashboard/FriendsList";
@@ -25,6 +26,9 @@ type DashboardPageProps = {
     onLinkChanged: () => void;
 };
 
+// Bump when DashboardData's shape changes so stale-shaped cache is dropped.
+const DASHBOARD_CACHE_VERSION = 1;
+
 const LANGUAGE_LABELS: Record<string, string> = {
     python3: "Python 3",
     cpp: "C++",
@@ -37,9 +41,19 @@ const LANGUAGE_LABELS: Record<string, string> = {
 };
 
 export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkChanged }: DashboardPageProps) {
-    const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-    const [friends, setFriends] = useState<FriendResponse[]>([]);
-    const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
+    // Seed from the last-seen dashboard so returning to the menu paints instantly
+    // instead of showing the "Loading dashboard..." placeholder (issue #1).
+    const cachedDashboard = readCache<DashboardData>(
+        dashboardCacheKey(user.id),
+        DASHBOARD_CACHE_VERSION,
+    );
+    const [dashboardData, setDashboardData] = useState<DashboardData | null>(
+        cachedDashboard?.data ?? null,
+    );
+    const [friends, setFriends] = useState<FriendResponse[]>(
+        cachedDashboard?.data.friends ?? [],
+    );
+    const [isLoadingDashboard, setIsLoadingDashboard] = useState(!cachedDashboard);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [showLobbyModal, setShowLobbyModal] = useState(false);
     const [showLinkModal, setShowLinkModal] = useState(false);
@@ -64,6 +78,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
 
             setDashboardData(dashboard);
             setFriends(dashboard.friends ?? []);
+            writeCache(dashboardCacheKey(user.id), DASHBOARD_CACHE_VERSION, dashboard);
         } catch (error) {
             setErrorMessage(
                 error instanceof Error ? error.message : "Failed to load dashboard",
@@ -71,14 +86,17 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
         } finally {
             setIsLoadingDashboard(false);
         }
-    }, []);
+    }, [user.id]);
 
     useEffect(() => {
-        void loadDashboard(true);
+        // Show the placeholder only on a true first visit; when we painted from
+        // cache, revalidate silently in the background.
+        void loadDashboard(!dashboardData);
         const refreshId = window.setTimeout(() => {
             void loadDashboard(false);
         }, 2500);
         return () => window.clearTimeout(refreshId);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loadDashboard, refreshKey]);
 
     const handleLinkChanged = useCallback(() => {
