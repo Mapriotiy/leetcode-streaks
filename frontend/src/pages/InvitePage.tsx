@@ -3,7 +3,7 @@ import { apiRequest } from "../api/client";
 
 type User = {
     id: number;
-    leetcode_username: string;
+    leetcode_username: string | null;
 };
 
 type InviteData = {
@@ -11,7 +11,7 @@ type InviteData = {
     status: string;
     inviter: {
         id: number;
-        leetcode_username: string;
+        leetcode_username: string | null;
     };
     created_at: string;
 };
@@ -20,7 +20,7 @@ type AcceptInviteResponse = {
     friendship_id: number;
     friend: {
         id: number;
-        leetcode_username: string;
+        leetcode_username: string | null;
     };
 };
 
@@ -114,7 +114,7 @@ export function InvitePage({
                             </p>
 
                             <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-                                Join {invite.inviter.leetcode_username}
+                                Join {invite.inviter.leetcode_username ?? "your friend"}
                             </h1>
 
                             <p className="mt-3 text-sm text-slate-600">
@@ -149,7 +149,7 @@ export function InvitePage({
 
                             <h1 className="mt-2 text-2xl font-semibold tracking-tight">
                                 You are now friends with{" "}
-                                {acceptedInvite.friend.leetcode_username}
+                                {acceptedInvite.friend.leetcode_username ?? `user #${acceptedInvite.friend.id}`}
                             </h1>
 
                             <p className="mt-3 text-sm text-slate-600">

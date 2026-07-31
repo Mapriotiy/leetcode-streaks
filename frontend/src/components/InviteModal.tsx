@@ -3,7 +3,7 @@ import { apiRequest } from "../api/client";
 
 type User = {
     id: number;
-    leetcode_username: string;
+    leetcode_username: string | null;
 };
 
 type InviteData = {
@@ -11,7 +11,7 @@ type InviteData = {
     status: string;
     inviter: {
         id: number;
-        leetcode_username: string;
+        leetcode_username: string | null;
     };
     created_at: string;
 };
@@ -20,7 +20,7 @@ type AcceptInviteResponse = {
     friendship_id: number;
     friend: {
         id: number;
-        leetcode_username: string;
+        leetcode_username: string | null;
     };
 };
 
@@ -111,7 +111,7 @@ export function InviteModal({
                         </p>
                         <h2 className="mt-2 text-2xl font-semibold tracking-tight">
                             {invite
-                                ? `Join ${invite.inviter.leetcode_username}`
+                                ? `Join ${invite.inviter.leetcode_username ?? "your friend"}`
                                 : "Friend invite"}
                         </h2>
                     </div>
@@ -175,7 +175,7 @@ export function InviteModal({
                         </p>
                         <p className="mt-2 text-sm text-[#a7f3bd]">
                             You are now friends with{" "}
-                            {acceptedInvite.friend.leetcode_username}.
+                            {acceptedInvite.friend.leetcode_username ?? `user #${acceptedInvite.friend.id}`}.
                         </p>
                     </div>
                 ) : null}

@@ -10,10 +10,18 @@ import type { Faction, LobbyPlayer } from "./types/dashboard";
 
 type User = {
     id: number;
-    leetcode_username: string;
+    google_sub: string | null;
+    email: string | null;
+    display_name: string | null;
+    avatar_url: string | null;
+    leetcode_username: string | null;
+    leetcode_verified_at: string | null;
 };
 
 const KEEP_ALIVE_INTERVAL_MS = 10 * 60 * 1000;
+
+// Guards against the OAuth callback being processed twice (StrictMode remounts).
+const processedOAuthStates = new Set<string>();
 
 export default function App() {
     const isMapTest = new URLSearchParams(window.location.search).get("mapTest") === "1";
@@ -29,6 +37,7 @@ function MainApp() {
     const [activeLobbyId, setActiveLobbyId] = useState<number | null>(null);
     const [activeLobbyPlayers, setActiveLobbyPlayers] = useState<LobbyPlayer[]>([]);
     const [activeLobbyFactions, setActiveLobbyFactions] = useState<Faction[]>([]);
+    const [authError, setAuthError] = useState<string | null>(null);
 
     function clearUrlParam(param: string) {
         const url = new URL(window.location.href);
@@ -37,13 +46,47 @@ function MainApp() {
     }
 
     useEffect(() => {
-        apiRequest<User>("/auth/me")
-            .then(setUser)
-            .catch(() => {
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get("code");
+        const state = params.get("state");
+
+        async function bootstrap() {
+            if (code && state && !processedOAuthStates.has(state)) {
+                processedOAuthStates.add(state);
+                try {
+                    const res = await apiRequest<{ access_token: string }>("/auth/google/code", {
+                        method: "POST",
+                        body: JSON.stringify({ code, state }),
+                    });
+                    localStorage.setItem("accessToken", res.access_token);
+                    clearUrlParam("code");
+                    clearUrlParam("state");
+                    setAuthError(null);
+                    const me = await apiRequest<User>("/auth/me");
+                    setUser(me);
+                    const pendingInviteToken = localStorage.getItem("pendingInviteToken");
+                    if (pendingInviteToken) setInviteToken(pendingInviteToken);
+                    return;
+                } catch (e) {
+                    localStorage.removeItem("accessToken");
+                    clearUrlParam("code");
+                    clearUrlParam("state");
+                    setAuthError(
+                        e instanceof Error ? e.message : "Google sign-in failed. Please try again.",
+                    );
+                }
+            }
+
+            try {
+                const me = await apiRequest<User>("/auth/me");
+                setUser(me);
+            } catch {
                 localStorage.removeItem("accessToken");
                 setUser(null);
-            })
-            .finally(() => setIsLoadingSession(false));
+            }
+        }
+
+        void bootstrap().finally(() => setIsLoadingSession(false));
     }, []);
 
     useEffect(() => {
@@ -98,15 +141,10 @@ function MainApp() {
 
     if (!user) {
         return (
-            <>
-                <AuthPage
-                    onAuthenticated={(authenticatedUser) => {
-                        setUser(authenticatedUser);
-                        const pendingInviteToken = localStorage.getItem("pendingInviteToken");
-                        if (pendingInviteToken) setInviteToken(pendingInviteToken);
-                    }}
-                />
-            </>
+            <AuthPage
+                initialError={authError}
+                onClearError={() => setAuthError(null)}
+            />
         );
     }
 
@@ -138,6 +176,7 @@ function MainApp() {
             <LobbyPage
                 lobbyId={activeLobbyId}
                 currentUserId={user.id}
+                currentUserVerified={user.leetcode_verified_at != null}
                 onBack={() => {
                     setActiveLobbyId(null);
                     setActiveLobbyFactions([]);
@@ -165,6 +204,9 @@ function MainApp() {
                     setActiveLobbyId(lobbyId);
                     setActiveLobbyPlayers(players ?? []);
                     setActiveLobbyFactions(factions ?? []);
+                }}
+                onLinkChanged={() => {
+                    apiRequest<User>("/auth/me").then(setUser).catch(() => {});
                 }}
             />
 

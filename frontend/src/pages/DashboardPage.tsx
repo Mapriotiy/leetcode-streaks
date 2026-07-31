@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useState } from "react";
-import { Gamepad2, UserCircle } from "lucide-react";
+import { Gamepad2, Link2, UserCircle } from "lucide-react";
 import { apiRequest } from "../api/client";
 import { ActivityCalendar } from "../components/dashboard/ActivityCalendar";
 import { FriendFlame } from "../components/dashboard/FriendFlame";
 import { FriendsList } from "../components/dashboard/FriendsList";
 import { CreateLobbyModal } from "../components/CreateLobbyModal";
+import { LeetCodeLinkModal } from "../components/LeetCodeLinkModal";
 import { DIFFICULTY_COLORS } from "../mapRegions";
 import type { DashboardData, Faction, FriendResponse, LobbyPlayer } from "../types/dashboard";
 
 type User = {
     id: number;
-    leetcode_username: string;
+    leetcode_username: string | null;
+    display_name: string | null;
+    avatar_url: string | null;
+    leetcode_verified_at: string | null;
 };
 
 type DashboardPageProps = {
@@ -18,6 +22,7 @@ type DashboardPageProps = {
     refreshKey: number;
     onLogout: () => void;
     onOpenLobby: (lobbyId: number, players?: LobbyPlayer[], factions?: Faction[]) => void;
+    onLinkChanged: () => void;
 };
 
 const LANGUAGE_LABELS: Record<string, string> = {
@@ -31,12 +36,14 @@ const LANGUAGE_LABELS: Record<string, string> = {
     rust: "Rust",
 };
 
-export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby }: DashboardPageProps) {
+export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkChanged }: DashboardPageProps) {
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
     const [friends, setFriends] = useState<FriendResponse[]>([]);
     const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [showLobbyModal, setShowLobbyModal] = useState(false);
+    const [showLinkModal, setShowLinkModal] = useState(false);
+    const isLeetcodeLinked = user.leetcode_verified_at != null;
     const currentStreakState = dashboardData?.current_streak_state ?? "broken";
     const isCurrentStreakLit = currentStreakState === "lit";
     const currentStreakHint =
@@ -74,15 +81,26 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby }: Dashb
         return () => window.clearTimeout(refreshId);
     }, [loadDashboard, refreshKey]);
 
+    const handleLinkChanged = useCallback(() => {
+        setShowLinkModal(false);
+        onLinkChanged();
+        void loadDashboard(true);
+    }, [onLinkChanged, loadDashboard]);
+
+    const displayName = dashboardData?.display_name ?? user.display_name;
+    const headerName = isLeetcodeLinked
+        ? (dashboardData?.leetcode_username ?? user.leetcode_username ?? "LeetCode player")
+        : (displayName ?? "Welcome");
+
     return (
         <main className="min-h-screen bg-[#1a1a1a] p-6 text-white">
             <div className="mx-auto max-w-5xl">
                 <header className="flex flex-col gap-4 rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4">
                         <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full border border-[#3a3a3a] bg-[#333333] text-[#b3b3b3]">
-                            {dashboardData?.avatar_url ? (
+                            {(dashboardData?.avatar_url ?? user.avatar_url) ? (
                                 <img
-                                    src={dashboardData.avatar_url}
+                                    src={dashboardData?.avatar_url ?? user.avatar_url ?? ""}
                                     alt=""
                                     className="h-full w-full object-cover"
                                 />
@@ -93,20 +111,24 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby }: Dashb
 
                         <div className="flex items-center gap-3">
                             <h1 className="text-2xl font-semibold tracking-tight">
-                                {dashboardData?.leetcode_username ?? user.leetcode_username}
+                                {headerName}
                             </h1>
-                            <FriendFlame
-                                count={dashboardData?.current_streak ?? 0}
-                                state={currentStreakState}
-                                size="xs"
-                            />
-                            <span
-                                className={`ml-2 text-xs ${
-                                    isCurrentStreakLit ? "text-[#ffa116]" : "text-[#8a8a8a]"
-                                }`}
-                            >
-                                {currentStreakHint}
-                            </span>
+                            {isLeetcodeLinked ? (
+                                <>
+                                    <FriendFlame
+                                        count={dashboardData?.current_streak ?? 0}
+                                        state={currentStreakState}
+                                        size="xs"
+                                    />
+                                    <span
+                                        className={`ml-2 text-xs ${
+                                            isCurrentStreakLit ? "text-[#ffa116]" : "text-[#8a8a8a]"
+                                        }`}
+                                    >
+                                        {currentStreakHint}
+                                    </span>
+                                </>
+                            ) : null}
                         </div>
                     </div>
 
@@ -120,6 +142,27 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby }: Dashb
                         </button>
                     </div>
                 </header>
+
+                {!isLeetcodeLinked ? (
+                    <section className="mt-6 rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <h2 className="text-lg font-semibold">Link LeetCode to start tracking solves</h2>
+                                <p className="mt-1 text-sm text-[#8a8a8a]">
+                                    Verify ownership of your LeetCode account with an Accepted Two Sum submission.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowLinkModal(true)}
+                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-[#ffa116] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#ffb84d]"
+                            >
+                                <Link2 size={16} />
+                                Link LeetCode
+                            </button>
+                        </div>
+                    </section>
+                ) : null}
 
                 {errorMessage ? (
                     <div className="mt-4 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
@@ -181,14 +224,25 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby }: Dashb
                             </div>
 
                             <div className="mt-auto flex flex-col gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowLobbyModal(true)}
-                                    className="mt-4 rounded-md bg-[#ffa116] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#ffb84d]"
-                                >
-                                    <Gamepad2 size={16} className="inline-block mr-2" />
-                                    Create Lobby
-                                </button>
+                                {isLeetcodeLinked ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowLobbyModal(true)}
+                                        className="mt-4 rounded-md bg-[#ffa116] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#ffb84d]"
+                                    >
+                                        <Gamepad2 size={16} className="inline-block mr-2" />
+                                        Create Lobby
+                                    </button>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowLinkModal(true)}
+                                        className="mt-4 rounded-md bg-[#ffa116] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#ffb84d]"
+                                    >
+                                        <Link2 size={16} className="inline-block mr-2" />
+                                        Link LeetCode to play
+                                    </button>
+                                )}
                             </div>
                         </article>
 
@@ -271,10 +325,17 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby }: Dashb
 
                 {showLobbyModal && (
                     <CreateLobbyModal
-                        username={user.leetcode_username}
+                        username={user.leetcode_username ?? ""}
                         friends={friends}
                         onClose={() => setShowLobbyModal(false)}
                         onCreated={onOpenLobby}
+                    />
+                )}
+
+                {showLinkModal && (
+                    <LeetCodeLinkModal
+                        onClose={() => setShowLinkModal(false)}
+                        onChanged={handleLinkChanged}
                     />
                 )}
 

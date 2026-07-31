@@ -1,56 +1,33 @@
 import { useState } from "react";
-import type { FormEvent } from "react";
 import { apiRequest } from "../api/client";
 
-type AuthMode = "login" | "register";
-
-type TokenResponse = {
-    access_token: string;
-    token_type: string;
-};
-
-type User = {
-    id: number;
-    leetcode_username: string;
+type GoogleLoginUrlResponse = {
+    auth_url: string;
+    state: string;
 };
 
 type AuthPageProps = {
-    onAuthenticated: (user: User) => void;
+    initialError?: string | null;
+    onClearError?: () => void;
 };
 
-export function AuthPage({ onAuthenticated }: AuthPageProps) {
-    const [mode, setMode] = useState<AuthMode>("login");
-    const [leetcodeUsername, setLeetcodeUsername] = useState("");
-    const [password, setPassword] = useState("");
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+export function AuthPage({ initialError = null, onClearError }: AuthPageProps) {
+    const [errorMessage, setErrorMessage] = useState<string | null>(initialError);
+    const [isRedirecting, setIsRedirecting] = useState(false);
 
-    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
+    async function handleGoogleLogin() {
         setErrorMessage(null);
-        setIsSubmitting(true);
+        onClearError?.();
+        setIsRedirecting(true);
 
         try {
-            const endpoint = mode === "login" ? "/auth/login" : "/auth/register";
-
-            const tokenResponse = await apiRequest<TokenResponse>(endpoint, {
-                method: "POST",
-                body: JSON.stringify({
-                    leetcode_username: leetcodeUsername,
-                    password,
-                }),
-            });
-
-            localStorage.setItem("accessToken", tokenResponse.access_token);
-
-            const user = await apiRequest<User>("/auth/me");
-            onAuthenticated(user);
+            const res = await apiRequest<GoogleLoginUrlResponse>("/auth/google/login-url");
+            window.location.href = res.auth_url;
         } catch (error) {
             setErrorMessage(
                 error instanceof Error ? error.message : "Something went wrong",
             );
-        } finally {
-            setIsSubmitting(false);
+            setIsRedirecting(false);
         }
     }
 
@@ -63,66 +40,28 @@ export function AuthPage({ onAuthenticated }: AuthPageProps) {
                             LeetCode Streaks
                         </p>
                         <h1 className="text-2xl font-semibold tracking-tight">
-                            {mode === "login" ? "Welcome back" : "Create your account"}
+                            Welcome back
                         </h1>
                         <p className="mt-2 text-sm text-[#b3b3b3]">
                             Track a shared coding streak with your friends.
                         </p>
                     </div>
 
-                    <div className="mb-6 grid grid-cols-2 gap-2 rounded-lg bg-[#1f1f1f] p-1">
+                    <div className="grid gap-4">
                         <button
                             type="button"
-                            onClick={() => setMode("login")}
-                            className={`rounded-md px-3 py-2 text-sm font-medium transition ${
-                                mode === "login"
-                                    ? "bg-[#3a3a3a] text-white shadow-sm"
-                                    : "text-[#b3b3b3] hover:text-white"
-                            }`}
+                            onClick={handleGoogleLogin}
+                            disabled={isRedirecting}
+                            className="flex w-full items-center justify-center gap-3 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-4 py-2.5 text-sm font-semibold text-[#eff1f6] transition hover:border-[#ffa116]/60 hover:bg-[#2a2a2a] disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            Login
+                            <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                                <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
+                                <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/>
+                                <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
+                                <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571.001-.001.002-.001.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
+                            </svg>
+                            {isRedirecting ? "Redirecting to Google..." : "Continue with Google"}
                         </button>
-
-                        <button
-                            type="button"
-                            onClick={() => setMode("register")}
-                            className={`rounded-md px-3 py-2 text-sm font-medium transition ${
-                                mode === "register"
-                                    ? "bg-[#3a3a3a] text-white shadow-sm"
-                                    : "text-[#b3b3b3] hover:text-white"
-                            }`}
-                        >
-                            Register
-                        </button>
-                    </div>
-
-                    <form onSubmit={handleSubmit} className="grid gap-4">
-                        <label className="grid gap-2 text-sm font-medium">
-                            LeetCode username
-                            <input
-                                value={leetcodeUsername}
-                                onChange={(event) => setLeetcodeUsername(event.target.value)}
-                                type="text"
-                                autoComplete="username"
-                                required
-                                className="rounded-md border border-[#3a3a3a] bg-[#1a1a1a] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#777777] focus:border-[#ffa116] focus:ring-2 focus:ring-[#ffa116]/20"
-                            />
-                        </label>
-
-                        <label className="grid gap-2 text-sm font-medium">
-                            Password
-                            <input
-                                value={password}
-                                onChange={(event) => setPassword(event.target.value)}
-                                type="password"
-                                autoComplete={
-                                    mode === "login" ? "current-password" : "new-password"
-                                }
-                                required
-                                minLength={8}
-                                className="rounded-md border border-[#3a3a3a] bg-[#1a1a1a] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#777777] focus:border-[#ffa116] focus:ring-2 focus:ring-[#ffa116]/20"
-                            />
-                        </label>
 
                         {errorMessage ? (
                             <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
@@ -130,18 +69,11 @@ export function AuthPage({ onAuthenticated }: AuthPageProps) {
                             </p>
                         ) : null}
 
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="mt-2 rounded-md bg-[#ffa116] px-4 py-2.5 text-sm font-semibold text-[#111111] transition hover:bg-[#ffb84d] disabled:cursor-not-allowed disabled:bg-[#3a3a3a] disabled:text-[#777777]"
-                        >
-                            {isSubmitting
-                                ? "Please wait..."
-                                : mode === "login"
-                                    ? "Login"
-                                    : "Create account"}
-                        </button>
-                    </form>
+                        <p className="text-center text-xs text-[#8a8a8a]">
+                            After signing in, you'll be asked to link your LeetCode account
+                            to start tracking solves.
+                        </p>
+                    </div>
                 </section>
             </div>
         </main>

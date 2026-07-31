@@ -4,7 +4,7 @@ import { apiRequest } from '../api/client';
 
 type Friend = {
     friendship_id: number;
-    friend: { id: number; leetcode_username: string };
+    friend: { id: number; leetcode_username: string | null };
 };
 
 type CreateLobbyModalProps = {
@@ -58,7 +58,7 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
         const query = friendSearch.trim().toLowerCase();
         if (!query) return friends;
         return friends.filter((friend) =>
-            friend.friend.leetcode_username.toLowerCase().includes(query),
+            (friend.friend.leetcode_username ?? '').toLowerCase().includes(query),
         );
     }, [friends, friendSearch]);
 
@@ -278,7 +278,9 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
                                             onClick={() => toggleFriend(friend.friend.id)}
                                             className="inline-flex max-w-full items-center gap-1 rounded-full border border-[#ffa116]/50 bg-[#ffa116]/10 px-2 py-1 text-xs font-medium text-[#ffd08a] transition hover:border-red-300/60 hover:text-red-200"
                                         >
-                                            <span className="truncate">{friend.friend.leetcode_username}</span>
+                                            <span className="truncate">
+                                                {friend.friend.leetcode_username ?? `User #${friend.friend.id}`}
+                                            </span>
                                             <X size={12} />
                                         </button>
                                     ))}
@@ -308,7 +310,7 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
                                                     <Check size={13} strokeWidth={3} />
                                                 </span>
                                                 <span className="min-w-0 flex-1 truncate text-[#eff1f6]">
-                                                    {friend.friend.leetcode_username}
+                                                    {friend.friend.leetcode_username ?? `User #${friend.friend.id}`}
                                                 </span>
                                             </button>
                                         );

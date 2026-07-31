@@ -10,7 +10,7 @@ import { REGIONS } from '../mapRegions';
 
 type LobbyPlayer = {
     user_id: number;
-    leetcode_username: string;
+    leetcode_username: string | null;
     faction_id: number | null;
     status: string;
 };
@@ -41,12 +41,13 @@ type LobbyData = {
 
 type Friend = {
     friendship_id: number;
-    friend: { id: number; leetcode_username: string };
+    friend: { id: number; leetcode_username: string | null };
 };
 
 type LobbyPageProps = {
     lobbyId: number;
     currentUserId: number;
+    currentUserVerified: boolean;
     onBack: () => void;
     onGameStarted: (lobbyId: number, players: LobbyPlayer[], factions: Faction[]) => void;
 };
@@ -95,7 +96,7 @@ const LANGUAGE_LABELS: Record<string, string> = {
     rust: 'Rust',
 };
 
-export function LobbyPage({ lobbyId, currentUserId, onBack, onGameStarted }: LobbyPageProps) {
+export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack, onGameStarted }: LobbyPageProps) {
     const [lobby, setLobby] = useState<LobbyData | null>(null);
     const [loading, setLoading] = useState(true);
     const [copied, setCopied] = useState(false);
@@ -287,7 +288,22 @@ export function LobbyPage({ lobbyId, currentUserId, onBack, onGameStarted }: Lob
     const isCreator = lobby.creator_id === currentUserId;
     const isActive = lobby.status === 'active';
     const playerCount = lobby.players.length;
-    const canStart = isCreator && !isActive && playerCount >= 2 && !isSavingMapSelection;
+    const unverifiedPlayerNames = lobby.players
+        .filter((p) => !p.leetcode_username)
+        .map((p) => (p.user_id === currentUserId ? 'you' : `player #${p.user_id}`));
+    const allPlayersVerified = lobby.players.length > 0 && unverifiedPlayerNames.length === 0;
+    const canStart =
+        isCreator &&
+        !isActive &&
+        playerCount >= 2 &&
+        !isSavingMapSelection &&
+        currentUserVerified &&
+        allPlayersVerified;
+    const canStartBlockReason = !currentUserVerified
+        ? 'Link a verified LeetCode account to start a game.'
+        : !allPlayersVerified
+          ? `Waiting for verified LeetCode accounts: ${unverifiedPlayerNames.join(', ')}.`
+          : null;
     const inLobby = lobby.players.some((p) => p.user_id === currentUserId);
     const availableFriends = friends.filter(
         (f) => !lobby.players.some((p) => p.user_id === f.friend.id),
@@ -425,7 +441,7 @@ export function LobbyPage({ lobbyId, currentUserId, onBack, onGameStarted }: Lob
                                     className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#eff1f6] hover:bg-[#2a2a2a]"
                                 >
                                     <UserPlus size={14} className="text-[#8a8a8a]" />
-                                    {f.friend.leetcode_username}
+                                    {f.friend.leetcode_username ?? `User #${f.friend.id}`}
                                     <span className="ml-auto text-xs text-[#ffa116]">Invite</span>
                                 </button>
                             ))}
@@ -511,7 +527,9 @@ export function LobbyPage({ lobbyId, currentUserId, onBack, onGameStarted }: Lob
                                                 }`}
                                             >
                                                 <UserCheck size={14} style={{ color: faction.color }} />
-                                                <span className="text-[#eff1f6]">{player.leetcode_username}</span>
+                                                <span className="text-[#eff1f6]">
+                                                    {player.leetcode_username ?? 'Unverified'}
+                                                </span>
                                                 {player.user_id === lobby.creator_id && (
                                                     <span className="ml-auto text-xs text-[#ffa116]">Host</span>
                                                 )}
@@ -538,7 +556,9 @@ export function LobbyPage({ lobbyId, currentUserId, onBack, onGameStarted }: Lob
                                     >
                                         <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
                                         <UserCheck size={16} className="text-[#ffa116]" />
-                                        <span className="text-[#eff1f6]">{player.leetcode_username}</span>
+                                        <span className="text-[#eff1f6]">
+                                            {player.leetcode_username ?? 'Unverified'}
+                                        </span>
                                         {player.user_id === lobby.creator_id && (
                                             <span className="text-xs text-[#ffa116] ml-auto">Host</span>
                                         )}
@@ -577,6 +597,11 @@ export function LobbyPage({ lobbyId, currentUserId, onBack, onGameStarted }: Lob
                             {isStarting ? 'Starting...' : `Start Game (${playerCount} players)`}
                         </button>
                     )}
+                    {isCreator && !isActive && canStartBlockReason ? (
+                        <p className="mt-3 rounded-md border border-[#3a3a3a] bg-[#262626] px-3 py-2 text-xs text-[#b3b3b3]">
+                            {canStartBlockReason}
+                        </p>
+                    ) : null}
                 </div>
                 {startError && (
                     <p className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">

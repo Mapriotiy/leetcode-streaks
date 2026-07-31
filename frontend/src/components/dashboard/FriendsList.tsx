@@ -149,7 +149,7 @@ export function FriendsList({ friends, onFriendRemoved, onError }: FriendsListPr
 
                                         <div>
                                             <p className="font-semibold text-[#eff1f6]">
-                                                {item.friend.leetcode_username}
+                                                {item.friend.leetcode_username ?? `User #${item.friend.id}`}
                                             </p>
                                             <p className="mt-1 text-[#a3a3a3]">{statusText}</p>
                                             <p className="mt-1 text-xs text-[#8a8a8a]">
@@ -164,13 +164,13 @@ export function FriendsList({ friends, onFriendRemoved, onError }: FriendsListPr
                                             onClick={() =>
                                                 handleDeleteFriend(
                                                     item.friendship_id,
-                                                    item.friend.leetcode_username,
+                                                    item.friend.leetcode_username ?? `user #${item.friend.id}`,
                                                 )
                                             }
                                             disabled={deletingFriendshipId === item.friendship_id}
                                             className="grid h-9 w-9 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#8a8a8a] transition hover:border-red-500/60 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
-                                            aria-label={`Remove ${item.friend.leetcode_username}`}
-                                            title={`Remove ${item.friend.leetcode_username}`}
+                                            aria-label={`Remove ${item.friend.leetcode_username ?? `user #${item.friend.id}`}`}
+                                            title={`Remove ${item.friend.leetcode_username ?? `user #${item.friend.id}`}`}
                                         >
                                             <Trash2 size={16} />
                                         </button>

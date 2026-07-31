@@ -1,6 +1,8 @@
 export type DashboardData = {
-    leetcode_username: string;
+    leetcode_username: string | null;
+    display_name: string | null;
     avatar_url: string | null;
+    leetcode_verified_at: string | null;
     current_streak: number;
     current_streak_state: "lit" | "pending" | "broken";
     today_active: boolean;
@@ -27,7 +29,7 @@ export type ActivityCalendarDay = {
 
 export type LobbyPlayer = {
     user_id: number;
-    leetcode_username: string;
+    leetcode_username: string | null;
     faction_id: number | null;
     status: string;
 };
@@ -62,7 +64,7 @@ export type FriendResponse = {
     friendship_id: number;
     friend: {
         id: number;
-        leetcode_username: string;
+        leetcode_username: string | null;
     };
     streak: {
         display_count: number;

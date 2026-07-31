@@ -63,7 +63,7 @@ type SyncApiResponse = MapApiResponse & {
 
 type LobbyPlayer = {
     user_id: number;
-    leetcode_username: string;
+    leetcode_username: string | null;
     faction_id: number | null;
     status: string;
 };
