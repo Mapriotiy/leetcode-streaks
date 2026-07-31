@@ -14,16 +14,17 @@ type CreateLobbyModalProps = {
     onCreated: (lobbyId: number) => void;
 };
 
+// Tile backgrounds live in public/modes/ (see the README there for the art spec).
+// A missing file just leaves the tile on its flat background, so shipping the
+// artwork later needs no code change.
 const GAME_MODES = [
-    { value: 'free_for_all', label: 'Free for All' },
-    { value: 'team_battle', label: 'Team Battle' },
-    { value: 'bingo', label: 'Bingo' },
+    { value: 'free_for_all', label: 'Free for All', image: 'modes/free-for-all.webp' },
+    { value: 'team_battle', label: 'Team Battle', image: 'modes/team-battle.webp' },
+    { value: 'bingo', label: 'Bingo', image: 'modes/bingo.webp' },
 ];
 
-const WIN_CONDITIONS = [
-    { value: 'territory_control', label: 'Territory Control', desc: 'Hold 50%+ provinces', threshold: 0.5 },
-    { value: 'region_domination', label: 'Region Domination', desc: 'Control majority of regions', threshold: 0.5 },
-];
+// Lobbies fill up to this many players; the creator starts with whoever joined.
+const MAX_LOBBY_PLAYERS = 4;
 
 const PROGRAMMING_LANGUAGES = [
     { value: 'python3', label: 'Python 3' },
@@ -40,10 +41,8 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
     const [name, setName] = useState(`${username}'s game`);
     const [gameMode, setGameMode] = useState('free_for_all');
     const [programmingLanguage, setProgrammingLanguage] = useState('python3');
-    const [maxPlayers, setMaxPlayers] = useState(2);
     const [factionMode, setFactionMode] = useState(false);
     const [factionCount, setFactionCount] = useState(2);
-    const [winCondition, setWinCondition] = useState('territory_control');
     const [selectedFriends, setSelectedFriends] = useState<Set<number>>(new Set());
     const [friendSearch, setFriendSearch] = useState('');
     const [loading, setLoading] = useState(false);
@@ -74,7 +73,6 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
         setLoading(true);
         setError(null);
         try {
-            const wc = WIN_CONDITIONS.find((w) => w.value === winCondition)!;
             const res = await apiRequest<{ lobby: { id: number }; invite_url: string }>('/lobbies', {
                 method: 'POST',
                 body: JSON.stringify({
@@ -82,13 +80,13 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
                     game_mode: gameMode,
                     map_size: 'medium',
                     programming_language: programmingLanguage,
-                    max_players: factionMode ? 0 : maxPlayers,
+                    max_players: factionMode ? 0 : MAX_LOBBY_PLAYERS,
                     faction_mode: factionMode,
                     faction_count: factionMode ? factionCount : 0,
                     // Bingo's win condition is implicit: first line, else majority.
                     win_condition: gameMode === 'bingo'
                         ? {}
-                        : { type: wc.value, threshold: wc.threshold, duration_hours: 0 },
+                        : { type: 'territory_control', threshold: 0.5, duration_hours: 0 },
                 }),
             });
 
@@ -142,13 +140,31 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
                                         setGameMode(m.value);
                                         setFactionMode(m.value === 'team_battle');
                                     }}
-                                    className={`rounded-md border px-3 py-2 text-center text-sm font-medium transition ${
+                                    className={`relative aspect-square overflow-hidden rounded-md border transition ${
                                         gameMode === m.value
                                             ? 'border-[#ffa116] bg-[#ffa116]/10 text-[#ffa116]'
                                             : 'border-[#3a3a3a] bg-[#1f1f1f] text-[#eff1f6] hover:border-white/30'
                                     }`}
                                 >
-                                    {m.label}
+                                    {m.image && (
+                                        <>
+                                            <span
+                                                className="absolute inset-0 bg-cover bg-center"
+                                                style={{ backgroundImage: `url(${import.meta.env.BASE_URL}${m.image})` }}
+                                            />
+                                            {/* Matte holds the art back so the form stays the focus;
+                                                the selected tile lifts to mark itself. */}
+                                            <span
+                                                className={`absolute inset-0 transition ${
+                                                    gameMode === m.value ? 'bg-black/30' : 'bg-black/65'
+                                                }`}
+                                            />
+                                        </>
+                                    )}
+                                    {/* Scrim keeps the label readable once artwork lands. */}
+                                    <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2 pb-2 pt-6 text-center text-sm font-medium">
+                                        {m.label}
+                                    </span>
                                 </button>
                             ))}
                         </div>
@@ -169,70 +185,27 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
                         </select>
                     </div>
 
-                    <div>
-                        {!factionMode ? (
-                            <div>
-                                <label className="text-xs font-medium text-[#8a8a8a] block mb-1">Max Players</label>
-                                <div className="flex gap-1.5">
-                                    {[2, 3, 4].map((n) => (
-                                        <button
-                                            key={n}
-                                            type="button"
-                                            onClick={() => setMaxPlayers(n)}
-                                            className={`flex-1 rounded-md border py-2 text-sm font-medium transition ${
-                                                maxPlayers === n
-                                                    ? 'border-[#ffa116] bg-[#ffa116]/10 text-[#ffa116]'
-                                                    : 'border-[#3a3a3a] bg-[#1f1f1f] text-[#eff1f6] hover:border-white/30'
-                                            }`}
-                                        >
-                                            {n}
-                                        </button>
-                                    ))}
-                                </div>
+                    {factionMode && (
+                        <div>
+                            <label className="text-xs font-medium text-[#8a8a8a] block mb-1">Factions</label>
+                            <div className="flex gap-1.5">
+                                {[2, 3, 4].map((n) => (
+                                    <button
+                                        key={n}
+                                        type="button"
+                                        onClick={() => setFactionCount(n)}
+                                        className={`flex-1 rounded-md border py-2 text-sm font-medium transition ${
+                                            factionCount === n
+                                                ? 'border-[#ffa116] bg-[#ffa116]/10 text-[#ffa116]'
+                                                : 'border-[#3a3a3a] bg-[#1f1f1f] text-[#eff1f6] hover:border-white/30'
+                                        }`}
+                                    >
+                                        {n}
+                                    </button>
+                                ))}
                             </div>
-                        ) : (
-                            <div>
-                                <label className="text-xs font-medium text-[#8a8a8a] block mb-1">Factions</label>
-                                <div className="flex gap-1.5">
-                                    {[2, 3, 4].map((n) => (
-                                        <button
-                                            key={n}
-                                            type="button"
-                                            onClick={() => setFactionCount(n)}
-                                            className={`flex-1 rounded-md border py-2 text-sm font-medium transition ${
-                                                factionCount === n
-                                                    ? 'border-[#ffa116] bg-[#ffa116]/10 text-[#ffa116]'
-                                                    : 'border-[#3a3a3a] bg-[#1f1f1f] text-[#eff1f6] hover:border-white/30'
-                                            }`}
-                                        >
-                                            {n}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className={gameMode === 'bingo' ? 'hidden' : undefined}>
-                        <label className="text-xs font-medium text-[#8a8a8a] block mb-1">Win Condition</label>
-                        <div className="grid gap-2">
-                            {WIN_CONDITIONS.map((wc) => (
-                                <button
-                                    key={wc.value}
-                                    type="button"
-                                    onClick={() => setWinCondition(wc.value)}
-                                    className={`rounded-md border px-3 py-2 text-left text-sm transition ${
-                                        winCondition === wc.value
-                                            ? 'border-[#ffa116] bg-[#ffa116]/10 text-[#ffa116]'
-                                            : 'border-[#3a3a3a] bg-[#1f1f1f] text-[#eff1f6] hover:border-white/30'
-                                    }`}
-                                >
-                                    <span className="font-medium">{wc.label}</span>
-                                    <p className="mt-0.5 text-xs text-[#8a8a8a]">{wc.desc}</p>
-                                </button>
-                            ))}
                         </div>
-                    </div>
+                    )}
 
                     {friends.length > 0 && (
                         <div className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] p-3">

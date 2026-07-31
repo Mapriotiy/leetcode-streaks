@@ -250,19 +250,28 @@ function createSizePlan(scale: GeneratedMapSize) {
     return best;
 }
 
-function rectPenalty(candidate: Rect, placed: LayoutPiece[], gap: number) {
-    return placed.reduce((score, piece) => {
-        const placedRect = pieceVisualRect(piece);
-        const collision = rectIntersectionArea(inflateRect(candidate, gap), inflateRect(placedRect, gap));
-        const distance = rectCenterDistance(candidate, placedRect);
-        const distancePenalty = Math.max(0, 32 - distance) / 32;
-        return score + collision * 5 + distancePenalty * 80;
-    }, 0);
-}
-
-function hasHardCollision(candidate: Rect, placed: LayoutPiece[], gap: number) {
+// Combined collision + penalty pass over already-placed pieces using rects that
+// were computed once by the caller. Avoids recomputing each placed piece's
+// visual/inflated rect on every candidate attempt (the hot loop): a hard
+// collision is any positive inflated-overlap, and the penalty sums overlap area
+// plus a proximity term, matching the previous per-attempt implementation.
+function evaluatePlacement(
+    candidate: Rect,
+    placedRects: readonly Rect[],
+    placedInflated: readonly Rect[],
+    gap: number,
+) {
     const inflatedCandidate = inflateRect(candidate, gap);
-    return placed.some((piece) => rectIntersectionArea(inflatedCandidate, inflateRect(pieceVisualRect(piece), gap)) > 0);
+    let penalty = 0;
+    let hardCollision = false;
+    for (let i = 0; i < placedRects.length; i += 1) {
+        const collision = rectIntersectionArea(inflatedCandidate, placedInflated[i]);
+        if (collision > 0) hardCollision = true;
+        const distance = rectCenterDistance(candidate, placedRects[i]);
+        const distancePenalty = Math.max(0, 32 - distance) / 32;
+        penalty += collision * 5 + distancePenalty * 80;
+    }
+    return { penalty, hardCollision };
 }
 
 function layoutBounds(pieces: readonly LayoutPiece[]) {
@@ -343,6 +352,10 @@ function createPieceLayout(
     const id = randomItem(availableIds);
     const padding = config.padding;
     const rotation = randomRotation(size);
+    // The placed pieces don't change while we search for this piece's spot, so
+    // compute their (inflated) rects once instead of per candidate attempt.
+    const placedRects = placed.map(pieceVisualRect);
+    const placedInflated = placedRects.map((rect) => inflateRect(rect, config.gap));
     const maxWidthByHeight = (100 - padding * 2) * pieceAspect(id);
     const minInteractiveWidth = Math.min(MIN_INTERACTIVE_WIDTH[size], maxWidthByHeight);
     let width = Math.min(randomPieceWidth(size, scale, index), maxWidthByHeight);
@@ -367,7 +380,7 @@ function createPieceLayout(
             score: Number.POSITIVE_INFINITY,
         };
 
-        for (let attempt = 0; attempt < 520; attempt += 1) {
+        for (let attempt = 0; attempt < 240; attempt += 1) {
             const candidate = {
                 left: randomBetween(minLeft, maxLeft) - (bounds.width - width) / 2,
                 top: randomBetween(minTop, maxTop) - (bounds.height - height) / 2,
@@ -377,8 +390,8 @@ function createPieceLayout(
             const centerBias =
                 Math.abs(candidate.left + candidate.width / 2 - 50) * 0.05 +
                 Math.abs(candidate.top + candidate.height / 2 - 50) * 0.035;
-            const hardCollision = hasHardCollision(candidate, placed, config.gap);
-            const score = (hardCollision ? 100000 : 0) + rectPenalty(candidate, placed, config.gap) + centerBias;
+            const { penalty, hardCollision } = evaluatePlacement(candidate, placedRects, placedInflated, config.gap);
+            const score = (hardCollision ? 100000 : 0) + penalty + centerBias;
 
             if (score < best.score) {
                 best = { left: candidate.left, top: candidate.top, score };
@@ -429,7 +442,7 @@ function createBestLayout(sizePlan: readonly GeneratedMapPieceSize[], scale: Gen
     let best = createLayout(sizePlan, scale);
     let bestScore = layoutOverlapScore(best, config.gap) * 10 + layoutSymmetryScore(best, scale);
 
-    for (let attempt = 0; attempt < 28; attempt += 1) {
+    for (let attempt = 0; attempt < 10; attempt += 1) {
         const candidate = createLayout(sizePlan, scale);
         const score = layoutOverlapScore(candidate, config.gap) * 10 + layoutSymmetryScore(candidate, scale);
         if (score < bestScore) {

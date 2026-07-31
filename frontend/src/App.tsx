@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiRequest } from "./api/client";
+import { clearCache } from "./api/localCache";
 import { InviteModal } from "./components/InviteModal";
 import { AuthPage } from "./pages/AuthPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -82,6 +83,7 @@ function MainApp() {
                 setUser(me);
             } catch {
                 localStorage.removeItem("accessToken");
+                clearCache();
                 setUser(null);
             }
         }
@@ -198,6 +200,7 @@ function MainApp() {
                 refreshKey={dashboardRefreshKey}
                 onLogout={() => {
                     localStorage.removeItem("accessToken");
+                    clearCache();
                     setUser(null);
                 }}
                 onOpenLobby={(lobbyId, players, factions) => {

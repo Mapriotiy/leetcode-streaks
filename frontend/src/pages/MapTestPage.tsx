@@ -2,7 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, Layers, Save, Shuffle } from "lucide-react";
 import { DEFAULT_REGION_COUNTS, MAP_SIZE_CONFIG, REGION_FALLBACK_COLORS } from "../features/lobby-map/assets";
 import { GeneratedMapRenderer } from "../features/lobby-map/GeneratedMapRenderer";
-import { createGeneratedMapDraft, generatedRegionsAsLegend, reassignGeneratedMapRegions } from "../features/lobby-map/generator";
+import { generatedRegionsAsLegend } from "../features/lobby-map/generator";
+import {
+    generateMapDraft,
+    reassignRegions as reassignRegionsOffThread,
+} from "../features/lobby-map/generatorClient";
 import type { GeneratedMapDraft, GeneratedMapSize, LobbyMapTopic } from "../features/lobby-map/types";
 import { REGIONS } from "../mapRegions";
 
@@ -39,7 +43,7 @@ export function MapTestPage() {
         setStatus("Building island map...");
         setSelectedProvince(null);
         try {
-            const nextDraft = await createGeneratedMapDraft({
+            const nextDraft = await generateMapDraft({
                 size: nextSize,
                 topics: nextTopics,
             });
@@ -62,7 +66,7 @@ export function MapTestPage() {
         setStatus("Rebuilding regions...");
         setSelectedProvince(null);
         try {
-            const nextDraft = await reassignGeneratedMapRegions(draft, topics);
+            const nextDraft = await reassignRegionsOffThread(draft, topics);
             setDraft(nextDraft);
             setStatus(`${nextDraft.provinceCount} provinces / ${nextDraft.regionCount} regions`);
         } catch (e) {
