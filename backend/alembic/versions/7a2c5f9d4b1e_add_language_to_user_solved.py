@@ -28,6 +28,13 @@ def upgrade() -> None:
             ["user_id", "title_slug", "language"],
         )
         batch_op.create_index("ix_user_solved_language", ["language"], unique=False)
+
+    # Separate batch: SQLite recreates the table from the accumulated batch
+    # ops, so dropping the server_default has to happen only after the first
+    # recreation has backfilled existing rows with "unknown" - otherwise the
+    # single recreated table has no default and the data copy violates
+    # NOT NULL for any pre-existing rows.
+    with op.batch_alter_table("user_solved") as batch_op:
         batch_op.alter_column("language", server_default=None)
 
 
