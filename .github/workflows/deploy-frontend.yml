@@ -44,6 +44,9 @@ jobs:
         env:
           VITE_API_URL: https://leetcode-streaks-dyg6.onrender.com/api
 
+      - name: Add SPA fallback for GitHub Pages
+        run: cp dist/index.html dist/404.html
+
       - name: Setup Pages
         uses: actions/configure-pages@v6
 
