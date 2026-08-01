@@ -9,6 +9,7 @@ import { apiRequest } from '../api/client';
 import { useLobbyEvents } from '../hooks/useLobbyEvents';
 import { GeneratedMapRenderer } from '../features/lobby-map/GeneratedMapRenderer';
 import { PowerUpInventory, type PowerUpKind } from '../components/powerups/PowerUpInventory';
+import { AnimatedNumber } from '../components/AnimatedNumber';
 import { generatedRegionsAsLegend } from '../features/lobby-map/generator';
 import { writeLobbyMapSelection } from '../features/lobby-map/storage';
 import { normalizeLobbyMapSelection } from '../features/lobby-map/api';
@@ -467,7 +468,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                                         className="text-xs font-semibold tabular-nums text-[#ffa116]"
                                         title={row.breakdown}
                                     >
-                                        {row.points} pts
+                                        <AnimatedNumber value={row.points} /> pts
                                     </span>
                                     {row.regionControlPoints > 0 && (
                                         <span className="rounded-full bg-[#ffa116]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#ffd08a]" title={`Holding whole regions: +${row.regionControlPoints}`}>

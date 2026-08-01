@@ -7,6 +7,7 @@ import { FriendFlame } from "../components/dashboard/FriendFlame";
 import { FriendsList } from "../components/dashboard/FriendsList";
 import { CreateLobbyModal } from "../components/CreateLobbyModal";
 import { LeetCodeLinkModal } from "../components/LeetCodeLinkModal";
+import { AnimatedNumber } from "../components/AnimatedNumber";
 import { DIFFICULTY_COLORS } from "../mapRegions";
 import type { DashboardData, Faction, FriendResponse, LobbyPlayer } from "../types/dashboard";
 
@@ -201,7 +202,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                                     <p className="mt-1 text-xs text-[#8a8a8a]">Create or rejoin games</p>
                                 </div>
                                 <span className="rounded-full bg-[#333333] px-2.5 py-1 text-xs font-semibold text-[#ffa116]">
-                                    {dashboardData?.lobbies.length ?? 0}
+                                    <AnimatedNumber value={dashboardData?.lobbies.length ?? 0} />
                                 </span>
                             </div>
 
@@ -279,7 +280,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                                 </div>
 
                                 <span className="rounded-full bg-[#333333] px-2.5 py-1 text-xs font-semibold text-[#ffa116]">
-                                    {dashboardData?.today_submissions.length ?? 0}
+                                    <AnimatedNumber value={dashboardData?.today_submissions.length ?? 0} />
                                 </span>
                             </div>
 

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { apiRequest } from "./api/client";
 import { clearCache } from "./api/localCache";
 import { InviteModal } from "./components/InviteModal";
@@ -149,17 +150,20 @@ function MainApp() {
         ) : null;
     }
 
+    let screen: ReactNode;
+    let screenKey: string;
+
     if (!user) {
-        return (
+        screenKey = "auth";
+        screen = (
             <AuthPage
                 initialError={authError}
                 onClearError={() => setAuthError(null)}
             />
         );
-    }
-
-    if (activeLobbyId && activeLobbyPlayers.length > 0) {
-        return (
+    } else if (activeLobbyId && activeLobbyPlayers.length > 0) {
+        screenKey = "game";
+        screen = (
             <LobbyGamePage
                 lobbyId={activeLobbyId}
                 currentUserId={user.id}
@@ -179,10 +183,9 @@ function MainApp() {
                 }}
             />
         );
-    }
-
-    if (activeLobbyId) {
-        return (
+    } else if (activeLobbyId) {
+        screenKey = "lobby";
+        screen = (
             <LobbyPage
                 lobbyId={activeLobbyId}
                 currentUserId={user.id}
@@ -199,61 +202,76 @@ function MainApp() {
                 }}
             />
         );
+    } else {
+        screenKey = "dashboard";
+        screen = (
+            <>
+                <DashboardPage
+                    user={user}
+                    refreshKey={dashboardRefreshKey}
+                    onLogout={() => {
+                        localStorage.removeItem("accessToken");
+                        clearCache();
+                        setUser(null);
+                    }}
+                    onOpenLobby={(lobbyId, players, factions) => {
+                        setActiveLobbyId(lobbyId);
+                        setActiveLobbyPlayers(players ?? []);
+                        setActiveLobbyFactions(factions ?? []);
+                    }}
+                    onLinkChanged={() => {
+                        apiRequest<User>("/auth/me").then(setUser).catch(() => {});
+                    }}
+                />
+
+                {inviteToken ? (
+                    <InviteModal
+                        token={inviteToken}
+                        user={user}
+                        onClose={() => {
+                            localStorage.removeItem("pendingInviteToken");
+                            setInviteToken(null);
+                            clearUrlParam("invite");
+                        }}
+                        onAccepted={() => {
+                            localStorage.removeItem("pendingInviteToken");
+                            setInviteToken(null);
+                            clearUrlParam("invite");
+                            setDashboardRefreshKey((key) => key + 1);
+                        }}
+                        onNeedAuth={() => {
+                            setInviteToken(null);
+                            clearUrlParam("invite");
+                        }}
+                    />
+                ) : null}
+
+                {lobbyInviteToken ? (
+                    <LobbyInviteModal
+                        token={lobbyInviteToken}
+                        onBack={() => {
+                            setLobbyInviteToken(null);
+                            clearUrlParam("lobby");
+                        }}
+                        onAccepted={handleAcceptedLobbyInvite}
+                    />
+                ) : null}
+            </>
+        );
     }
 
     return (
-        <>
-            <DashboardPage
-                user={user}
-                refreshKey={dashboardRefreshKey}
-                onLogout={() => {
-                    localStorage.removeItem("accessToken");
-                    clearCache();
-                    setUser(null);
-                }}
-                onOpenLobby={(lobbyId, players, factions) => {
-                    setActiveLobbyId(lobbyId);
-                    setActiveLobbyPlayers(players ?? []);
-                    setActiveLobbyFactions(factions ?? []);
-                }}
-                onLinkChanged={() => {
-                    apiRequest<User>("/auth/me").then(setUser).catch(() => {});
-                }}
-            />
-
-            {inviteToken ? (
-                <InviteModal
-                    token={inviteToken}
-                    user={user}
-                    onClose={() => {
-                        localStorage.removeItem("pendingInviteToken");
-                        setInviteToken(null);
-                        clearUrlParam("invite");
-                    }}
-                    onAccepted={() => {
-                        localStorage.removeItem("pendingInviteToken");
-                        setInviteToken(null);
-                        clearUrlParam("invite");
-                        setDashboardRefreshKey((key) => key + 1);
-                    }}
-                    onNeedAuth={() => {
-                        setInviteToken(null);
-                        clearUrlParam("invite");
-                    }}
-                />
-            ) : null}
-
-            {lobbyInviteToken ? (
-                <LobbyInviteModal
-                    token={lobbyInviteToken}
-                    onBack={() => {
-                        setLobbyInviteToken(null);
-                        clearUrlParam("lobby");
-                    }}
-                    onAccepted={handleAcceptedLobbyInvite}
-                />
-            ) : null}
-        </>
+        <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+                key={screenKey}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+                {screen}
+            </motion.div>
+        </AnimatePresence>
     );
 }
 
