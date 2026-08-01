@@ -167,16 +167,15 @@ export function BingoBoardPage({ lobbyId, currentUserId, players, factions, onBa
     const totalClaimed = cells.filter((cell) => cell.claimed_by).length;
 
     return (
-        <main className="min-h-screen bg-transparent p-6 text-white">
-            <div
-                aria-hidden
-                className="pointer-events-none fixed inset-0 -z-10 bg-[#0d0e0f]"
-                style={{
-                    backgroundImage: 'url(/map-bg.png)',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                }}
-            />
+        <main
+            className="min-h-screen bg-transparent p-6 text-white"
+            style={{
+                backgroundImage: 'url(/map-bg.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundAttachment: 'fixed',
+            }}
+        >
             <div className="mx-auto max-w-7xl">
                 <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4">
