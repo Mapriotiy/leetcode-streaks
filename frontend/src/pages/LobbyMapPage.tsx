@@ -28,6 +28,7 @@ type ProvinceData = {
     captured_submission_url: string | null;
     capturer_leetcode_username: string | null;
     first_captured_by: number | null;
+    fortified_until: string | null;
 };
 
 type ScoreEntry = {
@@ -54,6 +55,7 @@ type MapApiResponse = {
     winner: WinnerInfo | null;
     provinces: ProvinceData[];
     score: ScoreEntry[];
+    powerups?: Record<number, Record<string, number>> | null;
 };
 
 type SyncApiResponse = MapApiResponse & {
@@ -111,6 +113,8 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
     const [popPos, setPopPos] = useState<{ x: number; y: number } | null>(null);
     const [hoveredProvinces, setHoveredProvinces] = useState<string[] | null>(null);
     const [mapSelection, setMapSelection] = useState<LobbyMapSelection>({ kind: 'default' });
+    const [powerups, setPowerups] = useState<Record<number, Record<string, number>>>({});
+    const [powerupError, setPowerupError] = useState<string | null>(null);
 
     useEffect(() => {
         setMapSelection({ kind: 'default' });
@@ -159,6 +163,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                 captured_submission_url: source?.captured_submission_url ?? null,
                 capturer_leetcode_username: source?.capturer_leetcode_username ?? null,
                 first_captured_by: source?.first_captured_by ?? null,
+                fortified_until: source?.fortified_until ?? null,
             } satisfies ProvinceData;
         });
     }, [mapSelection, provincesData]);
@@ -187,38 +192,51 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
         [mapSelection],
     );
 
+    const applyMapData = useCallback((data: MapApiResponse) => {
+        const serverSelection = normalizeLobbyMapSelection(data.map_selection);
+        setMapSelection(serverSelection);
+        writeLobbyMapSelection(lobbyId, serverSelection);
+        if (data.provinces.length > 0) setProvincesData(data.provinces);
+        setScoreEntries(data.score ?? []);
+        setGameStatus(data.status);
+        setWinner(data.winner ?? null);
+        setPowerups(data.powerups ?? {});
+    }, [lobbyId]);
+
     const loadMap = useCallback(async () => {
         try {
             const data = await apiRequest<MapApiResponse>(`/lobbies/${lobbyId}/map`);
-            const serverSelection = normalizeLobbyMapSelection(data.map_selection);
-            setMapSelection(serverSelection);
-            writeLobbyMapSelection(lobbyId, serverSelection);
-            setProvincesData(data.provinces);
-            setScoreEntries(data.score ?? []);
-            setGameStatus(data.status);
-            setWinner(data.winner ?? null);
+            applyMapData(data);
         } catch (e) {
             console.error(e);
         }
-    }, [lobbyId]);
+    }, [lobbyId, applyMapData]);
 
     const sync = useCallback(async () => {
         try {
             const data = await apiRequest<SyncApiResponse>(
                 `/lobbies/${lobbyId}/map/sync`, { method: 'POST' }
             );
-            const serverSelection = normalizeLobbyMapSelection(data.map_selection);
-            setMapSelection(serverSelection);
-            writeLobbyMapSelection(lobbyId, serverSelection);
-            if (data.provinces.length > 0) setProvincesData(data.provinces);
-            setScoreEntries(data.score ?? []);
-            setGameStatus(data.status);
-            setWinner(data.winner ?? null);
+            applyMapData(data);
             setSyncTick((tick) => tick + 1);
         } catch (e) {
             console.error(e);
         }
-    }, [lobbyId]);
+    }, [lobbyId, applyMapData]);
+
+    const usePowerup = useCallback(async (kind: string, provinceId: string) => {
+        setPowerupError(null);
+        try {
+            const data = await apiRequest<MapApiResponse>(
+                `/lobbies/${lobbyId}/provinces/${provinceId}/${kind}`,
+                { method: 'POST' },
+            );
+            applyMapData(data);
+        } catch (e) {
+            setPowerupError(e instanceof Error ? e.message : 'Failed to use power-up');
+            throw e;
+        }
+    }, [lobbyId, applyMapData]);
 
     useEffect(() => {
         setLoading(true);
@@ -306,6 +324,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                     captured_submission_url: null,
                     capturer_leetcode_username: null,
                     first_captured_by: null,
+                    fortified_until: null,
                 } satisfies ProvinceData)
               : null)
         : null;
@@ -328,6 +347,11 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
             ? ('player' as const)
             : ('enemy' as const)
         : undefined;
+
+    const myPowerups = powerups[currentUserId] ?? { reroll: 0, fortify: 0, siege: 0 };
+    const selectedFortified =
+        selectedProvinceData?.fortified_until != null &&
+        new Date(selectedProvinceData.fortified_until).getTime() > Date.now();
 
     const neutralCount = displayedProvincesData.filter((p) => !p.captured_by).length;
     const totalCount = displayedProvincesData.length;
@@ -366,6 +390,27 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                         </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center gap-1.5 rounded-md border border-[#3a3a3a] bg-[#262626] px-3 py-1.5">
+                            {(
+                                [
+                                    ['reroll', 'Reroll'],
+                                    ['fortify', 'Fortify'],
+                                    ['siege', 'Siege'],
+                                ] as const
+                            ).map(([kind, label]) => (
+                                <span
+                                    key={kind}
+                                    className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                                        (myPowerups[kind] ?? 0) > 0
+                                            ? 'bg-[#ffa116]/15 text-[#ffd08a]'
+                                            : 'bg-[#333333] text-[#666666]'
+                                    }`}
+                                    title={`${label} power-up`}
+                                >
+                                    {label} ×{myPowerups[kind] ?? 0}
+                                </span>
+                            ))}
+                        </div>
                         <button
                             type="button"
                             onClick={handleLeave}
@@ -377,6 +422,11 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                         </button>
                     </div>
                 </header>
+                {powerupError && (
+                    <p className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+                        {powerupError}
+                    </p>
+                )}
                 {leaveError && (
                     <p className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
                         {leaveError}
@@ -514,6 +564,11 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                     capturerLeetcodeUsername={selectedProvinceData?.capturer_leetcode_username ?? null}
                     firstCaptureOwner={firstCaptureOwner}
                     capturedRuntimeMs={selectedProvinceData?.captured_runtime_ms}
+                    fortified={selectedFortified}
+                    powerupCounts={myPowerups}
+                    onReroll={() => void usePowerup('reroll', selectedProvince!).catch(() => {})}
+                    onFortify={() => void usePowerup('fortify', selectedProvince!).catch(() => {})}
+                    onSiege={() => void usePowerup('siege', selectedProvince!).catch(() => {})}
                     onClose={handleClose}
                 />
             </div>

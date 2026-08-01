@@ -21,6 +21,11 @@ type ProvincePopupProps = {
     capturerLeetcodeUsername: string | null;
     firstCaptureOwner?: Owner;
     capturedRuntimeMs?: number | null;
+    fortified?: boolean;
+    powerupCounts?: Record<string, number>;
+    onReroll?: () => void;
+    onFortify?: () => void;
+    onSiege?: () => void;
     onClose: () => void;
 };
 
@@ -35,6 +40,11 @@ export default function ProvincePopup({
     capturerLeetcodeUsername,
     firstCaptureOwner,
     capturedRuntimeMs,
+    fortified = false,
+    powerupCounts = {},
+    onReroll,
+    onFortify,
+    onSiege,
     onClose,
 }: ProvincePopupProps) {
     if (!provinceId || !pos) return null;
@@ -78,6 +88,12 @@ export default function ProvincePopup({
                     <span className="text-gray-400">Status</span>
                     <span style={{ color: accent }}>{statusText}</span>
                 </div>
+
+                {fortified && (
+                    <div className="mb-2.5 rounded-md border border-[#ffa116]/50 bg-[#ffa116]/10 px-3 py-1.5 text-center text-xs font-semibold text-[#ffd08a]">
+                        🛡 Fortified — safe from recapture
+                    </div>
+                )}
 
                 {problem && (
                     <a
@@ -142,6 +158,41 @@ export default function ProvincePopup({
                     >
                         View {capturerLeetcodeUsername ?? 'capturer'}'s solution
                     </a>
+                )}
+
+                {(onReroll || onFortify || onSiege) && (
+                    <div className="mt-2 grid gap-1.5">
+                        {onReroll && owner !== 'enemy' && (
+                            <button
+                                type="button"
+                                onClick={onReroll}
+                                disabled={(powerupCounts.reroll ?? 0) <= 0}
+                                className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-1.5 text-xs font-medium text-[#d7d7d7] transition hover:border-[#ffa116]/60 hover:text-[#ffa116] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Reroll problem ({powerupCounts.reroll ?? 0})
+                            </button>
+                        )}
+                        {onFortify && owner === 'player' && (
+                            <button
+                                type="button"
+                                onClick={onFortify}
+                                disabled={(powerupCounts.fortify ?? 0) <= 0 || fortified}
+                                className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-1.5 text-xs font-medium text-[#d7d7d7] transition hover:border-[#ffa116]/60 hover:text-[#ffa116] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Fortify {fortified ? '(active)' : `(${powerupCounts.fortify ?? 0})`}
+                            </button>
+                        )}
+                        {onSiege && owner === undefined && (
+                            <button
+                                type="button"
+                                onClick={onSiege}
+                                disabled={(powerupCounts.siege ?? 0) <= 0}
+                                className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-1.5 text-xs font-medium text-[#d7d7d7] transition hover:border-[#ffa116]/60 hover:text-[#ffa116] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Siege — easier problem ({powerupCounts.siege ?? 0})
+                            </button>
+                        )}
+                    </div>
                 )}
 
                 <div
