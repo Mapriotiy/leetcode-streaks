@@ -8,6 +8,7 @@ import { REGIONS } from '../mapRegions';
 import { apiRequest } from '../api/client';
 import { useLobbyEvents } from '../hooks/useLobbyEvents';
 import { GeneratedMapRenderer } from '../features/lobby-map/GeneratedMapRenderer';
+import { PowerUpInventory, type PowerUpKind } from '../components/powerups/PowerUpInventory';
 import { generatedRegionsAsLegend } from '../features/lobby-map/generator';
 import { writeLobbyMapSelection } from '../features/lobby-map/storage';
 import { normalizeLobbyMapSelection } from '../features/lobby-map/api';
@@ -115,6 +116,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
     const [mapSelection, setMapSelection] = useState<LobbyMapSelection>({ kind: 'default' });
     const [powerups, setPowerups] = useState<Record<number, Record<string, number>>>({});
     const [powerupError, setPowerupError] = useState<string | null>(null);
+    const [armedPowerup, setArmedPowerup] = useState<PowerUpKind | null>(null);
 
     useEffect(() => {
         setMapSelection({ kind: 'default' });
@@ -275,9 +277,33 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
     }, [sync, gameStatus]);
 
     const handleSelect = useCallback((id: string, pos: { x: number; y: number }) => {
+        if (armedPowerup) {
+            const clicked = displayedProvincesData.find((p) => p.province_id === id);
+            const owner: 'player' | 'enemy' | undefined = (() => {
+                if (!clicked?.captured_by) return undefined;
+                if (clicked.captured_by === currentUserId) return 'player';
+                const myFaction = factionByPlayer.get(currentUserId);
+                if (myFaction != null && factionByPlayer.get(clicked.captured_by) === myFaction) {
+                    return 'player';
+                }
+                return 'enemy';
+            })();
+            const valid =
+                (armedPowerup === 'reroll' && owner === undefined) ||
+                (armedPowerup === 'fortify' && owner === 'player') ||
+                (armedPowerup === 'siege' && owner === undefined);
+            if (!valid) {
+                setPowerupError('This power-up cannot be used on that province');
+                return;
+            }
+            const kind = armedPowerup;
+            setArmedPowerup(null);
+            void usePowerup(kind, id).catch(() => {});
+            return;
+        }
         setSelectedProvince(id);
         setPopPos(pos);
-    }, []);
+    }, [armedPowerup, displayedProvincesData, factionByPlayer, currentUserId, usePowerup]);
 
     const handleClose = useCallback(() => {
         setSelectedProvince(null);
@@ -390,27 +416,6 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                         </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                        <div className="flex items-center gap-1.5 rounded-md border border-[#3a3a3a] bg-[#262626] px-3 py-1.5">
-                            {(
-                                [
-                                    ['reroll', 'Reroll'],
-                                    ['fortify', 'Fortify'],
-                                    ['siege', 'Siege'],
-                                ] as const
-                            ).map(([kind, label]) => (
-                                <span
-                                    key={kind}
-                                    className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                                        (myPowerups[kind] ?? 0) > 0
-                                            ? 'bg-[#ffa116]/15 text-[#ffd08a]'
-                                            : 'bg-[#333333] text-[#666666]'
-                                    }`}
-                                    title={`${label} power-up`}
-                                >
-                                    {label} ×{myPowerups[kind] ?? 0}
-                                </span>
-                            ))}
-                        </div>
                         <button
                             type="button"
                             onClick={handleLeave}
@@ -499,7 +504,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                 </section>
 
                 <div className="mt-6 flex items-stretch gap-6">
-                    <section className="min-w-0 flex-1 overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#262626] p-4 shadow-xl shadow-black/20">
+                    <section className="relative min-w-0 flex-1 overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#262626] p-4 shadow-xl shadow-black/20">
                         {loading ? (
                             <div className="flex items-center justify-center py-20 text-[#8a8a8a]">Loading map...</div>
                         ) : (
@@ -534,6 +539,27 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                                 className="mt-4 flex list-none flex-col gap-2 md:hidden"
                             />
                         )}
+
+                        {armedPowerup && (
+                            <div className="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2 rounded-full border border-[#ffa116]/50 bg-[#1f1f1f]/95 px-3 py-1.5 text-xs font-medium text-[#ffd08a]">
+                                Select a province to use{" "}
+                                {armedPowerup === 'reroll'
+                                    ? 'Reroll'
+                                    : armedPowerup === 'fortify'
+                                      ? 'Fortify'
+                                      : 'Siege'}{" "}
+                                — click the circle again to cancel
+                            </div>
+                        )}
+
+                        <PowerUpInventory
+                            powerups={myPowerups}
+                            armed={armedPowerup}
+                            onArm={(kind) => {
+                                setArmedPowerup((current) => (kind && current === kind ? null : kind));
+                                handleClose();
+                            }}
+                        />
                     </section>
 
                     {!loading && (
@@ -565,10 +591,6 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                     firstCaptureOwner={firstCaptureOwner}
                     capturedRuntimeMs={selectedProvinceData?.captured_runtime_ms}
                     fortified={selectedFortified}
-                    powerupCounts={myPowerups}
-                    onReroll={() => void usePowerup('reroll', selectedProvince!).catch(() => {})}
-                    onFortify={() => void usePowerup('fortify', selectedProvince!).catch(() => {})}
-                    onSiege={() => void usePowerup('siege', selectedProvince!).catch(() => {})}
                     onClose={handleClose}
                 />
             </div>
