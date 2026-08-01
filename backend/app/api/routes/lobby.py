@@ -560,8 +560,8 @@ def reroll_province_endpoint(
     _require_powerup(lobby, player, "reroll")
 
     province = _get_lobby_province(lobby_id, province_id, db)
-    if province.captured_by is not None and province.captured_by != current_user.id:
-        raise HTTPException(409, "You can only reroll a free province or your own")
+    if province.captured_by is not None:
+        raise HTTPException(409, "Reroll can only target a free province")
 
     if reroll_province(province, current_user.id, db) is None:
         raise HTTPException(400, "No suitable problem to reroll into")

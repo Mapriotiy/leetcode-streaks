@@ -4,10 +4,8 @@ Rules:
 - Each player holds up to MAX_POWERUPS_HELD (2) power-ups per lobby.
 - Completing a region (owning every province in it) grants one random
   power-up, once per region.
-- reroll: replace a province's problem with another of the same difficulty
-  (topic may change). Allowed on unowned or your own province. On your own,
-  the runtime bar is reset because the stored runtime belonged to the old
-  problem.
+- reroll: replace an unowned province's problem with another of the same
+  difficulty (topic may change).
 - fortify: shield your own province from recapture for FORTIFY_DURATION_HOURS.
 - siege: on an unowned province, replace the problem with an easier one of
   the same region topic (one difficulty step down); the province stays a
@@ -147,11 +145,6 @@ def reroll_province(province: LobbyMapProvince, acting_user_id: int, db: Session
     if prob is None:
         return None
     province.problem_title_slug = prob.title_slug
-    if province.captured_by == acting_user_id:
-        # The stored bar belonged to the old problem; reset so the owner
-        # must re-solve the new one to set a fresh bar.
-        province.captured_runtime_ms = None
-        province.captured_submission_url = None
     return prob
 
 

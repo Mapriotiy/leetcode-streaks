@@ -105,17 +105,6 @@ def test_reroll_keeps_difficulty(db):
     assert province.problem_title_slug in {"a", "b"}
 
 
-def test_reroll_resets_bar_for_owner(db):
-    db.add_all([
-        LeetCodeProblem(title_slug="a", title="A", difficulty="Easy", frontend_id=1, topic_tags=[]),
-        LeetCodeProblem(title_slug="b", title="B", difficulty="Easy", frontend_id=2, topic_tags=[]),
-    ])
-    db.commit()
-    province = _province(db, slug="a", captured_by=1, captured_runtime_ms=1200)
-    assert reroll_province(province, 1, db) is not None
-    assert province.captured_runtime_ms is None
-
-
 # ── Siege ──
 
 
