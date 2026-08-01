@@ -1,7 +1,7 @@
 """create_map_presets
 
 Revision ID: d7a1c2e3f4b5
-Revises: c3f4a5b6d7e8
+Revises: d5e6f7a8b9c0
 Create Date: 2026-07-30 00:00:00.000000
 
 """
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 revision: str = "d7a1c2e3f4b5"
-down_revision: Union[str, Sequence[str], None] = "c3f4a5b6d7e8"
+down_revision: Union[str, Sequence[str], None] = "d5e6f7a8b9c0"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
