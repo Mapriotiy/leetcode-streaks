@@ -12,6 +12,8 @@ from app.api.deps import get_current_user
 from app.core.config import settings
 from app.db.session import get_db
 from app.models.lobby import Lobby
+from app.models.lobby_board_cell import LobbyBoardCell
+from app.models.lobby_event import LobbyEvent
 from app.models.lobby_player import LobbyPlayer
 from app.models.lobby_invite import LobbyInvite
 from app.models.lobby_map import LobbyMap
@@ -435,7 +437,7 @@ def leave_lobby(lobby_id: int, current_user: User = Depends(get_current_user), d
         .all()
     )
     if not remaining_players:
-        db.delete(lobby)
+        _delete_lobby_with_children(lobby, db)
     elif lobby.creator_id == current_user.id:
         lobby.creator_id = remaining_players[0].user_id
 
@@ -450,8 +452,28 @@ def delete_lobby(lobby_id: int, current_user: User = Depends(get_current_user), 
         raise HTTPException(404, "Lobby not found")
     if lobby.creator_id != current_user.id:
         raise HTTPException(403, "Only the creator can delete the lobby")
-    db.delete(lobby)
+    _delete_lobby_with_children(lobby, db)
     db.commit()
+
+
+def _delete_lobby_with_children(lobby: Lobby, db: Session) -> None:
+    """Delete a lobby and every row that references it.
+
+    Child rows are removed explicitly so it works on SQLite too (SQLite does
+    not enforce FK ON DELETE CASCADE), not just Postgres.
+    """
+    lobby_id = lobby.id
+    map_ids = [row.id for row in db.query(LobbyMap.id).filter_by(lobby_id=lobby_id).all()]
+    if map_ids:
+        db.query(LobbyMapProvince).filter(
+            LobbyMapProvince.lobby_map_id.in_(map_ids)
+        ).delete(synchronize_session=False)
+        db.query(LobbyMap).filter(LobbyMap.id.in_(map_ids)).delete(synchronize_session=False)
+    db.query(LobbyBoardCell).filter_by(lobby_id=lobby_id).delete(synchronize_session=False)
+    db.query(LobbyEvent).filter_by(lobby_id=lobby_id).delete(synchronize_session=False)
+    db.query(LobbyPlayer).filter_by(lobby_id=lobby_id).delete(synchronize_session=False)
+    db.query(LobbyInvite).filter_by(lobby_id=lobby_id).delete(synchronize_session=False)
+    db.delete(lobby)
 
 
 # ── Game (dispatched to the mode registry) ──
