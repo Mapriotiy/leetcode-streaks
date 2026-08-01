@@ -1,5 +1,16 @@
+import { useEffect, useState } from 'react';
 import { DIFFICULTY_COLORS, PROVINCE_NAMES } from '../mapRegions';
 import { firstCaptureBonus, flagPoints } from '../scoring';
+
+function formatDuration(ms: number): string {
+    const total = Math.max(0, Math.floor(ms / 1000));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+}
 
 export type Owner = 'player' | 'enemy';
 
@@ -22,6 +33,7 @@ type ProvincePopupProps = {
     firstCaptureOwner?: Owner;
     capturedRuntimeMs?: number | null;
     fortified?: boolean;
+    fortifiedUntil?: string | null;
     onClose: () => void;
 };
 
@@ -37,8 +49,16 @@ export default function ProvincePopup({
     firstCaptureOwner,
     capturedRuntimeMs,
     fortified = false,
+    fortifiedUntil = null,
     onClose,
 }: ProvincePopupProps) {
+    const [now, setNow] = useState(() => Date.now());
+    useEffect(() => {
+        if (!fortifiedUntil) return;
+        const id = setInterval(() => setNow(Date.now()), 1000);
+        return () => clearInterval(id);
+    }, [fortifiedUntil]);
+
     if (!provinceId || !pos) return null;
 
     const accent = owner === 'player' ? '#00e5ff' : owner === 'enemy' ? '#ff2d55' : '#666';
@@ -97,7 +117,17 @@ export default function ProvincePopup({
 
                 {fortified && (
                     <div className="mb-2.5 rounded-md border border-[#ffa116]/50 bg-[#ffa116]/10 px-3 py-1.5 text-center text-xs font-semibold text-[#ffd08a]">
-                        🛡 Fortified — safe from recapture
+                        <span className="flex items-center justify-center gap-1.5">
+                            🛡 Fortified
+                            {fortifiedUntil && (
+                                <span className="tabular-nums text-[#ffd08a]">
+                                    · {formatDuration(new Date(fortifiedUntil).getTime() - now)} left
+                                </span>
+                            )}
+                        </span>
+                        <span className="mt-0.5 block text-[11px] font-medium text-[#b8860b]">
+                            safe from recapture
+                        </span>
                     </div>
                 )}
 

@@ -666,6 +666,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                     firstCaptureOwner={firstCaptureOwner}
                     capturedRuntimeMs={selectedProvinceData?.captured_runtime_ms}
                     fortified={selectedFortified}
+                    fortifiedUntil={selectedProvinceData?.fortified_until ?? null}
                     onClose={handleClose}
                 />
 
