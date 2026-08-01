@@ -285,9 +285,19 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
 
                             <div className="mt-4 flex min-h-0 max-h-[15rem] flex-col gap-2 overflow-y-auto pr-1">
                                 {!dashboardData?.today_submissions.length ? (
-                                    <p className="text-sm text-[#8a8a8a]">
-                                        No accepted submissions yet.
-                                    </p>
+                                    <div className="flex flex-col items-center gap-2 py-8 text-[#6b6b6b]">
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                            <path opacity="0.4" d="M11 19.5H21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                            <path opacity="0.4" d="M11 12.5H21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                            <path opacity="0.4" d="M11 5.5H21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                            <path d="M3 5.5L4 6.5L7 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                            <path d="M3 12.5L4 13.5L7 10.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                            <path d="M3 19.5L4 20.5L7 17.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                        </svg>
+                                        <p className="text-sm text-[#8a8a8a]">
+                                            No accepted submissions yet.
+                                        </p>
+                                    </div>
                                 ) : (
                                     dashboardData.today_submissions.map((submission) => (
                                         <a
