@@ -45,7 +45,7 @@ export function PowerUpInventory({ powerups, armed, onArm }: PowerUpInventoryPro
     const slots = buildSlots(powerups);
 
     return (
-        <div className="pointer-events-none absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 gap-3">
+        <div className="flex items-center gap-3">
             {slots.map((kind, index) => {
                 const isArmed = kind != null && armed === kind;
                 return (

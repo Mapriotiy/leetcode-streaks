@@ -539,27 +539,6 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                                 className="mt-4 flex list-none flex-col gap-2 md:hidden"
                             />
                         )}
-
-                        {armedPowerup && (
-                            <div className="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2 rounded-full border border-[#ffa116]/50 bg-[#1f1f1f]/95 px-3 py-1.5 text-xs font-medium text-[#ffd08a]">
-                                Select a province to use{" "}
-                                {armedPowerup === 'reroll'
-                                    ? 'Reroll'
-                                    : armedPowerup === 'fortify'
-                                      ? 'Fortify'
-                                      : 'Siege'}{" "}
-                                — click the circle again to cancel
-                            </div>
-                        )}
-
-                        <PowerUpInventory
-                            powerups={myPowerups}
-                            armed={armedPowerup}
-                            onArm={(kind) => {
-                                setArmedPowerup((current) => (kind && current === kind ? null : kind));
-                                handleClose();
-                            }}
-                        />
                     </section>
 
                     {!loading && (
@@ -569,6 +548,28 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                             className="hidden w-80 shrink-0 max-h-[640px] lg:flex"
                         />
                     )}
+                </div>
+
+                <div className="mt-4 flex flex-col items-center gap-2">
+                    {armedPowerup && (
+                        <div className="rounded-full border border-[#ffa116]/50 bg-[#ffa116]/10 px-3 py-1.5 text-xs font-medium text-[#ffd08a]">
+                            Select a province to use{" "}
+                            {armedPowerup === 'reroll'
+                                ? 'Reroll'
+                                : armedPowerup === 'fortify'
+                                  ? 'Fortify'
+                                  : 'Siege'}{" "}
+                            — click the circle again to cancel
+                        </div>
+                    )}
+                    <PowerUpInventory
+                        powerups={myPowerups}
+                        armed={armedPowerup}
+                        onArm={(kind) => {
+                            setArmedPowerup((current) => (kind && current === kind ? null : kind));
+                            handleClose();
+                        }}
+                    />
                 </div>
 
                 {!loading && (
