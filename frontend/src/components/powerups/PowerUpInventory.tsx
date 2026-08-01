@@ -45,7 +45,7 @@ export function PowerUpInventory({ powerups, armed, onArm }: PowerUpInventoryPro
     const slots = buildSlots(powerups);
 
     return (
-        <div className="flex items-center gap-3">
+        <div className="pointer-events-none absolute bottom-3 left-1/2 z-30 flex -translate-x-1/2 gap-2.5">
             {slots.map((kind, index) => {
                 const isArmed = kind != null && armed === kind;
                 return (
@@ -53,7 +53,7 @@ export function PowerUpInventory({ powerups, armed, onArm }: PowerUpInventoryPro
                         <button
                             type="button"
                             onClick={() => onArm(kind ? (isArmed ? null : kind) : null)}
-                            className={`grid h-14 w-14 place-items-center rounded-full border-2 transition ${
+                            className={`grid h-11 w-11 place-items-center rounded-full border-2 transition ${
                                 kind
                                     ? isArmed
                                         ? "border-[#ffa116] bg-[#ffa116]/25 text-[#ffa116] ring-2 ring-[#ffa116]/40"
@@ -63,7 +63,7 @@ export function PowerUpInventory({ powerups, armed, onArm }: PowerUpInventoryPro
                         >
                             {kind ? (() => {
                                 const Cmp = ICONS[kind];
-                                return <Cmp className="h-7 w-7" />;
+                                return <Cmp className="h-6 w-6" />;
                             })() : null}
                         </button>
                         <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 w-max max-w-44 -translate-x-1/2 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-2 py-1 text-center text-[11px] opacity-0 transition group-hover:opacity-100">
