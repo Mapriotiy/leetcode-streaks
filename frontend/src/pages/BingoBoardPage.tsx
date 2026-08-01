@@ -170,7 +170,7 @@ export function BingoBoardPage({ lobbyId, currentUserId, players, factions, onBa
         <main
             className="min-h-screen bg-transparent p-6 text-white"
             style={{
-                backgroundImage: 'url(/map-bg.png)',
+                backgroundImage: `url(${import.meta.env.BASE_URL}map-bg.png)`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 backgroundAttachment: 'fixed',
