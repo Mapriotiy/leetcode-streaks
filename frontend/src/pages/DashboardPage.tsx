@@ -8,7 +8,6 @@ import { FriendsList } from "../components/dashboard/FriendsList";
 import { CreateLobbyModal } from "../components/CreateLobbyModal";
 import { LeetCodeLinkModal } from "../components/LeetCodeLinkModal";
 import { AnimatedNumber } from "../components/AnimatedNumber";
-import { MapBackground } from "../components/MapBackground";
 import { DIFFICULTY_COLORS } from "../mapRegions";
 import type { DashboardData, Faction, FriendResponse, LobbyPlayer } from "../types/dashboard";
 
@@ -107,7 +106,6 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
 
     return (
         <main className="min-h-screen bg-transparent p-6 text-white">
-            <MapBackground />
                 <header className="sticky top-0 z-20 -mx-6 -mt-6 mb-6 border-b border-[#2a2a2a] bg-[#1a1a1a]/95 px-6 py-3 backdrop-blur">
                     <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
                         <div className="flex items-center gap-2.5">

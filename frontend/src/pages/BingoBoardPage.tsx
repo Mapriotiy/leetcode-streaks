@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { ArrowLeft, LogOut } from 'lucide-react';
 import { BingoBoard } from '../components/bingo/BingoBoard';
-import { MapBackground } from '../components/MapBackground';
 import { EventLogPanel } from '../components/map/EventLogPanel';
 import { apiRequest } from '../api/client';
 import { useLobbyEvents } from '../hooks/useLobbyEvents';
@@ -169,7 +168,6 @@ export function BingoBoardPage({ lobbyId, currentUserId, players, factions, onBa
 
     return (
         <main className="min-h-screen bg-transparent p-6 text-white">
-            <MapBackground />
             <div className="mx-auto max-w-7xl">
                 <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4">
@@ -217,7 +215,7 @@ export function BingoBoardPage({ lobbyId, currentUserId, players, factions, onBa
                 )}
 
                 <section className="mt-6 rounded-lg border border-[#3a3a3a] bg-[#262626] p-4 shadow-xl shadow-black/20">
-                    <div className="flex items-center justify-center gap-4">
+                    <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
                         {score.map((entry) => (
                             <div key={entry.team_id} className="flex items-center gap-2 text-sm">
                                 <span className="h-3 w-3 rounded-full" style={{ backgroundColor: entry.color }} />

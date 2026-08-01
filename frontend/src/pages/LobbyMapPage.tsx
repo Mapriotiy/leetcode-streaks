@@ -523,7 +523,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                 )}
 
                 <section className="mt-6 rounded-lg border border-[#3a3a3a] bg-[#262626] p-4 shadow-xl shadow-black/20">
-                    <div className="flex items-center justify-center gap-4">
+                    <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
                         {scoreRows.map((row) => {
                             return (
                                 <div key={row.key} className="flex items-center gap-2 text-sm">
