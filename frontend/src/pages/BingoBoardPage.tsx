@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { ArrowLeft, LogOut } from 'lucide-react';
 import { BingoBoard } from '../components/bingo/BingoBoard';
+import { MapBackground } from '../components/MapBackground';
 import { EventLogPanel } from '../components/map/EventLogPanel';
 import { apiRequest } from '../api/client';
 import { useLobbyEvents } from '../hooks/useLobbyEvents';
@@ -167,15 +168,8 @@ export function BingoBoardPage({ lobbyId, currentUserId, players, factions, onBa
     const totalClaimed = cells.filter((cell) => cell.claimed_by).length;
 
     return (
-        <main
-            className="min-h-screen bg-transparent p-6 text-white"
-            style={{
-                backgroundImage: `url(${import.meta.env.BASE_URL}map-bg.png)`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundAttachment: 'fixed',
-            }}
-        >
+        <main className="min-h-screen bg-transparent p-6 text-white">
+            <MapBackground />
             <div className="mx-auto max-w-7xl">
                 <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4">
