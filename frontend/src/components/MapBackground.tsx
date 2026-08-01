@@ -6,9 +6,10 @@ const OVERLAYS = [
 ].join(', ');
 
 /**
- * Ambient mirrored map backdrop: the image is split down the middle and each
- * half is flipped onto the opposite side, so the map mirrors around the center
- * line and continents visually converge. Gradient overlays keep content readable.
+ * Ambient mirrored map backdrop: the map is split down the middle and each
+ * half is mirrored onto the opposite side with its outer edge at the screen
+ * center, so land spreads to the screen edges while empty ocean gathers in
+ * the middle. Gradient overlays keep content readable.
  */
 export function MapBackground() {
     return (
@@ -22,8 +23,7 @@ export function MapBackground() {
                 style={{
                     backgroundImage: MAP_BG,
                     backgroundSize: 'cover',
-                    backgroundPosition: 'right center',
-                    transform: 'scaleX(-1)',
+                    backgroundPosition: 'left center',
                 }}
             />
             <div
@@ -31,7 +31,7 @@ export function MapBackground() {
                 style={{
                     backgroundImage: MAP_BG,
                     backgroundSize: 'cover',
-                    backgroundPosition: 'left center',
+                    backgroundPosition: 'right center',
                     transform: 'scaleX(-1)',
                 }}
             />
