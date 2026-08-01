@@ -106,7 +106,6 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
 
     return (
         <main className="min-h-screen bg-transparent p-6 text-white">
-            <div className="mx-auto max-w-5xl">
                 <header className="sticky top-0 z-20 -mx-6 -mt-6 mb-6 border-b border-[#2a2a2a] bg-[#1a1a1a]/95 px-6 py-3 backdrop-blur">
                     <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
                         <div className="flex items-center gap-2.5">
@@ -167,6 +166,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                     </div>
                 </header>
 
+            <div className="mx-auto max-w-5xl">
                 {!isLeetcodeLinked ? (
                     <section className="mt-6 rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
