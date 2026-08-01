@@ -286,7 +286,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                             <div className="mt-4 flex min-h-0 max-h-[15rem] flex-col gap-2 overflow-y-auto pr-1">
                                 {!dashboardData?.today_submissions.length ? (
                                     <div className="flex flex-col items-center gap-2 py-8 text-[#6b6b6b]">
-                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                        <svg width="72" height="72" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                             <path opacity="0.4" d="M11 19.5H21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                             <path opacity="0.4" d="M11 12.5H21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                             <path opacity="0.4" d="M11 5.5H21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
