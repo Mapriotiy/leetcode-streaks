@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { ArrowLeft, Copy, Gamepad2, LogOut, Map as MapIcon, Plus, UserCheck, UserPlus } from 'lucide-react';
+import { ArrowLeft, Copy, Gamepad2, LogOut, Map as MapIcon, Plus, Trash2, UserCheck, UserPlus } from 'lucide-react';
 import { apiRequest } from '../api/client';
 import { lobbyCacheKey, readCache, writeCache } from '../api/localCache';
 import { MapChooserModal } from '../features/lobby-map/MapChooserModal';
@@ -115,6 +115,8 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
     const [draggingPlayerId, setDraggingPlayerId] = useState<number | null>(null);
     const [startError, setStartError] = useState<string | null>(null);
     const [leaveError, setLeaveError] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
     const [factionError, setFactionError] = useState<string | null>(null);
     const [isMapChooserOpen, setIsMapChooserOpen] = useState(false);
     const [mapSelection, setMapSelection] = useState<LobbyMapSelection>(() => readLobbyMapSelection(lobbyId));
@@ -190,6 +192,23 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
             setLeaveError(e instanceof Error ? e.message : 'Failed to leave lobby');
         } finally {
             setIsLeaving(false);
+        }
+    }, [lobbyId, onBack]);
+
+    const handleDelete = useCallback(async () => {
+        const confirmed = window.confirm('Delete this lobby for everyone? This cannot be undone.');
+        if (!confirmed) return;
+
+        setIsDeleting(true);
+        setDeleteError(null);
+        try {
+            await apiRequest(`/lobbies/${lobbyId}`, { method: 'DELETE' });
+            onBack();
+        } catch (e) {
+            console.error(e);
+            setDeleteError(e instanceof Error ? e.message : 'Failed to delete lobby');
+        } finally {
+            setIsDeleting(false);
         }
     }, [lobbyId, onBack]);
 
@@ -594,6 +613,17 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                             {isLeaving ? 'Leaving...' : 'Leave Lobby'}
                         </button>
                     )}
+                    {isCreator && (
+                        <button
+                            type="button"
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                            className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-300 transition hover:bg-red-500/20 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <Trash2 size={16} className="inline-block mr-2" />
+                            {isDeleting ? 'Deleting...' : 'Delete Lobby'}
+                        </button>
+                    )}
                     {canStart && (
                         <button
                             type="button"
@@ -621,6 +651,11 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                 {leaveError && (
                     <p className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
                         {leaveError}
+                    </p>
+                )}
+                {deleteError && (
+                    <p className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+                        {deleteError}
                     </p>
                 )}
                 <MapChooserModal

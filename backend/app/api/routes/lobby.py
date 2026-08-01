@@ -442,6 +442,18 @@ def leave_lobby(lobby_id: int, current_user: User = Depends(get_current_user), d
     db.commit()
 
 
+@router.delete("/{lobby_id}", status_code=204)
+def delete_lobby(lobby_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Delete a lobby entirely. Only the creator may do this."""
+    lobby = db.get(Lobby, lobby_id)
+    if not lobby:
+        raise HTTPException(404, "Lobby not found")
+    if lobby.creator_id != current_user.id:
+        raise HTTPException(403, "Only the creator can delete the lobby")
+    db.delete(lobby)
+    db.commit()
+
+
 # ── Game (dispatched to the mode registry) ──
 
 @router.post("/{lobby_id}/start", response_model=LobbyResponse)
