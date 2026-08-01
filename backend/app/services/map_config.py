@@ -15,19 +15,20 @@ REGION_TOPICS: dict[str, dict] = {
     "region7": {"tags": ["sorting"], "difficulty": None},
 }
 
+# Default map province → region, matching the static SVG's predefined
+# boundaries (3 islands + 4 mainland blobs). Generated maps carry their own
+# topic ids in the draft.
 PROVINCE_REGION: dict[str, str] = {
     "path34": "isle1", "path36": "isle1",
     "path44": "isle2", "path48": "isle2", "path49": "isle2",
     "path53": "isle3",
-    "path56": "region1", "path57": "region1", "path58": "region1",
-    "path60": "region6",
-    "path63": "region2", "path64": "region2", "path65": "region2", "path68": "region2",
-    "path69": "region7",
-    "path72": "region3", "path73": "region3", "path75": "region3", "path76": "region3",
-    "path79": "region6", "path80": "region7",
-    "path83": "region4", "path86": "region4", "path89": "region4",
-    "path91": "region6",
-    "path66": "region5", "path74": "region5", "path87": "region5",
+    "path56": "region1", "path57": "region1", "path58": "region1", "path60": "region1",
+    "path63": "region2", "path64": "region2", "path65": "region2", "path66": "region2",
+    "path68": "region2", "path69": "region2",
+    "path72": "region3", "path73": "region3", "path74": "region3", "path75": "region3",
+    "path76": "region3", "path79": "region3", "path80": "region3",
+    "path83": "region4", "path86": "region4", "path87": "region4",
+    "path89": "region4", "path91": "region4",
 }
 
 REGION_NAMES: dict[str, str] = {
@@ -38,9 +39,6 @@ REGION_NAMES: dict[str, str] = {
     "region2": "Two Pointers",
     "region3": "Arrays & Hashing",
     "region4": "Stack",
-    "region5": "Dynamic Programming",
-    "region6": "String",
-    "region7": "Sorting",
 }
 
 

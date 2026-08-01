@@ -7,7 +7,7 @@ import { MAP_SIZE_CONFIG } from '../features/lobby-map/assets';
 import { readLobbyMapSelection, writeLobbyMapSelection } from '../features/lobby-map/storage';
 import { normalizeLobbyMapSelection, saveLobbyMapSelection } from '../features/lobby-map/api';
 import type { LobbyMapSelection, LobbyMapTopic } from '../features/lobby-map/types';
-import { REGIONS } from '../mapRegions';
+import { TOPICS } from '../mapRegions';
 
 type LobbyPlayer = {
     user_id: number;
@@ -123,7 +123,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
 
     const mapTopics: LobbyMapTopic[] = useMemo(
         () =>
-            REGIONS.map((region) => ({
+            TOPICS.map((region) => ({
                 id: region.id,
                 name: region.name,
                 color: region.color,

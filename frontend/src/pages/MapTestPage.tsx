@@ -8,16 +8,16 @@ import {
     reassignRegions as reassignRegionsOffThread,
 } from "../features/lobby-map/generatorClient";
 import type { GeneratedMapDraft, GeneratedMapSize, LobbyMapTopic } from "../features/lobby-map/types";
-import { REGIONS } from "../mapRegions";
+import { TOPICS } from "../mapRegions";
 
 const MAP_SIZES = ["small", "medium", "large"] as const satisfies readonly GeneratedMapSize[];
 
 function topicsForCount(count: number): LobbyMapTopic[] {
     return Array.from({ length: count }, (_, index) => {
-        const region = REGIONS[index % REGIONS.length];
+        const region = TOPICS[index % TOPICS.length];
         return {
             id: `${region.id}-${index}`,
-            name: index < REGIONS.length ? region.name : `Region ${index + 1}`,
+            name: index < TOPICS.length ? region.name : `Region ${index + 1}`,
             color: region.color || REGION_FALLBACK_COLORS[index % REGION_FALLBACK_COLORS.length],
         };
     });

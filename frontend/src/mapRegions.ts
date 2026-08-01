@@ -9,13 +9,20 @@ export const REGIONS: Region[] = [
     { id: 'isle1', color: '#00d9ff', name: 'Trees', provinces: ['path34', 'path36'] },
     { id: 'isle2', color: '#7c4dff', name: 'Binary Search', provinces: ['path44', 'path48', 'path49'] },
     { id: 'isle3', color: '#a3005e', name: 'Math', provinces: ['path53'] },
-    { id: 'region1', color: '#2bff88', name: 'Linked List', provinces: ['path56', 'path57', 'path58'] },
-    { id: 'region2', color: '#2979ff', name: 'Two Pointers', provinces: ['path63', 'path64', 'path65', 'path68'] },
-    { id: 'region3', color: '#ff9100', name: 'Arrays & Hashing', provinces: ['path72', 'path73', 'path75', 'path76'] },
-    { id: 'region4', color: '#ff2d95', name: 'Stack', provinces: ['path83', 'path86', 'path89'] },
-    { id: 'region5', color: '#ff00d4', name: 'Dynamic Programming', provinces: ['path66', 'path74', 'path87'] },
-    { id: 'region6', color: '#00ffc8', name: 'String', provinces: ['path60', 'path79', 'path91'] },
-    { id: 'region7', color: '#ffd60a', name: 'Sorting', provinces: ['path69', 'path80'] },
+    { id: 'region1', color: '#2bff88', name: 'Linked List', provinces: ['path56', 'path57', 'path58', 'path60'] },
+    { id: 'region2', color: '#2979ff', name: 'Two Pointers', provinces: ['path63', 'path64', 'path65', 'path66', 'path68', 'path69'] },
+    { id: 'region3', color: '#ff9100', name: 'Arrays & Hashing', provinces: ['path72', 'path73', 'path74', 'path75', 'path76', 'path79', 'path80'] },
+    { id: 'region4', color: '#ff2d95', name: 'Stack', provinces: ['path83', 'path86', 'path87', 'path89', 'path91'] },
+];
+
+// Topics offered when creating a generated map. The default map keeps its own
+// predefined SVG boundaries (see REGIONS above); generated maps can mix any
+// of these real LeetCode topics.
+export const TOPICS: Region[] = [
+    ...REGIONS,
+    { id: 'region5', color: '#ff00d4', name: 'Dynamic Programming', provinces: [] },
+    { id: 'region6', color: '#00ffc8', name: 'String', provinces: [] },
+    { id: 'region7', color: '#ffd60a', name: 'Sorting', provinces: [] },
 ];
 
 export const PROVINCE_NAMES: Record<string, string> = {
