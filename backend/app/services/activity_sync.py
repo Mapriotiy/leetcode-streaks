@@ -1,6 +1,6 @@
 from datetime import date, datetime, timezone
 
-from sqlalchemy import func
+from sqlalchemy import case
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
@@ -61,7 +61,10 @@ async def sync_user_daily_activity(
             .on_conflict_do_update(
                 index_elements=["user_id", "date"],
                 set_={
-                    "submissions_count": func.greatest(existing, excluded),
+                    "submissions_count": case(
+                        (excluded > existing, excluded),
+                        else_=existing,
+                    ),
                 },
             )
         )
