@@ -53,7 +53,6 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
     const [friends, setFriends] = useState<FriendResponse[]>(
         cachedDashboard?.data.friends ?? [],
     );
-    const [isLoadingDashboard, setIsLoadingDashboard] = useState(!cachedDashboard);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [showLobbyModal, setShowLobbyModal] = useState(false);
     const [showLinkModal, setShowLinkModal] = useState(false);
@@ -67,10 +66,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
               ? "Waiting for today's solve"
               : "Solve today to start";
 
-    const loadDashboard = useCallback(async (showLoading = false) => {
-        if (showLoading) {
-            setIsLoadingDashboard(true);
-        }
+    const loadDashboard = useCallback(async () => {
         setErrorMessage(null);
 
         try {
@@ -83,17 +79,14 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
             setErrorMessage(
                 error instanceof Error ? error.message : "Failed to load dashboard",
             );
-        } finally {
-            setIsLoadingDashboard(false);
         }
     }, [user.id]);
 
     useEffect(() => {
-        // Show the placeholder only on a true first visit; when we painted from
-        // cache, revalidate silently in the background.
-        void loadDashboard(!dashboardData);
+        // Revalidate immediately, then quietly again after a short delay.
+        void loadDashboard();
         const refreshId = window.setTimeout(() => {
-            void loadDashboard(false);
+            void loadDashboard();
         }, 2500);
         return () => window.clearTimeout(refreshId);
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,7 +95,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
     const handleLinkChanged = useCallback(() => {
         setShowLinkModal(false);
         onLinkChanged();
-        void loadDashboard(true);
+        void loadDashboard();
     }, [onLinkChanged, loadDashboard]);
 
     const displayName = dashboardData?.display_name ?? user.display_name;
@@ -200,14 +193,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                     </div>
                 ) : null}
 
-                {isLoadingDashboard ? (
-                    <section className="mt-6 rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
-                        <p className="text-sm text-[#a3a3a3]">
-                            Loading dashboard...
-                        </p>
-                    </section>
-                ) : (
-                    <section className="mt-6 grid gap-4 sm:grid-cols-3">
+                <section className="mt-6 grid gap-4 sm:grid-cols-3">
                         <article className="flex flex-col rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
                             <div className="flex items-start justify-between gap-3">
                                 <div>
@@ -351,7 +337,6 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                             </div>
                         </article>
                     </section>
-                )}
 
                 {showLobbyModal && (
                     <CreateLobbyModal
