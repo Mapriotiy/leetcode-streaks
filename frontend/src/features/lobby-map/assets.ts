@@ -148,18 +148,18 @@ export const PIECE_DIMENSIONS = {
 } satisfies Record<GeneratedMapPieceId, [number, number]>;
 
 export const REGION_FALLBACK_COLORS = [
-    "#673642",
-    "#3d5a42",
-    "#394967",
-    "#665033",
-    "#513a62",
-    "#385d5d",
-    "#625d38",
-    "#533d46",
-    "#465c3c",
-    "#414a64",
-    "#614735",
-    "#3b5864",
+    "#ff00d4",
+    "#00d0ff",
+    "#39ff14",
+    "#ff3d00",
+    "#2979ff",
+    "#ff2d95",
+    "#ffe600",
+    "#ff1744",
+    "#b300ff",
+    "#00ffb0",
+    "#ff9100",
+    "#ff7a00",
 ] as const;
 
 export function mapAssetUrl(path: string) {

@@ -6,13 +6,13 @@ export type Region = {
 };
 
 export const REGIONS: Region[] = [
-    { id: 'isle1', color: '#d500ff', name: 'Trees and Graphs', provinces: ['path34', 'path36'] },
-    { id: 'isle2', color: '#ff001d', name: 'Binary Search', provinces: ['path44', 'path48', 'path49'] },
-    { id: 'isle3', color: '#3b0909', name: 'Hard Problem Land', provinces: ['path53'] },
-    { id: 'region1', color: '#23e929', name: 'Linked Lists', provinces: ['path56', 'path57', 'path58', 'path60'] },
-    { id: 'region2', color: '#2346e9', name: 'Two Pointers / Sliding Window', provinces: ['path63', 'path64', 'path65', 'path66', 'path68', 'path69'] },
-    { id: 'region3', color: '#e08900', name: 'Arrays and Hashing', provinces: ['path72', 'path73', 'path74', 'path75', 'path76', 'path79', 'path80'] },
-    { id: 'region4', color: '#ff0842', name: 'Stacks', provinces: ['path83', 'path86', 'path87', 'path89', 'path91'] },
+    { id: 'isle1', color: '#e100ff', name: 'Trees and Graphs', provinces: ['path34', 'path36'] },
+    { id: 'isle2', color: '#ff1744', name: 'Binary Search', provinces: ['path44', 'path48', 'path49'] },
+    { id: 'isle3', color: '#ff3d00', name: 'Hard Problem Land', provinces: ['path53'] },
+    { id: 'region1', color: '#39ff14', name: 'Linked Lists', provinces: ['path56', 'path57', 'path58', 'path60'] },
+    { id: 'region2', color: '#2979ff', name: 'Two Pointers / Sliding Window', provinces: ['path63', 'path64', 'path65', 'path66', 'path68', 'path69'] },
+    { id: 'region3', color: '#ff9100', name: 'Arrays and Hashing', provinces: ['path72', 'path73', 'path74', 'path75', 'path76', 'path79', 'path80'] },
+    { id: 'region4', color: '#ff2d95', name: 'Stacks', provinces: ['path83', 'path86', 'path87', 'path89', 'path91'] },
 ];
 
 export const PROVINCE_NAMES: Record<string, string> = {
