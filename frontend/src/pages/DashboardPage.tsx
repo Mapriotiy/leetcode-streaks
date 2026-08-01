@@ -105,7 +105,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
         : (displayName ?? "Welcome");
 
     return (
-        <main className="min-h-screen bg-[#1a1a1a] p-6 text-white">
+        <main className="min-h-screen bg-transparent p-6 text-white">
             <div className="mx-auto max-w-5xl">
                 <header className="sticky top-0 z-20 -mx-6 -mt-6 mb-6 border-b border-[#2a2a2a] bg-[#1a1a1a]/95 px-6 py-3 backdrop-blur">
                     <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
@@ -195,7 +195,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                 ) : null}
 
                 <section className="mt-6 grid gap-4 sm:grid-cols-3">
-                        <article className="flex flex-col rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
+                        <article className="flex flex-col rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20 transition hover:border-[#ffa116]/40 hover:shadow-[0_0_35px_-8px_rgba(255,161,22,0.28)]">
                             <div className="flex items-start justify-between gap-3">
                                 <div>
                                     <p className="text-sm font-medium text-[#a3a3a3]">Lobby</p>
@@ -268,7 +268,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                             activeDaysCount={dashboardData?.active_days_count ?? 0}
                         />
 
-                        <article className="flex flex-col rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
+                        <article className="flex flex-col rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20 transition hover:border-[#ffa116]/40 hover:shadow-[0_0_35px_-8px_rgba(255,161,22,0.28)]">
                             <div className="flex items-start justify-between gap-4">
                                 <div>
                                     <p className="text-sm font-medium text-[#a3a3a3]">

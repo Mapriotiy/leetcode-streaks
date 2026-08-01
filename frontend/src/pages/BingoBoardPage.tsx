@@ -167,7 +167,7 @@ export function BingoBoardPage({ lobbyId, currentUserId, players, factions, onBa
     const totalClaimed = cells.filter((cell) => cell.claimed_by).length;
 
     return (
-        <main className="min-h-screen bg-[#1a1a1a] p-6 text-white">
+        <main className="min-h-screen bg-transparent p-6 text-white">
             <div className="mx-auto max-w-7xl">
                 <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4">

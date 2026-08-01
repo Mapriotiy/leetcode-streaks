@@ -19,6 +19,7 @@ type ProvinceMapProps = {
     captured: Map<string, string>;
     onSelect: (id: string, pos: { x: number; y: number }) => void;
     highlightedProvinces: string[] | null;
+    bursts?: Map<string, string>;
 };
 
 function parseScale(transform: string | null): number {
@@ -95,7 +96,7 @@ function resolveCaptureColor(owner: string | undefined): string | null {
     return COLORS[owner] ?? owner;
 }
 
-export default function ProvinceMap({ captured, onSelect, highlightedProvinces }: ProvinceMapProps) {
+export default function ProvinceMap({ captured, onSelect, highlightedProvinces, bursts }: ProvinceMapProps) {
     const svgWrapRef = useRef<HTMLDivElement>(null);
     const markersRef = useRef<Map<string, Marker>>(new Map());
     const pathStylesRef = useRef<Map<string, string>>(new Map());
@@ -180,6 +181,24 @@ export default function ProvinceMap({ captured, onSelect, highlightedProvinces }
             }
         });
     }, [captured]);
+
+    useEffect(() => {
+        const svg = svgWrapRef.current?.querySelector('svg');
+        if (!svg) return;
+
+        bursts?.forEach((color, id) => {
+            const marker = markersRef.current.get(id);
+            if (!marker) return;
+            const ring = document.createElementNS(SVGNS, 'circle');
+            ring.setAttribute('r', String(R));
+            ring.setAttribute('fill', 'none');
+            ring.setAttribute('stroke', color);
+            ring.setAttribute('stroke-width', '2.5');
+            ring.classList.add('capture-burst');
+            marker.g.appendChild(ring);
+            ring.addEventListener('animationend', () => ring.remove(), { once: true });
+        });
+    }, [bursts]);
 
     useEffect(() => {
         const svg = svgWrapRef.current?.querySelector('svg');

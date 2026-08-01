@@ -32,7 +32,7 @@ export function AuthPage({ initialError = null, onClearError }: AuthPageProps) {
     }
 
     return (
-        <main className="min-h-screen bg-[#1a1a1a] text-white">
+        <main className="min-h-screen bg-transparent text-white">
             <div className="mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center px-6 py-10">
                 <section className="w-full max-w-md rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
                     <div className="mb-6">

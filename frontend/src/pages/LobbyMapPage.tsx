@@ -1,7 +1,8 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { ArrowLeft, LogOut } from 'lucide-react';
 import ProvinceMap from '../components/ProvinceMap';
 import ProvincePopup from '../components/ProvincePopup';
+import { WinnerOverlay } from '../components/WinnerOverlay';
 import { EventLogPanel } from '../components/map/EventLogPanel';
 import { MapLegend } from '../components/map/MapLegend';
 import { REGIONS } from '../mapRegions';
@@ -118,6 +119,9 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
     const [powerups, setPowerups] = useState<Record<number, Record<string, number>>>({});
     const [powerupError, setPowerupError] = useState<string | null>(null);
     const [armedPowerup, setArmedPowerup] = useState<PowerUpKind | null>(null);
+    const [bursts, setBursts] = useState<Map<string, string>>(new Map());
+    const prevOwnersRef = useRef<Map<string, number | null>>(new Map());
+    const loadedRef = useRef(false);
 
     useEffect(() => {
         setMapSelection({ kind: 'default' });
@@ -195,16 +199,56 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
         [mapSelection],
     );
 
+    const ownerColor = useCallback((userId: number | null): string | undefined => {
+        if (!userId) return undefined;
+        const fid = factionByPlayer.get(userId) ?? 0;
+        const faction = factionById.get(fid);
+        if (faction) return faction.color;
+        if (fid > 0 && fid <= FACTION_COLORS.length) return FACTION_COLORS[fid - 1];
+        return '#888888';
+    }, [factionByPlayer, factionById]);
+
     const applyMapData = useCallback((data: MapApiResponse) => {
         const serverSelection = normalizeLobbyMapSelection(data.map_selection);
         setMapSelection(serverSelection);
         writeLobbyMapSelection(lobbyId, serverSelection);
         if (data.provinces.length > 0) setProvincesData(data.provinces);
+
+        const nowOwners = new Map<string, number | null>();
+        const nextBursts: Array<[string, string]> = [];
+        for (const p of data.provinces) {
+            nowOwners.set(p.province_id, p.captured_by);
+            if (!loadedRef.current) continue;
+            const prev = prevOwnersRef.current.get(p.province_id);
+            if (p.captured_by != null && p.captured_by !== prev) {
+                const color = ownerColor(p.captured_by);
+                if (color) nextBursts.push([p.province_id, color]);
+            }
+        }
+        prevOwnersRef.current = nowOwners;
+        loadedRef.current = true;
+
+        if (nextBursts.length > 0) {
+            setBursts((prev) => {
+                const next = new Map(prev);
+                for (const [id, color] of nextBursts) next.set(id, color);
+                return next;
+            });
+            const ids = nextBursts.map(([id]) => id);
+            window.setTimeout(() => {
+                setBursts((prev) => {
+                    const next = new Map(prev);
+                    for (const id of ids) next.delete(id);
+                    return next;
+                });
+            }, 1000);
+        }
+
         setScoreEntries(data.score ?? []);
         setGameStatus(data.status);
         setWinner(data.winner ?? null);
         setPowerups(data.powerups ?? {});
-    }, [lobbyId]);
+    }, [lobbyId, ownerColor]);
 
     const loadMap = useCallback(async () => {
         try {
@@ -380,6 +424,18 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
         selectedProvinceData?.fortified_until != null &&
         new Date(selectedProvinceData.fortified_until).getTime() > Date.now();
 
+    const winnerAccent = useMemo(() => {
+        if (!winner) return '#ffa116';
+        if (winner.winner_faction_id != null) {
+            return factionById.get(winner.winner_faction_id)?.color ?? '#ffa116';
+        }
+        if (winner.winner_user_id != null) {
+            const fid = factionByPlayer.get(winner.winner_user_id) ?? 0;
+            return factionById.get(fid)?.color ?? FACTION_COLORS[fid - 1] ?? '#ffa116';
+        }
+        return '#ffa116';
+    }, [winner, factionById, factionByPlayer]);
+
     const neutralCount = displayedProvincesData.filter((p) => !p.captured_by).length;
     const totalCount = displayedProvincesData.length;
     const scoreRows = scoreEntries.map((entry) => {
@@ -400,7 +456,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
     });
 
     return (
-        <main className="min-h-screen bg-[#1a1a1a] p-6 text-white">
+        <main className="min-h-screen bg-transparent p-6 text-white">
             <div className="mx-auto max-w-7xl">
                 <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4">
@@ -505,7 +561,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                 </section>
 
                 <div className="mt-6 flex items-stretch gap-6">
-                    <section className="relative min-w-0 flex-1 overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#262626] p-4 shadow-xl shadow-black/20">
+                    <section className="relative min-w-0 flex-1 overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#262626] p-4 shadow-xl shadow-black/20 transition hover:border-[#00d9ff]/25 hover:shadow-[0_0_35px_-8px_rgba(0,217,255,0.2)]">
                         {loading ? (
                             <div className="flex items-center justify-center py-20 text-[#8a8a8a]">Loading map...</div>
                         ) : (
@@ -522,12 +578,14 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                                             captured={captured}
                                             onSelect={handleSelect}
                                             highlightedProvinces={hoveredProvinces}
+                                            bursts={bursts}
                                         />
                                     ) : (
                                         <ProvinceMap
                                             captured={captured}
                                             onSelect={handleSelect}
                                             highlightedProvinces={hoveredProvinces}
+                                            bursts={bursts}
                                         />
                                     )}
 
@@ -594,6 +652,15 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                     fortified={selectedFortified}
                     onClose={handleClose}
                 />
+
+                {gameStatus === 'finished' && winner ? (
+                    <WinnerOverlay
+                        winnerLabel={winner.label}
+                        youWon={winner.winner_user_id === currentUserId}
+                        accentColor={winnerAccent}
+                        onReplay={onBack}
+                    />
+                ) : null}
             </div>
         </main>
     );

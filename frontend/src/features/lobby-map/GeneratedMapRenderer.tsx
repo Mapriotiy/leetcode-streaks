@@ -6,7 +6,6 @@ import {
     useState,
     type CSSProperties,
     type PointerEvent,
-    type WheelEvent,
 } from "react";
 import { MAP_ASPECT_RATIO, mapAssetUrl } from "./assets";
 import type { GeneratedMapDraft, GeneratedMapIsland } from "./types";
@@ -15,6 +14,7 @@ type GeneratedMapRendererProps = {
     draft: GeneratedMapDraft;
     captured?: Map<string, string>;
     highlightedProvinces?: string[] | null;
+    bursts?: Map<string, string>;
     onSelect?: (id: string, pos: { x: number; y: number }) => void;
     className?: string;
     showBack?: boolean;
@@ -286,6 +286,7 @@ export function GeneratedMapRenderer({
     draft,
     captured = new Map(),
     highlightedProvinces = null,
+    bursts = new Map(),
     onSelect,
     className = "",
     showBack = true,
@@ -302,9 +303,11 @@ export function GeneratedMapRenderer({
     const [loadError, setLoadError] = useState<string | null>(null);
     const [zoom, setZoom] = useState(() => clampZoom(initialZoom, minZoom, maxZoom));
     const [pan, setPan] = useState({ x: 0, y: 0 });
+    const rootRef = useRef<HTMLDivElement | null>(null);
     const dragRef = useRef<DragState | null>(null);
     const activePointersRef = useRef<Map<number, PointerPoint>>(new Map());
     const pinchRef = useRef<PinchState | null>(null);
+    const wheelHandlerRef = useRef<(event: globalThis.WheelEvent) => void>(() => {});
 
     useEffect(() => {
         let cancelled = false;
@@ -372,11 +375,21 @@ export function GeneratedMapRenderer({
         setPan({ x: 0, y: 0 });
     }
 
-    function handleWheel(event: WheelEvent<HTMLDivElement>) {
-        if (!zoomable) return;
-        event.preventDefault();
-        updateZoom(zoom + (event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP));
-    }
+    useEffect(() => {
+        wheelHandlerRef.current = (event: globalThis.WheelEvent) => {
+            if (!zoomable) return;
+            event.preventDefault();
+            updateZoom(zoom + (event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP));
+        };
+    });
+
+    useEffect(() => {
+        const root = rootRef.current;
+        if (!root || !zoomable) return;
+        const onWheel = (event: globalThis.WheelEvent) => wheelHandlerRef.current(event);
+        root.addEventListener("wheel", onWheel, { passive: false });
+        return () => root.removeEventListener("wheel", onWheel);
+    }, [zoomable]);
 
     function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
         if (!zoomable || event.button !== 0) return;
@@ -513,7 +526,7 @@ export function GeneratedMapRenderer({
                 zoomable ? "touch-none select-none" : ""
             } ${className}`}
             style={rootStyle}
-            onWheel={handleWheel}
+            ref={rootRef}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
@@ -636,6 +649,17 @@ export function GeneratedMapRenderer({
                                                 <span className="generated-map-marker-dot" />
                                             )}
                                         </span>
+                                        {bursts?.has(marker.provinceId) ? (
+                                            <span
+                                                className="generated-map-capture-burst"
+                                                style={
+                                                    {
+                                                        "--burst-color":
+                                                            bursts.get(marker.provinceId) ?? marker.color ?? "#ffffff",
+                                                    } as CSSProperties
+                                                }
+                                            />
+                                        ) : null}
                                     </span>
                                 ))}
                             </div>
@@ -749,6 +773,32 @@ function GeneratedMapStyles() {
                         inset 0 0 0 2px rgba(255, 255, 255, 0.06),
                         0 0 0 2px rgba(0, 0, 0, 0.28),
                         0 0 10px color-mix(in srgb, var(--generated-marker-color) 55%, transparent);
+                }
+
+                .generated-map-capture-burst {
+                    position: absolute;
+                    left: 50%;
+                    top: 50%;
+                    width: 14px;
+                    height: 14px;
+                    margin-left: -7px;
+                    margin-top: -7px;
+                    border-radius: 999px;
+                    border: 2px solid var(--burst-color);
+                    box-shadow: 0 0 14px var(--burst-color);
+                    animation: generated-map-capture-burst 0.85s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+                    pointer-events: none;
+                }
+
+                @keyframes generated-map-capture-burst {
+                    0% {
+                        transform: scale(0.5);
+                        opacity: 0.95;
+                    }
+                    100% {
+                        transform: scale(4);
+                        opacity: 0;
+                    }
                 }
 
                 .generated-map-marker-dot {

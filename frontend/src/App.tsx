@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { apiRequest } from "./api/client";
 import { clearCache } from "./api/localCache";
 import { InviteModal } from "./components/InviteModal";
+import { Background } from "./components/Background";
 import { AuthPage } from "./pages/AuthPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LobbyPage } from "./pages/LobbyPage";
@@ -27,7 +28,12 @@ const processedOAuthStates = new Set<string>();
 
 export default function App() {
     const isMapTest = new URLSearchParams(window.location.search).get("mapTest") === "1";
-    return isMapTest ? <MapTestPage /> : <MainApp />;
+    return (
+        <>
+            <Background />
+            {isMapTest ? <MapTestPage /> : <MainApp />}
+        </>
+    );
 }
 
 function MainApp() {
@@ -144,7 +150,7 @@ function MainApp() {
 
     if (isLoadingSession) {
         return sessionStalled ? (
-            <main className="min-h-screen bg-[#1a1a1a] p-6 text-white">
+            <main className="min-h-screen bg-transparent p-6 text-white">
                 Loading...
             </main>
         ) : null;
