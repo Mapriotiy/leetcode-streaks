@@ -127,11 +127,6 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                         <div className="flex items-center gap-3">
                             {isLeetcodeLinked ? (
                                 <div className="hidden items-center gap-1.5 sm:flex">
-                                    <FriendFlame
-                                        count={dashboardData?.current_streak ?? 0}
-                                        state={currentStreakState}
-                                        size="xs"
-                                    />
                                     <span
                                         className={`text-xs ${
                                             isCurrentStreakLit ? "text-[#ffa116]" : "text-[#8a8a8a]"
@@ -139,6 +134,11 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                                     >
                                         {currentStreakHint}
                                     </span>
+                                    <FriendFlame
+                                        count={dashboardData?.current_streak ?? 0}
+                                        state={currentStreakState}
+                                        size="xs"
+                                    />
                                 </div>
                             ) : null}
 
