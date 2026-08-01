@@ -24,3 +24,4 @@ class LobbyMapProvince(Base):
     capturer_leetcode_username: Mapped[str | None] = mapped_column(String, nullable=True)
     first_captured_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     first_captured_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    fortified_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

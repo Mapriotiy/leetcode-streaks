@@ -36,6 +36,7 @@ from app.services.lobby_settings import (
     team_by_user,
 )
 from app.services.map_config import PROVINCE_REGION, REGION_NAMES, REGION_TOPICS
+from app.services.powerups import grant_region_powerup, is_fortified, powerup_counts
 from app.services.problem_picker import pick_problem
 from app.services.problem_catalog import get_problems_by_tags
 from app.services.scoring import (
@@ -101,6 +102,7 @@ class TerritoryMode(GameMode):
             since=lobby.started_at or lobby.created_at,
             tiebreak_order=[u.id for _, u in players],
             team_by_user=teams,
+            blocked_recapture_ids={p.province_id for p in provinces if is_fortified(p)},
         )
         if changes:
             db.commit()
@@ -109,6 +111,9 @@ class TerritoryMode(GameMode):
 
         if changes:
             control_after = region_control_by_team(provinces, teams)
+            _grant_region_powerups(
+                lobby, provinces, players, teams, control_before, control_after, changes, db,
+            )
             all_changes = changes + region_control_changes(
                 provinces, changes, control_before, control_after,
             )
@@ -169,6 +174,7 @@ class TerritoryMode(GameMode):
             "map_selection": _active_map_selection(lmap),
             "provinces": [_build_province(p, problems, users) for p in provinces],
             "score": _score_entries(lobby, provinces, players, problems),
+            "powerups": {lp.user_id: powerup_counts(lp) for lp, _ in players},
         }
 
 
@@ -406,7 +412,49 @@ def _build_province(p: LobbyMapProvince, problems: dict, users: dict) -> LobbyMa
         captured_submission_url=p.captured_submission_url,
         capturer_leetcode_username=p.capturer_leetcode_username,
         first_captured_by=p.first_captured_by,
+        fortified_until=p.fortified_until,
     )
+
+
+def _grant_region_powerups(
+    lobby: Lobby,
+    provinces: list[LobbyMapProvince],
+    players: Players,
+    teams: dict[int, int],
+    control_before: dict[str, int],
+    control_after: dict[str, int],
+    changes,
+    db: Session,
+) -> None:
+    """Grant a power-up to the player who completes a region, once per region."""
+    lp_by_user = {lp.user_id: lp for lp, _ in players}
+    for region_id, team in control_after.items():
+        if control_before.get(region_id) == team:
+            continue
+        actor_id = next(
+            (
+                change.actor_user_id
+                for change in changes
+                if change.province.region_id == region_id
+                and teams.get(change.actor_user_id) == team
+            ),
+            None,
+        )
+        if actor_id is None:
+            actor_id = next(
+                (
+                    province.captured_by
+                    for province in provinces
+                    if province.region_id == region_id
+                    and province.captured_by
+                    and teams.get(province.captured_by) == team
+                ),
+                None,
+            )
+        if actor_id is None or actor_id not in lp_by_user:
+            continue
+        if grant_region_powerup(lp_by_user[actor_id], region_id):
+            db.commit()
 
 
 def _score_entries(

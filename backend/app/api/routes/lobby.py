@@ -15,6 +15,7 @@ from app.models.lobby import Lobby
 from app.models.lobby_player import LobbyPlayer
 from app.models.lobby_invite import LobbyInvite
 from app.models.lobby_map import LobbyMap
+from app.models.lobby_map_province import LobbyMapProvince
 from app.models.user import User
 from app.schemas.lobby import (
     CreateLobbyRequest,
@@ -43,6 +44,15 @@ from app.services.lobby_settings import (
     utcnow,
 )
 from app.services.leetcode_sync import finish_lobby_sync, maybe_enter_lobby_sync
+from app.services.lobby_settings import team_by_user
+from app.services.powerups import (
+    consume_powerup,
+    fortify_province,
+    has_powerup,
+    is_fortified,
+    reroll_province,
+    siege_province,
+)
 from app.services.problem_catalog import catalog_problem_count, catalog_has_minimum
 
 logger = logging.getLogger(__name__)
@@ -496,6 +506,126 @@ async def sync_game(lobby_id: int, current_user: User = Depends(get_current_user
 
     payload["sync"] = finish_lobby_sync(lobby.id, db)
     return payload
+
+
+# ── Power-ups ──
+
+
+def _require_powerup_lobby(lobby_id: int, db: Session) -> Lobby:
+    lobby = db.get(Lobby, lobby_id)
+    if not lobby:
+        raise HTTPException(404, "Lobby not found")
+    if lobby.status != "active":
+        raise HTTPException(409, "Game is not active")
+    if lobby.game_mode not in ("free_for_all", "team_battle"):
+        raise HTTPException(400, "Power-ups are only available in territory games")
+    return lobby
+
+
+def _get_lobby_province(lobby_id: int, province_id: str, db: Session) -> LobbyMapProvince:
+    province = (
+        db.query(LobbyMapProvince)
+        .join(LobbyMap, LobbyMapProvince.lobby_map_id == LobbyMap.id)
+        .filter(LobbyMap.lobby_id == lobby_id, LobbyMapProvince.province_id == province_id)
+        .first()
+    )
+    if not province:
+        raise HTTPException(404, "Province not found")
+    return province
+
+
+def _require_powerup(lobby: Lobby, player: LobbyPlayer, powerup_type: str) -> None:
+    if not has_powerup(player, powerup_type):
+        raise HTTPException(409, f"No {powerup_type} power-up available")
+
+
+def _game_payload(lobby: Lobby, db: Session) -> dict:
+    players = ordered_players(lobby.id, db)
+    return get_mode(lobby.game_mode).get_state(lobby, players, db)
+
+
+@router.post("/{lobby_id}/provinces/{province_id}/reroll")
+def reroll_province_endpoint(
+    lobby_id: int,
+    province_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    lobby = _require_powerup_lobby(lobby_id, db)
+    players = ordered_players(lobby.id, db)
+    _require_lobby_member(lobby, current_user.id, db)
+    player = next((lp for lp, _ in players if lp.user_id == current_user.id), None)
+    if player is None:
+        raise HTTPException(403, "You are not in this lobby")
+    _require_powerup(lobby, player, "reroll")
+
+    province = _get_lobby_province(lobby_id, province_id, db)
+    if province.captured_by is not None and province.captured_by != current_user.id:
+        raise HTTPException(409, "You can only reroll a free province or your own")
+
+    if reroll_province(province, current_user.id, db) is None:
+        raise HTTPException(400, "No suitable problem to reroll into")
+
+    consume_powerup(player, "reroll")
+    db.commit()
+    return _game_payload(lobby, db)
+
+
+@router.post("/{lobby_id}/provinces/{province_id}/fortify")
+def fortify_province_endpoint(
+    lobby_id: int,
+    province_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    lobby = _require_powerup_lobby(lobby_id, db)
+    players = ordered_players(lobby.id, db)
+    _require_lobby_member(lobby, current_user.id, db)
+    player = next((lp for lp, _ in players if lp.user_id == current_user.id), None)
+    if player is None:
+        raise HTTPException(403, "You are not in this lobby")
+    _require_powerup(lobby, player, "fortify")
+
+    province = _get_lobby_province(lobby_id, province_id, db)
+    if province.captured_by is None:
+        raise HTTPException(409, "Cannot fortify a free province")
+    teams = team_by_user(lobby, players)
+    if teams.get(province.captured_by) != teams.get(current_user.id):
+        raise HTTPException(403, "You can only fortify your own province")
+    if is_fortified(province):
+        raise HTTPException(409, "Province is already fortified")
+
+    fortify_province(province)
+    consume_powerup(player, "fortify")
+    db.commit()
+    return _game_payload(lobby, db)
+
+
+@router.post("/{lobby_id}/provinces/{province_id}/siege")
+def siege_province_endpoint(
+    lobby_id: int,
+    province_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    lobby = _require_powerup_lobby(lobby_id, db)
+    players = ordered_players(lobby.id, db)
+    _require_lobby_member(lobby, current_user.id, db)
+    player = next((lp for lp, _ in players if lp.user_id == current_user.id), None)
+    if player is None:
+        raise HTTPException(403, "You are not in this lobby")
+    _require_powerup(lobby, player, "siege")
+
+    province = _get_lobby_province(lobby_id, province_id, db)
+    if province.captured_by is not None:
+        raise HTTPException(409, "Siege can only target a free province")
+
+    if siege_province(province, current_user.id, db) is None:
+        raise HTTPException(400, "No suitable easier problem available")
+
+    consume_powerup(player, "siege")
+    db.commit()
+    return _game_payload(lobby, db)
 
 
 @router.get("/{lobby_id}/events", response_model=list[LobbyEventResponse])

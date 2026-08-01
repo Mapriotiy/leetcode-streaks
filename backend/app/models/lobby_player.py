@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import DateTime, ForeignKey, Integer, String, PrimaryKeyConstraint
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, PrimaryKeyConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 
@@ -17,3 +17,5 @@ class LobbyPlayer(Base):
     faction_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(String, nullable=False, default="accepted")
     joined_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    powerups: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    granted_regions: Mapped[list | None] = mapped_column(JSON, nullable=True)

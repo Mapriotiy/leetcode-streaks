@@ -89,6 +89,7 @@ class LobbyMapProvinceResponse(BaseModel):
     captured_submission_url: Optional[str] = None
     capturer_leetcode_username: Optional[str] = None
     first_captured_by: Optional[int] = None
+    fortified_until: Optional[datetime] = None
 
 
 class WinnerInfo(BaseModel):

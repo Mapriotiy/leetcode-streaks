@@ -77,12 +77,14 @@ def apply_capture_pass(
     since: datetime,
     tiebreak_order: list[int],
     team_by_user: dict[int, int] | None = None,
+    blocked_recapture_ids: set[str] = frozenset(),
 ) -> list[CaptureChange]:
     """Pure capture/defense/recapture pass over province rows.
 
     Mutates the given provinces in place and returns the changes; committing
     is the caller's job. With team_by_user=None every player is their own
-    team (free-for-all).
+    team (free-for-all). Provinces whose id is in blocked_recapture_ids keep
+    their owner (defense still updates the bar) but cannot be stolen.
     """
     since = _naive_utc(since)
     if team_by_user is None:
@@ -148,6 +150,9 @@ def apply_capture_pass(
                         previous_runtime_ms=previous_runtime,
                     )
                 )
+
+            if province.province_id in blocked_recapture_ids:
+                continue
 
             challenger_id = _pick_fastest(
                 rows, rank,
