@@ -15,6 +15,7 @@ type GeneratedMapRendererProps = {
     captured?: Map<string, string>;
     highlightedProvinces?: string[] | null;
     bursts?: Map<string, string>;
+    fortified?: Set<string>;
     onSelect?: (id: string, pos: { x: number; y: number }) => void;
     className?: string;
     showBack?: boolean;
@@ -287,6 +288,7 @@ export function GeneratedMapRenderer({
     captured = new Map(),
     highlightedProvinces = null,
     bursts = new Map(),
+    fortified = new Set(),
     onSelect,
     className = "",
     showBack = true,
@@ -660,6 +662,16 @@ export function GeneratedMapRenderer({
                                                 }
                                             />
                                         ) : null}
+                                        {fortified?.has(marker.provinceId) ? (
+                                            <span className="generated-map-fortify" aria-label="fortified">
+                                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" aria-hidden="true">
+                                                    <path
+                                                        d="M11.302 21.6149C11.5234 21.744 11.6341 21.8086 11.7903 21.8421C11.9116 21.8681 12.0884 21.8681 12.2097 21.8421C12.3659 21.8086 12.4766 21.744 12.698 21.6149C14.646 20.4784 20 16.9084 20 12V6.6C20 6.04207 20 5.7631 19.8926 5.55048C19.7974 5.36198 19.6487 5.21152 19.4613 5.11409C19.25 5.00419 18.9663 5.00084 18.3988 4.99413C15.4272 4.95899 13.7136 4.71361 12 3C10.2864 4.71361 8.57279 4.95899 5.6012 4.99413C5.03373 5.00084 4.74999 5.00419 4.53865 5.11409C4.35129 5.21152 4.20259 5.36198 4.10739 5.55048C4 5.7631 4 6.04207 4 6.6V12C4 16.9084 9.35396 20.4784 11.302 21.6149Z"
+                                                        fill="currentColor"
+                                                    />
+                                                </svg>
+                                            </span>
+                                        ) : null}
                                     </span>
                                 ))}
                             </div>
@@ -799,6 +811,19 @@ function GeneratedMapStyles() {
                         transform: scale(4);
                         opacity: 0;
                     }
+                }
+
+                .generated-map-fortify {
+                    position: absolute;
+                    top: -11px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    display: grid;
+                    place-items: center;
+                    color: #ffa116;
+                    filter: drop-shadow(0 0 4px rgba(255, 161, 22, 0.9));
+                    animation: fortify-shimmer 1.5s ease-in-out infinite;
+                    pointer-events: none;
                 }
 
                 .generated-map-marker-dot {

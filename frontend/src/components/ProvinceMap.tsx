@@ -20,6 +20,7 @@ type ProvinceMapProps = {
     onSelect: (id: string, pos: { x: number; y: number }) => void;
     highlightedProvinces: string[] | null;
     bursts?: Map<string, string>;
+    fortified?: Set<string>;
 };
 
 function parseScale(transform: string | null): number {
@@ -96,7 +97,7 @@ function resolveCaptureColor(owner: string | undefined): string | null {
     return COLORS[owner] ?? owner;
 }
 
-export default function ProvinceMap({ captured, onSelect, highlightedProvinces, bursts }: ProvinceMapProps) {
+export default function ProvinceMap({ captured, onSelect, highlightedProvinces, bursts, fortified }: ProvinceMapProps) {
     const svgWrapRef = useRef<HTMLDivElement>(null);
     const markersRef = useRef<Map<string, Marker>>(new Map());
     const pathStylesRef = useRef<Map<string, string>>(new Map());
@@ -199,6 +200,32 @@ export default function ProvinceMap({ captured, onSelect, highlightedProvinces, 
             ring.addEventListener('animationend', () => ring.remove(), { once: true });
         });
     }, [bursts]);
+
+    useEffect(() => {
+        const svg = svgWrapRef.current?.querySelector('svg');
+        if (!svg) return;
+
+        svg.querySelectorAll<SVGPathElement>('.prov').forEach((path) => {
+            const marker = markersRef.current.get(path.id);
+            if (!marker) return;
+            const isFortified = fortified?.has(path.id) ?? false;
+            const existing = marker.g.querySelector('.fortify-shield');
+            if (isFortified && !existing) {
+                const shield = document.createElementNS(SVGNS, 'path');
+                shield.setAttribute(
+                    'd',
+                    'M0 -12 L3.2 -10.5 L3.2 -6.8 C3.2 -4.2 1.7 -2.6 0 -1.6 C-1.7 -2.6 -3.2 -4.2 -3.2 -6.8 L-3.2 -10.5 Z',
+                );
+                shield.setAttribute('fill', '#ffa116');
+                shield.setAttribute('stroke', '#3a2a08');
+                shield.setAttribute('stroke-width', '0.3');
+                shield.classList.add('fortify-shield');
+                marker.g.appendChild(shield);
+            } else if (!isFortified && existing) {
+                existing.remove();
+            }
+        });
+    }, [fortified]);
 
     useEffect(() => {
         const svg = svgWrapRef.current?.querySelector('svg');

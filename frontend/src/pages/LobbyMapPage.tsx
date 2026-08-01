@@ -424,6 +424,20 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
         selectedProvinceData?.fortified_until != null &&
         new Date(selectedProvinceData.fortified_until).getTime() > Date.now();
 
+    const fortifiedIds = useMemo(
+        () =>
+            new Set(
+                displayedProvincesData
+                    .filter(
+                        (p) =>
+                            p.fortified_until != null &&
+                            new Date(p.fortified_until).getTime() > Date.now(),
+                    )
+                    .map((p) => p.province_id),
+            ),
+        [displayedProvincesData],
+    );
+
     const winnerAccent = useMemo(() => {
         if (!winner) return '#ffa116';
         if (winner.winner_faction_id != null) {
@@ -579,6 +593,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                                             onSelect={handleSelect}
                                             highlightedProvinces={hoveredProvinces}
                                             bursts={bursts}
+                                            fortified={fortifiedIds}
                                         />
                                     ) : (
                                         <ProvinceMap
@@ -586,6 +601,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                                             onSelect={handleSelect}
                                             highlightedProvinces={hoveredProvinces}
                                             bursts={bursts}
+                                            fortified={fortifiedIds}
                                         />
                                     )}
 

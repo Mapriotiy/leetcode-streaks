@@ -52,6 +52,12 @@ export default function ProvincePopup({
                 : "Enemy's"
               : 'Free';
 
+    const earnedPoints =
+        owner === 'player'
+            ? flagPoints(problem?.difficulty ?? '') +
+              (firstCaptureOwner === 'player' ? firstCaptureBonus(problem?.difficulty) : 0)
+            : 0;
+
     return (
         <div className="fixed inset-0 z-50" onClick={onClose}>
             <div
@@ -64,6 +70,14 @@ export default function ProvincePopup({
                 }}
                 onClick={(e) => e.stopPropagation()}
             >
+                {owner === 'player' && earnedPoints > 0 ? (
+                    <span
+                        key={provinceId}
+                        className="point-pop pointer-events-none absolute -top-4 right-4 text-lg font-extrabold text-[#2bff88]"
+                    >
+                        +{earnedPoints}
+                    </span>
+                ) : null}
                 <div className="flex items-center justify-between mb-2">
                     <h3 className="text-white text-sm font-semibold">
                         {provinceName || PROVINCE_NAMES[provinceId] || provinceId}
