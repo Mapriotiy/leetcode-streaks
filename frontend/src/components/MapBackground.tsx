@@ -6,9 +6,9 @@ const OVERLAYS = [
 ].join(', ');
 
 /**
- * Ambient mirrored map backdrop: both halves mirror the map's outer edge to
- * the screen center, so a clean ocean seam forms in the middle while land
- * spreads to the screen edges. Gradient overlays keep content readable.
+ * Ambient map backdrop: the image's right half (inverted) fills the left
+ * screen half, the image's left half (uninverted) fills the right screen half.
+ * Gradient overlays keep content readable.
  */
 export function MapBackground() {
     return (
@@ -23,6 +23,7 @@ export function MapBackground() {
                     backgroundImage: MAP_BG,
                     backgroundSize: 'cover',
                     backgroundPosition: 'right center',
+                    transform: 'scaleX(-1)',
                 }}
             />
             <div
@@ -30,8 +31,7 @@ export function MapBackground() {
                 style={{
                     backgroundImage: MAP_BG,
                     backgroundSize: 'cover',
-                    backgroundPosition: 'right center',
-                    transform: 'scaleX(-1)',
+                    backgroundPosition: 'left center',
                 }}
             />
             <div className="absolute inset-0" style={{ backgroundImage: OVERLAYS }} />
