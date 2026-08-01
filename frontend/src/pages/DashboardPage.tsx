@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Gamepad2, Link2, UserCircle } from "lucide-react";
+import { Flame, Gamepad2, Link2, UserCircle } from "lucide-react";
 import { apiRequest } from "../api/client";
 import { dashboardCacheKey, readCache, writeCache } from "../api/localCache";
 import { ActivityCalendar } from "../components/dashboard/ActivityCalendar";
@@ -113,51 +113,63 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
     return (
         <main className="min-h-screen bg-[#1a1a1a] p-6 text-white">
             <div className="mx-auto max-w-5xl">
-                <header className="flex flex-col gap-4 rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full border border-[#3a3a3a] bg-[#333333] text-[#b3b3b3]">
-                            {(dashboardData?.avatar_url ?? user.avatar_url) ? (
-                                <img
-                                    src={dashboardData?.avatar_url ?? user.avatar_url ?? ""}
-                                    alt=""
-                                    className="h-full w-full object-cover"
-                                />
-                            ) : (
-                                <UserCircle size={30} strokeWidth={1.8} />
-                            )}
+                <header className="sticky top-0 z-20 -mx-6 -mt-6 mb-6 border-b border-[#2a2a2a] bg-[#1a1a1a]/95 px-6 py-3 backdrop-blur">
+                    <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
+                        <div className="flex items-center gap-2.5">
+                            <span className="grid h-9 w-9 place-items-center rounded-lg border border-[#3a3a3a] bg-[#262626] text-[#ffa116]">
+                                <Flame size={18} strokeWidth={2.2} />
+                            </span>
+                            <span className="text-lg font-bold tracking-tight text-[#eff1f6]">
+                                MapCode
+                            </span>
                         </div>
 
                         <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-semibold tracking-tight">
-                                {headerName}
-                            </h1>
                             {isLeetcodeLinked ? (
-                                <>
+                                <div className="hidden items-center gap-1.5 sm:flex">
                                     <FriendFlame
                                         count={dashboardData?.current_streak ?? 0}
                                         state={currentStreakState}
                                         size="xs"
                                     />
                                     <span
-                                        className={`ml-2 text-xs ${
+                                        className={`text-xs ${
                                             isCurrentStreakLit ? "text-[#ffa116]" : "text-[#8a8a8a]"
                                         }`}
                                     >
                                         {currentStreakHint}
                                     </span>
-                                </>
+                                </div>
                             ) : null}
-                        </div>
-                    </div>
 
-                    <div className="flex items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={onLogout}
-                            className="rounded-md border border-[#4a4a4a] bg-[#333333] px-4 py-2 text-sm font-medium text-[#d7d7d7] transition hover:bg-[#3d3d3d]"
-                        >
-                            Logout
-                        </button>
+                            <div className="flex items-center gap-2.5">
+                                <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full border border-[#3a3a3a] bg-[#333333] text-[#b3b3b3]">
+                                    {(dashboardData?.avatar_url ?? user.avatar_url) ? (
+                                        <img
+                                            src={dashboardData?.avatar_url ?? user.avatar_url ?? ""}
+                                            alt=""
+                                            className="h-full w-full object-cover"
+                                        />
+                                    ) : (
+                                        <UserCircle size={22} strokeWidth={1.8} />
+                                    )}
+                                </div>
+
+                                <div className="max-w-[10rem] leading-tight">
+                                    <p className="truncate text-sm font-semibold text-[#eff1f6]">
+                                        {headerName}
+                                    </p>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={onLogout}
+                                    className="rounded-md border border-[#4a4a4a] bg-[#333333] px-3 py-1.5 text-sm font-medium text-[#d7d7d7] transition hover:bg-[#3d3d3d]"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </header>
 
