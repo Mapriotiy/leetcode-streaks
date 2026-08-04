@@ -43,6 +43,34 @@ const LANGUAGE_LABELS: Record<string, string> = {
     rust: "Rust",
 };
 
+function SkeletonBlock({ className = "" }: { className?: string }) {
+    return <div className={`animate-pulse rounded-md bg-[#2a2a2a] ${className}`} />;
+}
+
+function DashboardSkeleton() {
+    return (
+        <section className="mt-6 grid gap-4 sm:grid-cols-3">
+            <div className="flex flex-col gap-3 rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
+                <SkeletonBlock className="h-4 w-20" />
+                <SkeletonBlock className="h-3 w-32" />
+                <SkeletonBlock className="mt-3 h-12 w-full" />
+                <SkeletonBlock className="h-12 w-full" />
+                <SkeletonBlock className="h-9 w-32" />
+            </div>
+            <div className="rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
+                <SkeletonBlock className="h-4 w-24" />
+                <SkeletonBlock className="mt-4 h-40 w-full" />
+            </div>
+            <div className="flex flex-col gap-3 rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
+                <SkeletonBlock className="h-4 w-24" />
+                <SkeletonBlock className="mt-3 h-12 w-full" />
+                <SkeletonBlock className="h-12 w-full" />
+                <SkeletonBlock className="h-12 w-full" />
+            </div>
+        </section>
+    );
+}
+
 export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkChanged, onOpenAdmin }: DashboardPageProps) {
     // Seed from the last-seen dashboard so returning to the menu paints instantly
     // instead of showing the "Loading dashboard..." placeholder (issue #1).
@@ -207,6 +235,9 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                     </div>
                 ) : null}
 
+                {!dashboardData ? (
+                    <DashboardSkeleton />
+                ) : (
                 <section className="mt-6 grid gap-4 sm:grid-cols-3">
                         <article className="flex flex-col rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20 transition hover:border-[#ffa116]/40 hover:shadow-[0_0_35px_-8px_rgba(255,161,22,0.28)]">
                             <div className="flex items-start justify-between gap-3">
@@ -361,6 +392,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                             </div>
                         </article>
                     </section>
+                )}
 
                 {showLobbyModal && (
                     <CreateLobbyModal
@@ -378,17 +410,19 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                     />
                 )}
 
-                <FriendsList
-                    friends={friends}
-                    onFriendRemoved={(friendshipId) =>
-                        setFriends((currentFriends) =>
-                            currentFriends.filter(
-                                (friend) => friend.friendship_id !== friendshipId,
-                            ),
-                        )
-                    }
-                    onError={setErrorMessage}
-                />
+                {dashboardData && (
+                    <FriendsList
+                        friends={friends}
+                        onFriendRemoved={(friendshipId) =>
+                            setFriends((currentFriends) =>
+                                currentFriends.filter(
+                                    (friend) => friend.friendship_id !== friendshipId,
+                                ),
+                            )
+                        }
+                        onError={setErrorMessage}
+                    />
+                )}
             </div>
         </main>
     );

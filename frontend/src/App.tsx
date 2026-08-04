@@ -4,6 +4,7 @@ import { apiRequest } from "./api/client";
 import { clearCache } from "./api/localCache";
 import { InviteModal } from "./components/InviteModal";
 import { Background } from "./components/Background";
+import { ToastProvider } from "./components/toast/ToastProvider";
 import { AuthPage } from "./pages/AuthPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LobbyPage } from "./pages/LobbyPage";
@@ -32,10 +33,10 @@ const processedOAuthStates = new Set<string>();
 export default function App() {
     const isMapTest = new URLSearchParams(window.location.search).get("mapTest") === "1";
     return (
-        <>
+        <ToastProvider>
             <Background />
             {isMapTest ? <MapTestPage /> : <MainApp />}
-        </>
+        </ToastProvider>
     );
 }
 

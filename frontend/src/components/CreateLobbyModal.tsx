@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Check, Search, X } from 'lucide-react';
 import { apiRequest } from '../api/client';
+import { useToast } from './toast/ToastProvider';
 
 type Friend = {
     friendship_id: number;
@@ -38,6 +39,7 @@ const PROGRAMMING_LANGUAGES = [
 ];
 
 export function CreateLobbyModal({ username, friends, onClose, onCreated }: CreateLobbyModalProps) {
+    const { push } = useToast();
     const [name, setName] = useState(`${username}'s game`);
     const [gameMode, setGameMode] = useState('free_for_all');
     const [programmingLanguage, setProgrammingLanguage] = useState('python3');
@@ -98,6 +100,7 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
             }
 
             sessionStorage.setItem(`lobby_invite_${res.lobby.id}`, res.invite_url);
+            push('success', 'Lobby created');
             onCreated(res.lobby.id);
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Failed to create lobby');
