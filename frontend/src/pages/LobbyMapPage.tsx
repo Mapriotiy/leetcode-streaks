@@ -658,7 +658,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                             <MapLegend
                                 regions={legendRegions}
                                 onHover={setHoveredProvinces}
-                                className="mt-4 flex list-none flex-col gap-2 md:hidden"
+                                className="mt-4 flex max-h-56 list-none flex-col gap-2 overflow-y-auto pr-1 md:hidden"
                             />
                         )}
                     </section>
