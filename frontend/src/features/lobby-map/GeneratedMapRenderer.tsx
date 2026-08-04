@@ -439,16 +439,36 @@ export function GeneratedMapRenderer({
         wheelHandlerRef.current = (event: globalThis.WheelEvent) => {
             if (!zoomable) return;
             event.preventDefault();
-            const nextZoom = clampZoom(
-                viewRef.current.zoom + (event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP),
-                minZoom,
-                maxZoom,
-            );
-            viewRef.current = {
-                zoom: nextZoom,
-                x: nextZoom === minZoom ? 0 : viewRef.current.x,
-                y: nextZoom === minZoom ? 0 : viewRef.current.y,
-            };
+            // Normalize line/page deltas to pixels and zoom continuously so
+            // both mouse notches and trackpad inertia feel smooth.
+            const delta =
+                event.deltaMode === 1
+                    ? event.deltaY * 16
+                    : event.deltaMode === 2
+                      ? event.deltaY * window.innerHeight
+                      : event.deltaY;
+            const factor = Math.exp(-delta * 0.0016);
+            const zoomOld = viewRef.current.zoom;
+            const nextZoom = clampZoom(zoomOld * factor, minZoom, maxZoom);
+
+            if (nextZoom === minZoom) {
+                viewRef.current = { zoom: minZoom, x: 0, y: 0 };
+            } else {
+                // Keep the point under the cursor anchored while scaling.
+                const rect = rootRef.current?.getBoundingClientRect();
+                if (rect) {
+                    const cx = event.clientX - rect.left;
+                    const cy = event.clientY - rect.top;
+                    const scale = nextZoom / zoomOld;
+                    viewRef.current = {
+                        zoom: nextZoom,
+                        x: cx - (cx - viewRef.current.x) * scale,
+                        y: cy - (cy - viewRef.current.y) * scale,
+                    };
+                } else {
+                    viewRef.current = { ...viewRef.current, zoom: nextZoom };
+                }
+            }
             applyView();
             commitViewSoon();
         };
