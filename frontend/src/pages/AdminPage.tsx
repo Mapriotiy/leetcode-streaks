@@ -125,6 +125,8 @@ export function AdminPage({ onBack, onLogout }: { onBack: () => void; onLogout: 
                     </button>
                 </header>
 
+                <DebugModeToggle />
+
                 <StatsOverview />
 
                 <div className="mt-6 flex gap-1 border-b border-[#3a3a3a]">
@@ -163,6 +165,49 @@ function StatCard({ label, value, accent }: { label: string; value: number | str
                 {value}
             </p>
         </div>
+    );
+}
+
+function DebugModeToggle() {
+    const [enabled, setEnabled] = useState(() => {
+        try {
+            return localStorage.getItem("mapcode.debugMode") === "1";
+        } catch {
+            return false;
+        }
+    });
+
+    const toggle = () => {
+        const next = !enabled;
+        setEnabled(next);
+        try {
+            localStorage.setItem("mapcode.debugMode", next ? "1" : "0");
+        } catch {
+            /* ignore storage errors */
+        }
+    };
+
+    return (
+        <section className="mt-6 flex items-center justify-between gap-4 rounded-lg border border-[#3a3a3a] bg-[#262626] px-4 py-3 shadow-xl shadow-black/20">
+            <div>
+                <p className="text-sm font-semibold">Debug mode</p>
+                <p className="mt-0.5 text-xs text-[#8a8a8a]">
+                    Enables debug tools in the lobby: grant power-ups, capture and release
+                    provinces. Every debug action is admin-only.
+                </p>
+            </div>
+            <button
+                type="button"
+                onClick={toggle}
+                className={`inline-flex h-9 shrink-0 items-center gap-2 rounded-md border px-4 text-sm font-semibold transition ${
+                    enabled
+                        ? "border-[#00d9ff]/60 bg-[#00d9ff]/15 text-[#7fe8ff] hover:bg-[#00d9ff]/25"
+                        : "border-[#3a3a3a] bg-[#1f1f1f] text-[#8a8a8a] hover:text-white"
+                }`}
+            >
+                {enabled ? "ON" : "OFF"}
+            </button>
+        </section>
     );
 }
 

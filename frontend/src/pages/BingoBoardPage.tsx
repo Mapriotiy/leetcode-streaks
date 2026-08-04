@@ -50,6 +50,7 @@ type BingoBoardPageProps = {
     currentUserId: number;
     players: LobbyPlayer[];
     factions: Faction[];
+    isAdmin?: boolean;
     onBack: () => void;
     onLeft: () => void;
 };

@@ -8,6 +8,7 @@ from app.api.routes import (
     lobby,
     map_presets,
     admin,
+    debug,
 )
 
 api_router = APIRouter()
@@ -20,3 +21,4 @@ api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboar
 api_router.include_router(lobby.router, prefix="/lobbies", tags=["lobbies"])
 api_router.include_router(map_presets.router, prefix="/map-presets", tags=["map-presets"])
 api_router.include_router(admin.router, prefix="/admin", tags=["admin"])
+api_router.include_router(debug.router, prefix="/admin/debug", tags=["admin"])

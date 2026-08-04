@@ -179,6 +179,7 @@ function MainApp() {
                 currentUserId={user.id}
                 players={activeLobbyPlayers}
                 factions={activeLobbyFactions}
+                isAdmin={user.is_admin}
                 onBack={() => {
                     setActiveLobbyId(null);
                     setActiveLobbyPlayers([]);

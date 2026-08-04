@@ -10,6 +10,7 @@ import { apiRequest } from '../api/client';
 import { useLobbyEvents } from '../hooks/useLobbyEvents';
 import { GeneratedMapRenderer } from '../features/lobby-map/GeneratedMapRenderer';
 import { PowerUpInventory, type PowerUpKind } from '../components/powerups/PowerUpInventory';
+import { DebugPanel } from '../components/debug/DebugPanel';
 import { AnimatedNumber } from '../components/AnimatedNumber';
 import { generatedRegionsAsLegend } from '../features/lobby-map/generator';
 import { writeLobbyMapSelection } from '../features/lobby-map/storage';
@@ -84,6 +85,7 @@ type LobbyMapPageProps = {
     currentUserId: number;
     players: LobbyPlayer[];
     factions: Faction[];
+    isAdmin: boolean;
     onBack: () => void;
     onLeft: () => void;
 };
@@ -103,7 +105,7 @@ function orderServerProvincesForGeneratedMap(provinces: ProvinceData[]) {
     });
 }
 
-export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack, onLeft }: LobbyMapPageProps) {
+export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmin, onBack, onLeft }: LobbyMapPageProps) {
     const [provincesData, setProvincesData] = useState<ProvinceData[]>([]);
     const [scoreEntries, setScoreEntries] = useState<ScoreEntry[]>([]);
     const [gameStatus, setGameStatus] = useState<string>('active');
@@ -122,6 +124,15 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
     const [bursts, setBursts] = useState<Map<string, string>>(new Map());
     const prevOwnersRef = useRef<Map<string, number | null>>(new Map());
     const loadedRef = useRef(false);
+
+    const debugEnabled =
+        isAdmin && (() => {
+            try {
+                return localStorage.getItem('mapcode.debugMode') === '1';
+            } catch {
+                return false;
+            }
+        })();
 
     useEffect(() => {
         setMapSelection({ kind: 'default' });
@@ -625,6 +636,21 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, onBack
                                             handleClose();
                                         }}
                                     />
+
+                                    {debugEnabled && (
+                                        <DebugPanel
+                                            lobbyId={lobbyId}
+                                            players={players}
+                                            currentUserId={currentUserId}
+                                            selectedProvinceId={selectedProvince}
+                                            selectedProvinceName={
+                                                selectedProvinceData?.province_name ??
+                                                selectedGeneratedProvince?.name ??
+                                                null
+                                            }
+                                            onChanged={() => void loadMap()}
+                                        />
+                                    )}
                                 </div>
                             </div>
                         )}

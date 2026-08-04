@@ -38,6 +38,12 @@ export function eventText(event: GameEventApiData, currentUserId: number): strin
             return `${actor} defended ${province}${
                 event.runtime_ms != null ? ` — improved to ${event.runtime_ms} ms` : ''
             }`;
+        case 'debug_capture':
+            return `[debug] ${actor} captured ${province}${
+                event.points ? ` (+${event.points})` : ''
+            }`;
+        case 'debug_uncapture':
+            return `[debug] ${actor} released ${province}`;
         case 'region_control':
             return `${actor} seized full control of ${region}${
                 event.points ? ` (+${event.points} while held)` : ''
