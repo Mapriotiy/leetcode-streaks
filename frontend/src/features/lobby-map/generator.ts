@@ -736,7 +736,7 @@ function layoutToIsland(piece: LayoutPiece): GeneratedMapIsland {
         rotation: piece.rotation,
         zIndex: piece.zIndex,
         svgPath: `map-test/pieces/${piece.size}/${piece.id}.svg`,
-        backPath: `map-test/backs/${piece.id}.png`,
+        backPath: `map-test/backs/${piece.id}.webp`,
     };
 }
 
@@ -896,7 +896,7 @@ export async function createGeneratedMapDraft({
         size,
         regionCount: assigned.regions.length,
         provinceCount: assigned.provinceCount,
-        seaBaseSrc: "map-test/sea-sprite.png",
+        seaBaseSrc: "map-test/sea-sprite.webp",
         topics: assigned.topics,
         islands,
         seaSprites,

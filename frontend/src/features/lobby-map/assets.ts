@@ -33,15 +33,15 @@ export const PIECE_IDS = [
 export type GeneratedMapPieceId = (typeof PIECE_IDS)[number];
 
 export const SEA_SPRITES = [
-    "dolphin-cutout.png",
-    "kraken-cutout.png",
-    "mermaid-cutout.png",
-    "ruins-cutout.png",
-    "serpent-cutout.png",
-    "shark-cutout.png",
-    "ship-cutout.png",
-    "shipwreak-cutout.png",
-    "skull-cutout.png",
+    "dolphin-cutout.webp",
+    "kraken-cutout.webp",
+    "mermaid-cutout.webp",
+    "ruins-cutout.webp",
+    "serpent-cutout.webp",
+    "shark-cutout.webp",
+    "ship-cutout.webp",
+    "shipwreak-cutout.webp",
+    "skull-cutout.webp",
 ] as const;
 
 export type GeneratedMapSeaSpriteId = (typeof SEA_SPRITES)[number];

@@ -1,4 +1,4 @@
-const MAP_BG = `url(${import.meta.env.BASE_URL}map-bg.png)`;
+const MAP_BG = `url(${import.meta.env.BASE_URL}map-bg.webp)`;
 
 const OVERLAYS = [
     'linear-gradient(180deg, rgba(13,14,15,0.55) 0%, rgba(13,14,15,0.32) 35%, rgba(13,14,15,0.72) 72%, rgba(13,14,15,0.94) 100%)',

@@ -273,7 +273,7 @@ export default function ProvinceMap({ captured, onSelect, highlightedProvinces, 
             style={{ aspectRatio: '1321 / 900' }}
         >
             <img
-                src={`${import.meta.env.BASE_URL}leet_background.png`}
+                src={`${import.meta.env.BASE_URL}leet_background.webp`}
                 alt="Background"
                 className="absolute inset-0 w-full h-full object-fill"
                 decoding="async"
