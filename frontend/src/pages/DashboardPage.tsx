@@ -8,6 +8,7 @@ import { FriendsList } from "../components/dashboard/FriendsList";
 import { CreateLobbyModal } from "../components/CreateLobbyModal";
 import { LeetCodeLinkModal } from "../components/LeetCodeLinkModal";
 import { AnimatedNumber } from "../components/AnimatedNumber";
+import { OnboardingOverlay, isOnboarded } from "../components/OnboardingOverlay";
 import { DIFFICULTY_COLORS } from "../mapRegions";
 import type { DashboardData, Faction, FriendResponse, LobbyPlayer } from "../types/dashboard";
 
@@ -98,6 +99,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [showLobbyModal, setShowLobbyModal] = useState(false);
     const [showLinkModal, setShowLinkModal] = useState(false);
+    const [showOnboarding, setShowOnboarding] = useState(() => !isOnboarded());
     const isLeetcodeLinked = user.leetcode_verified_at != null;
     const currentStreakState = dashboardData?.current_streak_state ?? "broken";
     const isCurrentStreakLit = currentStreakState === "lit";
@@ -442,6 +444,10 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                         }
                         onError={setErrorMessage}
                     />
+                )}
+
+                {showOnboarding && (
+                    <OnboardingOverlay onClose={() => setShowOnboarding(false)} />
                 )}
             </div>
         </main>
