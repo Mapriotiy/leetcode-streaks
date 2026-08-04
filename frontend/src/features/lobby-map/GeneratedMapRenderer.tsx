@@ -357,6 +357,20 @@ export function GeneratedMapRenderer({
         layer.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${z})`;
     }
 
+    function applyViewAnimated() {
+        const layer = layerRef.current;
+        if (!layer) return;
+        layer.style.transition = "transform 90ms cubic-bezier(0.2, 0.8, 0.2, 1)";
+        applyView();
+    }
+
+    function applyViewInstant() {
+        const layer = layerRef.current;
+        if (!layer) return;
+        layer.style.transition = "none";
+        applyView();
+    }
+
     function commitView() {
         setZoom(viewRef.current.zoom);
     }
@@ -375,7 +389,7 @@ export function GeneratedMapRenderer({
         activePointersRef.current.clear();
         dragRef.current = null;
         pinchRef.current = null;
-        applyView();
+        applyViewInstant();
     }, [draftSignature, initialZoom, maxZoom, minZoom]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const svgLayerStyle = useMemo(
@@ -425,13 +439,13 @@ export function GeneratedMapRenderer({
             x: clamped === minZoom ? 0 : viewRef.current.x,
             y: clamped === minZoom ? 0 : viewRef.current.y,
         };
-        applyView();
+        applyViewAnimated();
         commitView();
     }
 
     function resetView() {
         viewRef.current = { zoom: clampZoom(initialZoom, minZoom, maxZoom), x: 0, y: 0 };
-        applyView();
+        applyViewAnimated();
         commitView();
     }
 
@@ -454,22 +468,26 @@ export function GeneratedMapRenderer({
             if (nextZoom === minZoom) {
                 viewRef.current = { zoom: minZoom, x: 0, y: 0 };
             } else {
-                // Keep the point under the cursor anchored while scaling.
+                // Keep the point under the cursor anchored while scaling. The
+                // layer's transform-origin is its center, so the anchor formula
+                // is pan' = r*pan + (1-r)*(cursor - origin).
                 const rect = rootRef.current?.getBoundingClientRect();
                 if (rect) {
                     const cx = event.clientX - rect.left;
                     const cy = event.clientY - rect.top;
-                    const scale = nextZoom / zoomOld;
+                    const originX = rect.width / 2;
+                    const originY = rect.height / 2;
+                    const r = nextZoom / zoomOld;
                     viewRef.current = {
                         zoom: nextZoom,
-                        x: cx - (cx - viewRef.current.x) * scale,
-                        y: cy - (cy - viewRef.current.y) * scale,
+                        x: r * viewRef.current.x + (1 - r) * (cx - originX),
+                        y: r * viewRef.current.y + (1 - r) * (cy - originY),
                     };
                 } else {
                     viewRef.current = { ...viewRef.current, zoom: nextZoom };
                 }
             }
-            applyView();
+            applyViewAnimated();
             commitViewSoon();
         };
     });
@@ -485,6 +503,7 @@ export function GeneratedMapRenderer({
     function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
         if (!zoomable || event.button !== 0) return;
         if ((event.target as Element).closest("button")) return;
+        if (layerRef.current) layerRef.current.style.transition = "none";
         activePointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
         const activePoints = [...activePointersRef.current.values()];
