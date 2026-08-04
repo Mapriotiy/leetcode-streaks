@@ -26,3 +26,40 @@ class AdminUserListResponse(BaseModel):
 class AdminUserUpdate(BaseModel):
     is_admin: bool | None = None
     is_banned: bool | None = None
+
+
+class AdminLobbyOut(BaseModel):
+    id: int
+    name: str
+    status: str
+    game_mode: str
+    map_size: str
+    max_players: int
+    faction_mode: bool
+    player_count: int
+    creator_name: str | None = None
+    winner_name: str | None = None
+    created_at: datetime
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    sync_error: str | None = None
+
+
+class AdminLobbyListResponse(BaseModel):
+    total: int
+    offset: int
+    limit: int
+    lobbies: list[AdminLobbyOut]
+
+
+class AdminStatsResponse(BaseModel):
+    total_users: int
+    banned_users: int
+    admin_users: int
+    active_lobbies: int
+    waiting_lobbies: int
+    finished_lobbies: int
+    games_today: int
+    problem_count: int
+    catalog_last_synced_at: datetime | None = None
+    failed_syncs: int

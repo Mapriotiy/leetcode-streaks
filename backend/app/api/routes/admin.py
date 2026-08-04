@@ -1,16 +1,29 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_admin
+from app.api.routes.lobby import _delete_lobby_with_children
+from app.models.leetcode_problem import LeetCodeProblem
+from app.models.lobby import Lobby
+from app.models.lobby_player import LobbyPlayer
 from app.models.user import User
 from app.schemas.admin import (
+    AdminLobbyListResponse,
+    AdminLobbyOut,
+    AdminStatsResponse,
     AdminUserListResponse,
     AdminUserOut,
     AdminUserUpdate,
 )
 
 router = APIRouter()
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 def _to_out(user: User) -> AdminUserOut:
@@ -108,3 +121,143 @@ def reset_leetcode(
     db.commit()
     db.refresh(target)
     return _to_out(target)
+
+
+def _lobby_to_out(lobby: Lobby, db: Session) -> AdminLobbyOut:
+    creator = db.get(User, lobby.creator_id)
+    creator_name = (
+        creator.display_name
+        or creator.leetcode_username
+        or f"user #{creator.id}"
+        if creator
+        else None
+    )
+    winner_name = None
+    if lobby.winner_id is not None:
+        winner = db.get(User, lobby.winner_id)
+        if winner:
+            winner_name = winner.display_name or winner.leetcode_username or f"user #{winner.id}"
+    elif lobby.winner_faction_id is not None:
+        winner_name = f"Faction {lobby.winner_faction_id}"
+
+    player_count = (
+        db.query(func.count(LobbyPlayer.user_id))
+        .filter(LobbyPlayer.lobby_id == lobby.id)
+        .scalar()
+    )
+    return AdminLobbyOut(
+        id=lobby.id,
+        name=lobby.name,
+        status=lobby.status,
+        game_mode=lobby.game_mode,
+        map_size=lobby.map_size,
+        max_players=lobby.max_players,
+        faction_mode=lobby.faction_mode,
+        player_count=player_count,
+        creator_name=creator_name,
+        winner_name=winner_name,
+        created_at=lobby.created_at,
+        started_at=lobby.started_at,
+        finished_at=lobby.finished_at,
+        sync_error=lobby.sync_error,
+    )
+
+
+@router.get("/stats", response_model=AdminStatsResponse)
+def admin_stats(db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    total_users = db.query(func.count(User.id)).scalar()
+    banned_users = db.query(func.count(User.id)).filter(User.is_banned.is_(True)).scalar()
+    admin_users = db.query(func.count(User.id)).filter(User.is_admin.is_(True)).scalar()
+
+    active_lobbies = db.query(func.count(Lobby.id)).filter(Lobby.status == "active").scalar()
+    waiting_lobbies = db.query(func.count(Lobby.id)).filter(Lobby.status == "waiting").scalar()
+    finished_lobbies = db.query(func.count(Lobby.id)).filter(Lobby.status == "finished").scalar()
+
+    today_start = _utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    games_today = (
+        db.query(func.count(Lobby.id))
+        .filter(Lobby.started_at >= today_start)
+        .scalar()
+    )
+
+    problem_count = db.query(func.count(LeetCodeProblem.id)).scalar()
+    catalog_last_synced = (
+        db.query(func.max(LeetCodeProblem.updated_at)).scalar()
+    )
+    failed_syncs = (
+        db.query(func.count(Lobby.id))
+        .filter(Lobby.sync_error.isnot(None))
+        .scalar()
+    )
+
+    return AdminStatsResponse(
+        total_users=total_users,
+        banned_users=banned_users,
+        admin_users=admin_users,
+        active_lobbies=active_lobbies,
+        waiting_lobbies=waiting_lobbies,
+        finished_lobbies=finished_lobbies,
+        games_today=games_today,
+        problem_count=problem_count,
+        catalog_last_synced_at=catalog_last_synced,
+        failed_syncs=failed_syncs,
+    )
+
+
+@router.get("/lobbies", response_model=AdminLobbyListResponse)
+def list_lobbies(
+    status_filter: str | None = Query(default=None, alias="status"),
+    q: str | None = Query(default=None, max_length=100),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    query = db.query(Lobby)
+    if status_filter:
+        if status_filter not in {"waiting", "active", "finished"}:
+            raise HTTPException(status_code=400, detail="Invalid status filter")
+        query = query.filter(Lobby.status == status_filter)
+    if q:
+        query = query.filter(Lobby.name.ilike(f"%{q.strip()}%"))
+
+    total = query.count()
+    lobbies = query.order_by(Lobby.id.desc()).offset(offset).limit(limit).all()
+    return AdminLobbyListResponse(
+        total=total,
+        offset=offset,
+        limit=limit,
+        lobbies=[_lobby_to_out(l, db) for l in lobbies],
+    )
+
+
+@router.post("/lobbies/{lobby_id}/force-end", response_model=AdminLobbyOut)
+def force_end_lobby(
+    lobby_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    lobby = db.get(Lobby, lobby_id)
+    if lobby is None:
+        raise HTTPException(status_code=404, detail="Lobby not found")
+    if lobby.status == "finished":
+        raise HTTPException(status_code=409, detail="Lobby is already finished")
+
+    lobby.status = "finished"
+    lobby.finished_at = _utcnow()
+    db.commit()
+    db.refresh(lobby)
+    return _lobby_to_out(lobby, db)
+
+
+@router.delete("/lobbies/{lobby_id}", status_code=204)
+def admin_delete_lobby(
+    lobby_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    lobby = db.get(Lobby, lobby_id)
+    if lobby is None:
+        raise HTTPException(status_code=404, detail="Lobby not found")
+    _delete_lobby_with_children(lobby, db)
+    db.commit()
