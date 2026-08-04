@@ -109,6 +109,7 @@ def verify_id_token(id_token: str, expected_nonce: str) -> dict[str, Any]:
     try:
         unverified_header = jwt.get_unverified_header(id_token)
     except InvalidTokenError as exc:
+        logger.warning("Failed to parse Google ID token header: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate Google token",
@@ -120,6 +121,7 @@ def verify_id_token(id_token: str, expected_nonce: str) -> dict[str, Any]:
     keys = (_jwks_cache or {}).get("keys", [])
     jwk_data = next((key for key in keys if key.get("kid") == kid), None)
     if jwk_data is None:
+        logger.warning("Google ID token kid=%s not found in JWKS (cached keys=%d)", kid, len(keys))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate Google token",
@@ -140,12 +142,20 @@ def verify_id_token(id_token: str, expected_nonce: str) -> dict[str, Any]:
             },
         )
     except InvalidTokenError as exc:
+        logger.warning(
+            "Google ID token verification failed: %s: %s (aud=%s iss=%s)",
+            type(exc).__name__,
+            exc,
+            settings.google_client_id,
+            GOOGLE_ISSUER,
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate Google token",
         ) from exc
 
     if claims.get("nonce") != expected_nonce:
+        logger.warning("Google ID token nonce mismatch")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate Google token",
