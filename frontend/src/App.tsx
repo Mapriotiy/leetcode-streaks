@@ -7,6 +7,7 @@ import { Background } from "./components/Background";
 import { ToastProvider } from "./components/toast/ToastProvider";
 import { AuthPage } from "./pages/AuthPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { ProfilePage } from "./pages/ProfilePage";
 import { LobbyPage } from "./pages/LobbyPage";
 import { LobbyGamePage } from "./pages/LobbyGamePage";
 import { AdminPage } from "./pages/AdminPage";
@@ -48,6 +49,7 @@ function MainApp() {
     const [lobbyInviteToken, setLobbyInviteToken] = useState<string | null>(null);
     const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
     const [showAdmin, setShowAdmin] = useState(false);
+    const [showProfile, setShowProfile] = useState(false);
     const [activeLobbyId, setActiveLobbyId] = useState<number | null>(null);
     const [activeLobbyPlayers, setActiveLobbyPlayers] = useState<LobbyPlayer[]>([]);
     const [activeLobbyFactions, setActiveLobbyFactions] = useState<Faction[]>([]);
@@ -227,6 +229,19 @@ function MainApp() {
                 }}
             />
         );
+    } else if (showProfile) {
+        screenKey = "profile";
+        screen = (
+            <ProfilePage
+                onBack={() => setShowProfile(false)}
+                onLogout={() => {
+                    localStorage.removeItem("accessToken");
+                    clearCache();
+                    setUser(null);
+                    setShowProfile(false);
+                }}
+            />
+        );
     } else {
         screenKey = "dashboard";
         screen = (
@@ -240,6 +255,7 @@ function MainApp() {
                         setUser(null);
                     }}
                     onOpenAdmin={() => setShowAdmin(true)}
+                    onOpenProfile={() => setShowProfile(true)}
                     onOpenLobby={(lobbyId, players, factions) => {
                         setActiveLobbyId(lobbyId);
                         setActiveLobbyPlayers(players ?? []);

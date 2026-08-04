@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ArrowLeft, Copy, Gamepad2, LogOut, Map as MapIcon, Plus, Trash2, UserCheck, UserPlus } from 'lucide-react';
 import { apiRequest } from '../api/client';
+import { Footer } from '../components/Footer';
 import { lobbyCacheKey, readCache, writeCache } from '../api/localCache';
 import { MapChooserModal } from '../features/lobby-map/MapChooserModal';
 import { MAP_SIZE_CONFIG } from '../features/lobby-map/assets';
@@ -665,6 +666,8 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                     onClose={() => setIsMapChooserOpen(false)}
                     onSelect={handleMapSelection}
                 />
+
+                <Footer />
             </div>
         </main>
     );

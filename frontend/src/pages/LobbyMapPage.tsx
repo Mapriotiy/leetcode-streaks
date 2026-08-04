@@ -4,6 +4,7 @@ import ProvinceMap from '../components/ProvinceMap';
 import ProvincePopup from '../components/ProvincePopup';
 import { WinnerOverlay } from '../components/WinnerOverlay';
 import { EventLogPanel } from '../components/map/EventLogPanel';
+import { Footer } from '../components/Footer';
 import { GameSummary } from '../components/map/GameSummary';
 import { HowToPlayModal } from '../components/map/HowToPlayModal';
 import { MapLegend } from '../components/map/MapLegend';
@@ -732,6 +733,8 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                     currentUserId={currentUserId}
                     onClose={() => setShowSummary(false)}
                 />
+
+                <Footer />
             </div>
         </main>
     );

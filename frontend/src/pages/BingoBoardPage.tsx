@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { ArrowLeft, LogOut } from 'lucide-react';
 import { BingoBoard } from '../components/bingo/BingoBoard';
 import { EventLogPanel } from '../components/map/EventLogPanel';
+import { Footer } from '../components/Footer';
 import { apiRequest } from '../api/client';
 import { useLobbyEvents } from '../hooks/useLobbyEvents';
 import type { BingoCellData } from '../components/bingo/BingoBoard';
@@ -264,6 +265,8 @@ export function BingoBoardPage({ lobbyId, currentUserId, players, factions, onBa
                         className="mt-6 max-h-80 lg:hidden"
                     />
                 )}
+
+                <Footer />
             </div>
         </main>
     );

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { apiRequest } from "../api/client";
+import { Footer } from "../components/Footer";
 
 type GoogleLoginUrlResponse = {
     auth_url: string;
@@ -32,8 +33,8 @@ export function AuthPage({ initialError = null, onClearError }: AuthPageProps) {
     }
 
     return (
-        <main className="min-h-screen bg-transparent text-white">
-            <div className="mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center px-6 py-10">
+        <main className="flex min-h-screen flex-col bg-transparent text-white">
+            <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-6 py-10">
                 <section className="w-full max-w-md rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
                     <div className="mb-6">
                         <p className="mb-2 text-sm font-medium text-[#ffa116]">
@@ -76,6 +77,7 @@ export function AuthPage({ initialError = null, onClearError }: AuthPageProps) {
                     </div>
                 </section>
             </div>
+            <Footer />
         </main>
     );
 }

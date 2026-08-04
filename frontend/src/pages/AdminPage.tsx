@@ -12,6 +12,7 @@ import {
     Users,
 } from "lucide-react";
 import { apiRequest } from "../api/client";
+import { Footer } from "../components/Footer";
 
 type AdminUser = {
     id: number;
@@ -135,6 +136,8 @@ export function AdminPage({ onBack, onLogout }: { onBack: () => void; onLogout: 
                 </div>
 
                 {tab === "users" ? <UsersTab /> : <LobbiesTab />}
+
+                <Footer />
             </div>
         </main>
     );

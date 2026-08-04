@@ -8,6 +8,7 @@ import { FriendsList } from "../components/dashboard/FriendsList";
 import { CreateLobbyModal } from "../components/CreateLobbyModal";
 import { LeetCodeLinkModal } from "../components/LeetCodeLinkModal";
 import { AnimatedNumber } from "../components/AnimatedNumber";
+import { Footer } from "../components/Footer";
 import { OnboardingOverlay, isOnboarded } from "../components/OnboardingOverlay";
 import { DIFFICULTY_COLORS } from "../mapRegions";
 import type { DashboardData, Faction, FriendResponse, LobbyPlayer } from "../types/dashboard";
@@ -28,6 +29,7 @@ type DashboardPageProps = {
     onOpenLobby: (lobbyId: number, players?: LobbyPlayer[], factions?: Faction[]) => void;
     onLinkChanged: () => void;
     onOpenAdmin: () => void;
+    onOpenProfile: () => void;
 };
 
 // Bump when DashboardData's shape changes so stale-shaped cache is dropped.
@@ -83,7 +85,7 @@ function DashboardSkeleton() {
     );
 }
 
-export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkChanged, onOpenAdmin }: DashboardPageProps) {
+export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkChanged, onOpenAdmin, onOpenProfile }: DashboardPageProps) {
     // Seed from the last-seen dashboard so returning to the menu paints instantly
     // instead of showing the "Loading dashboard..." placeholder (issue #1).
     const cachedDashboard = readCache<DashboardData>(
@@ -178,24 +180,30 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                                 </div>
                             ) : null}
 
-                            <div className="flex items-center gap-2.5">
-                            <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full border border-[#3a3a3a] bg-[#333333] text-[#b3b3b3]">
-                                {(dashboardData?.avatar_url ?? user.avatar_url) ? (
-                                    <img
-                                        src={dashboardData?.avatar_url ?? user.avatar_url ?? ""}
-                                        alt=""
-                                        className="h-full w-full object-cover"
-                                    />
-                                ) : (
-                                    <UserCircle size={22} strokeWidth={1.8} />
-                                )}
-                            </div>
+                            <button
+                                type="button"
+                                onClick={onOpenProfile}
+                                title="View profile"
+                                className="flex min-w-0 items-center gap-2.5 text-left"
+                            >
+                                <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full border border-[#3a3a3a] bg-[#333333] text-[#b3b3b3]">
+                                    {(dashboardData?.avatar_url ?? user.avatar_url) ? (
+                                        <img
+                                            src={dashboardData?.avatar_url ?? user.avatar_url ?? ""}
+                                            alt=""
+                                            className="h-full w-full object-cover"
+                                        />
+                                    ) : (
+                                        <UserCircle size={22} strokeWidth={1.8} />
+                                    )}
+                                </span>
 
-                            <div className="min-w-0 max-w-[10rem] leading-tight">
-                                    <p className="truncate text-sm font-semibold text-[#eff1f6]">
+                                <span className="min-w-0 max-w-[10rem] leading-tight">
+                                    <span className="block truncate text-sm font-semibold text-[#eff1f6] transition hover:text-[#ffa116]">
                                         {headerName}
-                                    </p>
-                                </div>
+                                    </span>
+                                </span>
+                            </button>
 
                                 <button
                                     type="button"
@@ -204,7 +212,6 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                                 >
                                     Logout
                                 </button>
-                            </div>
 
                             {user.is_admin && (
                                 <button
@@ -449,6 +456,8 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                 {showOnboarding && (
                     <OnboardingOverlay onClose={() => setShowOnboarding(false)} />
                 )}
+
+                <Footer />
             </div>
         </main>
     );
