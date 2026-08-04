@@ -309,6 +309,8 @@ export function GeneratedMapRenderer({
     const viewRef = useRef({ zoom: clampZoom(initialZoom, minZoom, maxZoom), x: 0, y: 0 });
     const displayRef = useRef({ zoom: clampZoom(initialZoom, minZoom, maxZoom), x: 0, y: 0 });
     const animRef = useRef<number | null>(null);
+    const inertiaRef = useRef<number | null>(null);
+    const flingRef = useRef({ vx: 0, vy: 0, lastX: 0, lastY: 0, lastT: 0 });
     const dragRef = useRef<DragState | null>(null);
     const activePointersRef = useRef<Map<number, PointerPoint>>(new Map());
     const pinchRef = useRef<PinchState | null>(null);
@@ -363,6 +365,7 @@ export function GeneratedMapRenderer({
     // notches just move the target; this loop makes the motion continuous.
     function startSmoothZoom() {
         if (animRef.current !== null) return;
+        cancelInertia();
         const EASE = 0.22;
         const tick = () => {
             const target = viewRef.current;
@@ -391,8 +394,51 @@ export function GeneratedMapRenderer({
             cancelAnimationFrame(animRef.current);
             animRef.current = null;
         }
+        cancelInertia();
         displayRef.current = { ...viewRef.current };
         applyView();
+    }
+
+    function cancelInertia() {
+        if (inertiaRef.current !== null) {
+            cancelAnimationFrame(inertiaRef.current);
+            inertiaRef.current = null;
+        }
+        const fling = flingRef.current;
+        fling.vx = 0;
+        fling.vy = 0;
+        fling.lastX = 0;
+        fling.lastY = 0;
+        fling.lastT = 0;
+    }
+
+    // Momentum after a drag: keep panning with the measured velocity while it
+    // decays, so a flick feels natural instead of stopping dead.
+    function startInertia() {
+        if (inertiaRef.current !== null) return;
+        const speed = Math.hypot(flingRef.current.vx, flingRef.current.vy);
+        if (speed < 0.08) return;
+        const DECAY = 0.94;
+        const FRAME_MS = 16.7;
+        const tick = () => {
+            const fling = flingRef.current;
+            const vx = fling.vx * DECAY;
+            const vy = fling.vy * DECAY;
+            fling.vx = vx;
+            fling.vy = vy;
+            if (Math.abs(vx) < 0.02 && Math.abs(vy) < 0.02) {
+                inertiaRef.current = null;
+                commitView();
+                return;
+            }
+            viewRef.current.x += vx * FRAME_MS;
+            viewRef.current.y += vy * FRAME_MS;
+            displayRef.current.x = viewRef.current.x;
+            displayRef.current.y = viewRef.current.y;
+            applyView();
+            inertiaRef.current = requestAnimationFrame(tick);
+        };
+        inertiaRef.current = requestAnimationFrame(tick);
     }
 
     function commitView() {
@@ -594,6 +640,20 @@ export function GeneratedMapRenderer({
         displayRef.current.x = viewRef.current.x;
         displayRef.current.y = viewRef.current.y;
         applyView();
+
+        // Track a smoothed drag velocity (px per ms) for the release fling.
+        const now = performance.now();
+        const fling = flingRef.current;
+        const dt = now - fling.lastT;
+        if (dt > 0) {
+            const instVx = (event.clientX - fling.lastX) / dt;
+            const instVy = (event.clientY - fling.lastY) / dt;
+            fling.vx = dt > 64 ? instVx : fling.vx * 0.85 + instVx * 0.15;
+            fling.vy = dt > 64 ? instVy : fling.vy * 0.85 + instVy * 0.15;
+        }
+        fling.lastX = event.clientX;
+        fling.lastY = event.clientY;
+        fling.lastT = now;
     }
 
     function findProvincePath(event: PointerEvent<HTMLDivElement>): SVGPathElement | null {
@@ -647,6 +707,7 @@ export function GeneratedMapRenderer({
         }
         dragRef.current = null;
         commitView();
+        startInertia();
         releasePointer();
     }
 
