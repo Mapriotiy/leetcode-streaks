@@ -9,6 +9,7 @@ from app.models.daily_activity import DailyActivity
 from app.models.friendship import Friendship
 from app.models.leetcode_problem import LeetCodeProblem
 from app.models.lobby import Lobby
+from app.models.lobby_event import LobbyEvent
 from app.models.lobby_player import LobbyPlayer
 from app.models.user import User
 from app.models.user_solved import UserSolved
@@ -17,6 +18,7 @@ from app.schemas.dashboard import (
     DashboardLobbyPlayerResponse,
     DashboardLobbyResponse,
     DashboardResponse,
+    PlayerStatsResponse,
     TodaySubmissionResponse,
 )
 from app.schemas.friends import (
@@ -34,7 +36,7 @@ from app.services.activity_sync import (
     get_utc_today,
 )
 from app.services.leetcode_sync import get_cached_user_profile, sync_user_daily_activity_by_id
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 
 router = APIRouter()
 
@@ -221,6 +223,55 @@ def build_friends(
     return responses, friend_ids
 
 
+def build_player_stats(current_user: User, db: Session) -> PlayerStatsResponse:
+    member_lobby_ids = [
+        row[0]
+        for row in db.query(LobbyPlayer.lobby_id)
+        .filter(LobbyPlayer.user_id == current_user.id)
+        .all()
+    ]
+
+    games_played = 0
+    games_won = 0
+    if member_lobby_ids:
+        finished = (
+            db.query(Lobby, LobbyPlayer.faction_id)
+            .join(LobbyPlayer, LobbyPlayer.lobby_id == Lobby.id)
+            .filter(
+                Lobby.id.in_(member_lobby_ids),
+                Lobby.status == "finished",
+            )
+            .all()
+        )
+        games_played = len(finished)
+        for lobby, faction_id in finished:
+            if lobby.winner_id is not None and lobby.winner_id == current_user.id:
+                games_won += 1
+            elif (
+                lobby.faction_mode
+                and lobby.winner_faction_id is not None
+                and lobby.winner_faction_id == faction_id
+            ):
+                games_won += 1
+
+    total_captures = (
+        db.query(func.count(LobbyEvent.id))
+        .filter(
+            LobbyEvent.actor_user_id == current_user.id,
+            LobbyEvent.event_type == "capture",
+        )
+        .scalar()
+        or 0
+    )
+
+    return PlayerStatsResponse(
+        games_played=games_played,
+        games_won=games_won,
+        win_rate=round(games_won / games_played * 100, 1) if games_played else 0.0,
+        total_captures=total_captures,
+    )
+
+
 def build_today_submissions(current_user: User, db: Session, today: date) -> list[TodaySubmissionResponse]:
     start = datetime.combine(today, datetime.min.time())
     end = start + timedelta(days=1)
@@ -321,4 +372,5 @@ async def get_dashboard(
         activity_calendar=build_activity_calendar(current_user, db, today=today),
         lobbies=build_user_lobbies(current_user, db),
         friends=friends,
+        stats=build_player_stats(current_user, db),
     )

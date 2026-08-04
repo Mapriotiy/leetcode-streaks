@@ -20,6 +20,12 @@ export type DashboardData = {
     activity_calendar: ActivityCalendarDay[];
     lobbies: DashboardLobby[];
     friends: FriendResponse[];
+    stats: {
+        games_played: number;
+        games_won: number;
+        win_rate: number;
+        total_captures: number;
+    };
 };
 
 export type ActivityCalendarDay = {

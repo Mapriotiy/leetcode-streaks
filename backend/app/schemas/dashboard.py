@@ -49,6 +49,13 @@ class DashboardLobbyResponse(BaseModel):
     players: list[DashboardLobbyPlayerResponse] = Field(default_factory=list)
 
 
+class PlayerStatsResponse(BaseModel):
+    games_played: int = 0
+    games_won: int = 0
+    win_rate: float = 0.0
+    total_captures: int = 0
+
+
 class DashboardResponse(BaseModel):
     leetcode_username: str | None = None
     display_name: str | None = None
@@ -63,3 +70,4 @@ class DashboardResponse(BaseModel):
     activity_calendar: list[ActivityCalendarDayResponse] = Field(default_factory=list)
     lobbies: list[DashboardLobbyResponse] = Field(default_factory=list)
     friends: list[FriendResponse] = Field(default_factory=list)
+    stats: PlayerStatsResponse = Field(default_factory=PlayerStatsResponse)
