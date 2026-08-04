@@ -181,3 +181,59 @@ def test_debug_province_not_found(tmp_path):
     )
     assert res.status_code == 404
     app.dependency_overrides.clear()
+
+
+def test_debug_capture_can_finish_game(tmp_path):
+    admin = User(google_sub="g-admin", email="a@test.dev", display_name="Admin", is_admin=True, leetcode_username="adminlc")
+    player = User(google_sub="g-p1", email="p1@test.dev", display_name="P1", leetcode_username="p1lc")
+    client, ids, TestSession = _make_client(tmp_path, [admin, player])
+
+    with TestSession() as session:
+        lobby = Lobby(
+            creator_id=ids["g-admin"],
+            name="Win",
+            status="active",
+            game_mode="free_for_all",
+            map_size="medium",
+            max_players=2,
+            faction_mode=False,
+            faction_count=0,
+            win_condition={"type": "territory_control", "threshold": 0.5, "duration_hours": 0},
+        )
+        session.add(lobby)
+        session.commit()
+        lobby_id = lobby.id
+        session.add(LobbyPlayer(lobby_id=lobby_id, user_id=ids["g-admin"], status="accepted"))
+        session.add(LobbyPlayer(lobby_id=lobby_id, user_id=ids["g-p1"], status="accepted"))
+        session.commit()
+
+        map_row = LobbyMap(lobby_id=lobby_id, map_size="medium", map_kind="default")
+        session.add(map_row)
+        session.commit()
+        for index in range(4):
+            session.add(
+                LobbyMapProvince(
+                    lobby_map_id=map_row.id,
+                    province_id=f"p{index}",
+                    region_id="r1",
+                    problem_title_slug="two-sum",
+                    order_index=index,
+                )
+            )
+        session.commit()
+
+    headers = {"Authorization": f"Bearer {create_access_token(ids['g-admin'])}"}
+
+    # 2 of 4 provinces crosses the 0.5 threshold -> game should finish.
+    for index in range(2):
+        res = client.post(
+            f"/api/admin/debug/lobbies/{lobby_id}/provinces/p{index}/capture",
+            json={"user_id": ids["g-p1"]},
+            headers=headers,
+        )
+        assert res.status_code == 200
+
+    state = client.get(f"/api/lobbies/{lobby_id}/map", headers=headers).json()
+    assert state["status"] == "finished"
+    assert state["winner"]["winner_user_id"] == ids["g-p1"]
+    app.dependency_overrides.clear()

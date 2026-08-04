@@ -27,6 +27,9 @@ from app.schemas.debug import (
 )
 from app.services.powerups import POWERUP_TYPES, powerup_counts
 from app.services.scoring import flag_points
+from app.services.game_modes.base import finish_lobby
+from app.services.game_modes.territory import _evaluate_winner
+from app.services.lobby_settings import ordered_players, team_by_user
 
 router = APIRouter()
 
@@ -99,6 +102,30 @@ def _record_debug_event(
     )
 
 
+def _maybe_finish_lobby(lobby: Lobby, db: Session) -> None:
+    """End the game when a debug capture pushes a player/team over the win bar."""
+    if lobby.status == "finished":
+        return
+    if lobby.game_mode not in ("free_for_all", "team_battle"):
+        return
+    lmap = db.query(LobbyMap).filter_by(lobby_id=lobby.id).first()
+    if lmap is None:
+        return
+    provinces = (
+        db.query(LobbyMapProvince)
+        .filter_by(lobby_map_id=lmap.id)
+        .all()
+    )
+    if not provinces:
+        return
+    players = ordered_players(lobby.id, db)
+    teams = team_by_user(lobby, players)
+    winner = _evaluate_winner(lobby, provinces, teams)
+    if winner is not None:
+        finish_lobby(lobby, winner, players, db)
+        db.commit()
+
+
 @router.post("/lobbies/{lobby_id}/powerups", response_model=DebugPowerupsResponse)
 def grant_powerups(
     lobby_id: int,
@@ -155,6 +182,11 @@ def debug_capture(
     _record_debug_event(db, lobby_id, province, "debug_capture", user, payload.runtime_ms)
     db.commit()
     db.refresh(province)
+
+    lobby = db.get(Lobby, lobby_id)
+    if lobby is not None:
+        _maybe_finish_lobby(lobby, db)
+
     return _to_province(province)
 
 
