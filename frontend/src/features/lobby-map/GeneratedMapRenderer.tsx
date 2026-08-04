@@ -304,12 +304,27 @@ export function GeneratedMapRenderer({
     const [svgTexts, setSvgTexts] = useState<Record<string, string>>({});
     const [loadError, setLoadError] = useState<string | null>(null);
     const [zoom, setZoom] = useState(() => clampZoom(initialZoom, minZoom, maxZoom));
-    const [pan, setPan] = useState({ x: 0, y: 0 });
     const rootRef = useRef<HTMLDivElement | null>(null);
+    const layerRef = useRef<HTMLDivElement | null>(null);
+    const viewRef = useRef({ zoom: clampZoom(initialZoom, minZoom, maxZoom), x: 0, y: 0 });
     const dragRef = useRef<DragState | null>(null);
     const activePointersRef = useRef<Map<number, PointerPoint>>(new Map());
     const pinchRef = useRef<PinchState | null>(null);
     const wheelHandlerRef = useRef<(event: globalThis.WheelEvent) => void>(() => {});
+    const commitTimerRef = useRef<number | null>(null);
+
+    // Content-based signature so that same-layout drafts (which the lobby
+    // poll re-creates every few seconds) don't reset the view or refetch SVGs.
+    const draftSignature = useMemo(
+        () =>
+            [
+                draft.seaBaseSrc,
+                draft.islands.map((i) => `${i.islandId}:${i.svgPath}`).join("|"),
+                draft.provinces.map((p) => `${p.provinceId}:${p.islandId}:${p.regionId}`).join("|"),
+                draft.seaSprites.map((s) => `${s.id}:${s.src}`).join("|"),
+            ].join("~"),
+        [draft],
+    );
 
     useEffect(() => {
         let cancelled = false;
@@ -333,15 +348,35 @@ export function GeneratedMapRenderer({
         return () => {
             cancelled = true;
         };
-    }, [draft]);
+    }, [draftSignature]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    function applyView() {
+        const layer = layerRef.current;
+        if (!layer) return;
+        const { zoom: z, x, y } = viewRef.current;
+        layer.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${z})`;
+    }
+
+    function commitView() {
+        setZoom(viewRef.current.zoom);
+    }
+
+    function commitViewSoon() {
+        if (commitTimerRef.current !== null) window.clearTimeout(commitTimerRef.current);
+        commitTimerRef.current = window.setTimeout(() => {
+            commitTimerRef.current = null;
+            commitView();
+        }, 150);
+    }
 
     useEffect(() => {
-        setZoom(clampZoom(initialZoom, minZoom, maxZoom));
-        setPan({ x: 0, y: 0 });
+        viewRef.current = { zoom: clampZoom(initialZoom, minZoom, maxZoom), x: 0, y: 0 };
+        setZoom(viewRef.current.zoom);
         activePointersRef.current.clear();
         dragRef.current = null;
         pinchRef.current = null;
-    }, [draft, initialZoom, maxZoom, minZoom]);
+        applyView();
+    }, [draftSignature, initialZoom, maxZoom, minZoom]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const svgLayerStyle = useMemo(
         () =>
@@ -364,24 +399,58 @@ export function GeneratedMapRenderer({
         return map;
     }, [captured, draft, svgTexts]);
 
+    const islandSvgHtml = useMemo(() => {
+        const map = new Map<string, string>();
+        for (const island of draft.islands) {
+            const svgText = svgTexts[island.islandId];
+            if (!svgText) continue;
+            map.set(
+                island.islandId,
+                renderGeneratedIslandSvg({
+                    svgText,
+                    island,
+                    draft,
+                    captured,
+                    highlightedProvinces,
+                }),
+            );
+        }
+        return map;
+    }, [captured, highlightedProvinces, draft, svgTexts]);
+
     function updateZoom(nextZoom: number) {
         const clamped = clampZoom(nextZoom, minZoom, maxZoom);
-        setZoom(clamped);
-        if (clamped === minZoom) {
-            setPan({ x: 0, y: 0 });
-        }
+        viewRef.current = {
+            zoom: clamped,
+            x: clamped === minZoom ? 0 : viewRef.current.x,
+            y: clamped === minZoom ? 0 : viewRef.current.y,
+        };
+        applyView();
+        commitView();
     }
 
     function resetView() {
-        setZoom(clampZoom(initialZoom, minZoom, maxZoom));
-        setPan({ x: 0, y: 0 });
+        viewRef.current = { zoom: clampZoom(initialZoom, minZoom, maxZoom), x: 0, y: 0 };
+        applyView();
+        commitView();
     }
 
     useEffect(() => {
         wheelHandlerRef.current = (event: globalThis.WheelEvent) => {
             if (!zoomable) return;
             event.preventDefault();
-            updateZoom(zoom + (event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP));
+            const nextZoom = clampZoom(
+                viewRef.current.zoom + (event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP),
+                minZoom,
+                maxZoom,
+            );
+            viewRef.current = {
+                zoom: nextZoom,
+                x: nextZoom === minZoom ? 0 : viewRef.current.x,
+                y: nextZoom === minZoom ? 0 : viewRef.current.y,
+            };
+            applyView();
+            commitViewSoon();
         };
     });
 
@@ -404,22 +473,22 @@ export function GeneratedMapRenderer({
             const [a, b] = activePoints;
             pinchRef.current = {
                 startDistance: Math.max(1, pointerDistance(a, b)),
-                startZoom: zoom,
-                startPan: pan,
+                startZoom: viewRef.current.zoom,
+                startPan: { x: viewRef.current.x, y: viewRef.current.y },
                 startCenter: pointerCenter(a, b),
             };
             dragRef.current = null;
             return;
         }
 
-        if (zoom <= minZoom) return;
+        if (viewRef.current.zoom <= minZoom) return;
         event.currentTarget.setPointerCapture(event.pointerId);
         dragRef.current = {
             pointerId: event.pointerId,
             startX: event.clientX,
             startY: event.clientY,
-            originX: pan.x,
-            originY: pan.y,
+            originX: viewRef.current.x,
+            originY: viewRef.current.y,
             moved: false,
         };
     }
@@ -438,15 +507,15 @@ export function GeneratedMapRenderer({
                 maxZoom,
             );
             const center = pointerCenter(a, b);
-            setZoom(nextZoom);
-            setPan(
+            viewRef.current =
                 nextZoom === minZoom
-                    ? { x: 0, y: 0 }
+                    ? { zoom: minZoom, x: 0, y: 0 }
                     : {
+                          zoom: nextZoom,
                           x: pinch.startPan.x + center.x - pinch.startCenter.x,
                           y: pinch.startPan.y + center.y - pinch.startCenter.y,
-                      },
-            );
+                      };
+            applyView();
             return;
         }
 
@@ -455,7 +524,9 @@ export function GeneratedMapRenderer({
         const dx = event.clientX - drag.startX;
         const dy = event.clientY - drag.startY;
         if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
-        setPan({ x: drag.originX + dx, y: drag.originY + dy });
+        viewRef.current.x = drag.originX + dx;
+        viewRef.current.y = drag.originY + dy;
+        applyView();
     }
 
     function findProvincePath(event: PointerEvent<HTMLDivElement>): SVGPathElement | null {
@@ -492,6 +563,7 @@ export function GeneratedMapRenderer({
         if (pinchRef.current) {
             if (activePointersRef.current.size < 2) {
                 pinchRef.current = null;
+                commitView();
             }
             releasePointer();
             return;
@@ -507,13 +579,12 @@ export function GeneratedMapRenderer({
             selectProvinceAt(event);
         }
         dragRef.current = null;
+        commitView();
         releasePointer();
     }
 
     const mapLayerStyle: CSSProperties = {
-        transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
-        transformOrigin: "center",
-        transition: dragRef.current ? "none" : "transform 120ms ease",
+        willChange: "transform",
         cursor: zoomable ? (zoom > minZoom ? "grab" : "zoom-in") : undefined,
     };
     const rootStyle: CSSProperties = fitHeight
@@ -568,12 +639,13 @@ export function GeneratedMapRenderer({
                     </button>
                 </div>
             ) : null}
-            <div className="absolute inset-0" style={mapLayerStyle}>
+            <div className="absolute inset-0" style={mapLayerStyle} ref={layerRef}>
                 <img
                     src={mapAssetUrl(draft.seaBaseSrc)}
                     alt=""
                     className="absolute inset-0 h-full w-full object-fill"
                     draggable={false}
+                    decoding="async"
                 />
                 {draft.seaSprites.map((sprite) => (
                 <img
@@ -582,6 +654,7 @@ export function GeneratedMapRenderer({
                     alt=""
                     className="pointer-events-none absolute object-contain"
                     draggable={false}
+                    decoding="async"
                     style={{
                         left: `${sprite.left}%`,
                         top: `${sprite.top}%`,
@@ -613,6 +686,7 @@ export function GeneratedMapRenderer({
                                     alt=""
                                     className="generated-map-back absolute inset-0 h-full w-full object-fill"
                                     draggable={false}
+                                    decoding="async"
                                     style={maskStyle(island.svgPath)}
                                 />
                             ) : null}
@@ -621,13 +695,7 @@ export function GeneratedMapRenderer({
                                     className="absolute inset-0 z-[3]"
                                     style={svgLayerStyle}
                                     dangerouslySetInnerHTML={{
-                                        __html: renderGeneratedIslandSvg({
-                                            svgText,
-                                            island,
-                                            draft,
-                                            captured,
-                                            highlightedProvinces,
-                                        }),
+                                        __html: islandSvgHtml.get(island.islandId) ?? "",
                                     }}
                                 />
                             ) : null}

@@ -276,6 +276,7 @@ export default function ProvinceMap({ captured, onSelect, highlightedProvinces, 
                 src={`${import.meta.env.BASE_URL}leet_background.png`}
                 alt="Background"
                 className="absolute inset-0 w-full h-full object-fill"
+                decoding="async"
                 onError={(e) => console.error('[ProvinceMap] Background image failed:', (e.target as HTMLImageElement).src)}
             />
             <div ref={svgWrapRef} className="absolute inset-0 w-full h-full" />
