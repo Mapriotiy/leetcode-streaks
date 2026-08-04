@@ -5,6 +5,24 @@ body {
     background: #1a1a1a;
 }
 
+@media (min-width: 1920px) {
+    html {
+        font-size: 18px;
+    }
+}
+
+@media (min-width: 2560px) {
+    html {
+        font-size: 22px;
+    }
+}
+
+@media (min-width: 3840px) {
+    html {
+        font-size: 30px;
+    }
+}
+
 @keyframes flame-ignite {
     0% {
         opacity: 0.55;
