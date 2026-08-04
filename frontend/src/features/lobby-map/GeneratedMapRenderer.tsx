@@ -664,7 +664,7 @@ export function GeneratedMapRenderer({
                                         ) : null}
                                         {fortified?.has(marker.provinceId) ? (
                                             <span className="generated-map-fortify" aria-label="fortified">
-                                                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" aria-hidden="true">
+                                                <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" aria-hidden="true">
                                                     <path
                                                         d="M11.302 21.6149C11.5234 21.744 11.6341 21.8086 11.7903 21.8421C11.9116 21.8681 12.0884 21.8681 12.2097 21.8421C12.3659 21.8086 12.4766 21.744 12.698 21.6149C14.646 20.4784 20 16.9084 20 12V6.6C20 6.04207 20 5.7631 19.8926 5.55048C19.7974 5.36198 19.6487 5.21152 19.4613 5.11409C19.25 5.00419 18.9663 5.00084 18.3988 4.99413C15.4272 4.95899 13.7136 4.71361 12 3C10.2864 4.71361 8.57279 4.95899 5.6012 4.99413C5.03373 5.00084 4.74999 5.00419 4.53865 5.11409C4.35129 5.21152 4.20259 5.36198 4.10739 5.55048C4 5.7631 4 6.04207 4 6.6V12C4 16.9084 9.35396 20.4784 11.302 21.6149Z"
                                                         fill="currentColor"
@@ -749,7 +749,7 @@ function GeneratedMapStyles() {
                 .generated-map-marker {
                     position: absolute;
                     display: grid;
-                    width: clamp(10px, 1.05vw, 16px);
+                    width: clamp(0.7rem, 1.05vw, 1.1rem);
                     aspect-ratio: 1;
                     place-items: center;
                     transform: translate(-50%, -50%);
@@ -791,10 +791,10 @@ function GeneratedMapStyles() {
                     position: absolute;
                     left: 50%;
                     top: 50%;
-                    width: 14px;
-                    height: 14px;
-                    margin-left: -7px;
-                    margin-top: -7px;
+                    width: 0.9rem;
+                    height: 0.9rem;
+                    margin-left: -0.45rem;
+                    margin-top: -0.45rem;
                     border-radius: 999px;
                     border: 2px solid var(--burst-color);
                     box-shadow: 0 0 14px var(--burst-color);
@@ -815,10 +815,12 @@ function GeneratedMapStyles() {
 
                 .generated-map-fortify {
                     position: absolute;
-                    top: -11px;
+                    top: -0.7rem;
                     left: 50%;
                     transform: translateX(-50%);
                     display: grid;
+                    width: 0.9rem;
+                    height: 0.9rem;
                     place-items: center;
                     color: #ffa116;
                     filter: drop-shadow(0 0 4px rgba(255, 161, 22, 0.9));

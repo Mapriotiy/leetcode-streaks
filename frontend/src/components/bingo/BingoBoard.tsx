@@ -49,18 +49,18 @@ export function BingoBoard({ cells, teamColor, winningLine, currentUserId }: Bin
                                 backgroundColor: claimColor ? claimColor + (isWinning ? '33' : '1f') : '#1f1f1f',
                             }}
                         >
-                            <span className="line-clamp-3 w-full break-words text-[11px] leading-tight text-[#eff1f6]">
+                            <span className="line-clamp-3 w-full break-words text-[0.7rem] leading-tight text-[#eff1f6]">
                                 {cell.problem?.title ?? '?'}
                             </span>
                             <span
-                                className="text-[10px] font-semibold"
+                                className="text-[0.625rem] font-semibold"
                                 style={{ color: DIFFICULTY_COLORS[cell.problem?.difficulty ?? ''] ?? '#888' }}
                             >
                                 {cell.problem?.difficulty ?? ''}
                             </span>
                             {cell.claimed_by && (
                                 <span
-                                    className="max-w-full truncate rounded-full px-1.5 text-[9px] font-semibold"
+                                    className="max-w-full truncate rounded-full px-1.5 text-[0.5625rem] font-semibold"
                                     style={{ backgroundColor: (claimColor ?? '#888') + '33', color: claimColor ?? '#aaa' }}
                                 >
                                     {isMine ? 'you' : cell.claimer_leetcode_username ?? 'claimed'}

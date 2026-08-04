@@ -298,7 +298,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
 
     if (loading) {
         return (
-            <main className="min-h-screen bg-transparent p-6 text-white">
+            <main className="min-h-screen bg-transparent p-4 text-white sm:p-6">
                 <div className="mx-auto max-w-2xl pt-20 text-center text-[#8a8a8a]">Loading lobby...</div>
             </main>
         );
@@ -306,7 +306,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
 
     if (!lobby) {
         return (
-            <main className="min-h-screen bg-transparent p-6 text-white">
+            <main className="min-h-screen bg-transparent p-4 text-white sm:p-6">
                 <div className="mx-auto max-w-2xl pt-20 text-center text-[#8a8a8a]">Lobby not found</div>
             </main>
         );
@@ -355,7 +355,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
             : MAP_LABELS[lobby.map_size] ?? lobby.map_size;
 
     return (
-        <main className="min-h-screen bg-transparent p-6 text-white">
+        <main className="min-h-screen bg-transparent p-4 text-white sm:p-6">
             <div className="mx-auto max-w-2xl">
                 <header className="flex items-center gap-4">
                     <button
@@ -601,7 +601,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                     )}
                 </section>
 
-                <div className="mt-6 flex gap-3">
+                <div className="mt-6 flex flex-wrap gap-3">
                     {inLobby && (
                         <button
                             type="button"

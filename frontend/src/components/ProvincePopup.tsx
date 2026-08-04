@@ -78,14 +78,17 @@ export default function ProvincePopup({
               (firstCaptureOwner === 'player' ? firstCaptureBonus(problem?.difficulty) : 0)
             : 0;
 
+    const clampedX = Math.max(90, Math.min(pos.x, window.innerWidth - 90));
+    const flipBelow = pos.y < 170;
+
     return (
         <div className="fixed inset-0 z-50" onClick={onClose}>
             <div
                 className="absolute bg-neutral-900 border rounded-lg p-3 shadow-2xl w-56"
                 style={{
-                    left: pos.x,
-                    top: pos.y - 14,
-                    transform: 'translate(-50%, -100%)',
+                    left: clampedX,
+                    top: flipBelow ? pos.y + 10 : pos.y - 14,
+                    transform: flipBelow ? 'translate(-50%, 0)' : 'translate(-50%, -100%)',
                     borderColor: accent + '4d',
                 }}
                 onClick={(e) => e.stopPropagation()}

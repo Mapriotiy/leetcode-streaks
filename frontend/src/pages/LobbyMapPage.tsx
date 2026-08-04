@@ -481,7 +481,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     });
 
     return (
-        <main className="min-h-screen bg-transparent p-6 text-white">
+        <main className="min-h-screen bg-transparent p-4 text-white sm:p-6">
             <div className="mx-auto max-w-7xl">
                 <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4">
@@ -617,7 +617,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                                     )}
 
                                     {armedPowerup && (
-                                        <div className="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2 whitespace-nowrap rounded-full border border-[#ffa116]/50 bg-[#1f1f1f]/95 px-3 py-1.5 text-xs font-medium text-[#ffd08a]">
+                                        <div className="pointer-events-none absolute left-1/2 top-3 z-30 w-max max-w-[calc(100%_-_1rem)] -translate-x-1/2 rounded-full border border-[#ffa116]/50 bg-[#1f1f1f]/95 px-3 py-1.5 text-center text-xs font-medium text-[#ffd08a]">
                                             Select a province to use{" "}
                                             {armedPowerup === 'reroll'
                                                 ? 'Reroll'
@@ -667,7 +667,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                         <EventLogPanel
                             events={events}
                             currentUserId={currentUserId}
-                            className="hidden w-80 shrink-0 max-h-[640px] lg:flex"
+                            className="hidden w-80 shrink-0 max-h-[40rem] lg:flex"
                         />
                     )}
                 </div>

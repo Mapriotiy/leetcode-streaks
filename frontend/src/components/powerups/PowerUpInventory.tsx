@@ -66,7 +66,7 @@ export function PowerUpInventory({ powerups, armed, onArm }: PowerUpInventoryPro
                                 return <Cmp className="h-6 w-6" />;
                             })() : null}
                         </button>
-                        <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 w-max max-w-44 -translate-x-1/2 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-2 py-1 text-center text-[11px] opacity-0 transition group-hover:opacity-100">
+                        <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 w-max max-w-44 -translate-x-1/2 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-2 py-1 text-center text-[0.6875rem] opacity-0 transition group-hover:opacity-100">
                             {kind ? (
                                 <span className="text-[#d7d7d7]">
                                     <span className="font-semibold text-[#ffa116]">{POWERUP_LABELS[kind]}</span>

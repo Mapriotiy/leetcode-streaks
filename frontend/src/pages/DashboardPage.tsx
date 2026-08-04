@@ -107,9 +107,9 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
         : (displayName ?? "Welcome");
 
     return (
-        <main className="min-h-screen bg-transparent p-6 text-white">
-                <header className="sticky top-0 z-20 -mx-6 -mt-6 mb-6 border-b border-[#2a2a2a] bg-[#1a1a1a]/95 px-6 py-3 backdrop-blur">
-                    <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
+        <main className="min-h-screen bg-transparent p-4 text-white sm:p-6">
+                <header className="sticky top-0 z-20 -mx-4 -mt-4 mb-6 border-b border-[#2a2a2a] bg-[#1a1a1a]/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:-mt-6 sm:px-6">
+                    <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2">
                         <div className="flex items-center gap-2.5">
                             <span className="grid h-9 w-9 place-items-center rounded-lg border border-[#3a3a3a] bg-[#262626] text-[#ffa116]">
                                 <Flame size={18} strokeWidth={2.2} />
@@ -138,19 +138,19 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                             ) : null}
 
                             <div className="flex items-center gap-2.5">
-                                <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full border border-[#3a3a3a] bg-[#333333] text-[#b3b3b3]">
-                                    {(dashboardData?.avatar_url ?? user.avatar_url) ? (
-                                        <img
-                                            src={dashboardData?.avatar_url ?? user.avatar_url ?? ""}
-                                            alt=""
-                                            className="h-full w-full object-cover"
-                                        />
-                                    ) : (
-                                        <UserCircle size={22} strokeWidth={1.8} />
-                                    )}
-                                </div>
+                            <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full border border-[#3a3a3a] bg-[#333333] text-[#b3b3b3]">
+                                {(dashboardData?.avatar_url ?? user.avatar_url) ? (
+                                    <img
+                                        src={dashboardData?.avatar_url ?? user.avatar_url ?? ""}
+                                        alt=""
+                                        className="h-full w-full object-cover"
+                                    />
+                                ) : (
+                                    <UserCircle size={22} strokeWidth={1.8} />
+                                )}
+                            </div>
 
-                                <div className="max-w-[10rem] leading-tight">
+                            <div className="min-w-0 max-w-[10rem] leading-tight">
                                     <p className="truncate text-sm font-semibold text-[#eff1f6]">
                                         {headerName}
                                     </p>

@@ -256,7 +256,7 @@ export function MapChooserModal({
                         </div>
 
                         {tab === "catalog" ? (
-                            <div className="mt-3 space-y-2 md:mt-4 md:max-h-[70vh] md:space-y-2 md:overflow-auto md:pr-1">
+                            <div className="mt-3 max-h-[70vh] space-y-2 overflow-auto md:mt-4 md:pr-1">
                                 <button
                                     type="button"
                                     onClick={() => setCatalogPreview({ kind: "default" })}
@@ -480,7 +480,7 @@ export function MapChooserModal({
                                         type="button"
                                         onClick={() => generateNextDraft()}
                                         disabled={isGenerating || selectedTopics.length === 0}
-                                        className="flex min-h-[280px] flex-1 items-center justify-center rounded-lg border border-dashed border-white/15 bg-[#191919] text-sm font-medium text-[#bdbdbd] transition hover:border-[#ffa116]/60 hover:text-white disabled:cursor-not-allowed disabled:text-[#777] md:min-h-[420px]"
+                                        className="flex min-h-[17.5rem] flex-1 items-center justify-center rounded-lg border border-dashed border-white/15 bg-[#191919] text-sm font-medium text-[#bdbdbd] transition hover:border-[#ffa116]/60 hover:text-white disabled:cursor-not-allowed disabled:text-[#777] md:min-h-[26.25rem]"
                                     >
                                         {isGenerating ? "Generating..." : "Generate Map"}
                                     </button>

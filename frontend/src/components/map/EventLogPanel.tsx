@@ -52,7 +52,7 @@ export function EventLogPanel({ events, currentUserId, className = '' }: EventLo
                                 <p className="text-[#eff1f6]">
                                     {eventText(event, currentUserId)}
                                 </p>
-                                <p className="mt-1 text-[10px] text-[#8a8a8a]">
+                                <p className="mt-1 text-[0.625rem] text-[#8a8a8a]">
                                     {relativeTime(event.created_at)}
                                 </p>
                             </div>

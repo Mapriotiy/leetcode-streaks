@@ -39,7 +39,7 @@ export function LobbyGamePage(props: LobbyGamePageProps) {
 
     if (!gameMode) {
         return (
-            <main className="min-h-screen bg-transparent p-6 text-white">
+            <main className="min-h-screen bg-transparent p-4 text-white sm:p-6">
                 Loading game...
             </main>
         );

@@ -86,7 +86,7 @@ function StatusBadge({ status }: { status: string }) {
         finished: "bg-[#2bff88]/15 text-[#7ef7bb]",
     };
     return (
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${styles[status] ?? "bg-[#3a3a3a]/60 text-[#d7d7d7]"}`}>
+        <span className={`rounded-full px-2 py-0.5 text-[0.625rem] font-semibold ${styles[status] ?? "bg-[#3a3a3a]/60 text-[#d7d7d7]"}`}>
             {status}
         </span>
     );
@@ -96,7 +96,7 @@ export function AdminPage({ onBack, onLogout }: { onBack: () => void; onLogout: 
     const [tab, setTab] = useState<"users" | "lobbies">("users");
 
     return (
-        <main className="min-h-screen bg-transparent p-6 text-white">
+        <main className="min-h-screen bg-transparent p-4 text-white sm:p-6">
             <div className="mx-auto max-w-6xl">
                 <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4">
@@ -357,7 +357,7 @@ function UsersTab() {
                                                     <p className="font-semibold text-[#eff1f6]">
                                                         {user.display_name ?? "—"}
                                                         {user.is_banned && (
-                                                            <span className="ml-2 rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-300">BANNED</span>
+                                                            <span className="ml-2 rounded-full bg-red-500/15 px-2 py-0.5 text-[0.625rem] font-semibold text-red-300">BANNED</span>
                                                         )}
                                                     </p>
                                                     <p className="text-xs text-[#8a8a8a]">#{user.id}</p>
@@ -375,7 +375,7 @@ function UsersTab() {
                                         <td className="px-4 py-3 text-[#b3b3b3]">{formatDate(user.created_at)}</td>
                                         <td className="px-4 py-3">
                                             {user.is_admin ? (
-                                                <span className="inline-flex items-center gap-1 rounded-full bg-[#ffa116]/15 px-2 py-0.5 text-[10px] font-semibold text-[#ffd08a]">
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-[#ffa116]/15 px-2 py-0.5 text-[0.625rem] font-semibold text-[#ffd08a]">
                                                     <Star size={10} /> ADMIN
                                                 </span>
                                             ) : (
