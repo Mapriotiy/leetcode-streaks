@@ -61,7 +61,7 @@ export function DebugPanel({
                 type="button"
                 onClick={() => setOpen(true)}
                 title="Open debug tools"
-                className="absolute left-3 top-3 z-40 inline-flex items-center gap-1.5 rounded-md border border-[#00d9ff]/50 bg-[#1a1a1a]/95 px-2.5 py-1.5 text-xs font-semibold text-[#00d9ff] shadow-xl backdrop-blur transition hover:bg-[#00d9ff]/10"
+                className="absolute left-3 top-3 z-[60] inline-flex items-center gap-1.5 rounded-md border border-[#00d9ff]/50 bg-[#1a1a1a]/95 px-2.5 py-1.5 text-xs font-semibold text-[#00d9ff] shadow-xl backdrop-blur transition hover:bg-[#00d9ff]/10"
             >
                 <Bug size={14} /> DEBUG
             </button>
@@ -69,7 +69,7 @@ export function DebugPanel({
     }
 
     return (
-        <div className="absolute left-3 top-3 z-40 w-72 rounded-lg border border-[#00d9ff]/40 bg-[#1a1a1a]/95 p-3 text-xs shadow-2xl backdrop-blur">
+        <div className="absolute left-3 top-3 z-[60] w-72 rounded-lg border border-[#00d9ff]/40 bg-[#1a1a1a]/95 p-3 text-xs shadow-2xl backdrop-blur">
             <div className="flex items-center justify-between">
                 <span className="inline-flex items-center gap-1.5 font-bold text-[#00d9ff]">
                     <Bug size={13} /> DEBUG
