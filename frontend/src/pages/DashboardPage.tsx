@@ -50,17 +50,6 @@ function SkeletonBlock({ className = "" }: { className?: string }) {
     return <div className={`animate-pulse rounded-md bg-[#2a2a2a] ${className}`} />;
 }
 
-function StatTile({ label, value, accent }: { label: string; value: number | string; accent?: string }) {
-    return (
-        <div className="rounded-lg border border-[#3a3a3a] bg-[#262626] px-4 py-3 shadow-xl shadow-black/20">
-            <p className="text-xs text-[#8a8a8a]">{label}</p>
-            <p className="mt-1 text-xl font-semibold tabular-nums" style={{ color: accent ?? "#eff1f6" }}>
-                {value}
-            </p>
-        </div>
-    );
-}
-
 function DashboardSkeleton() {
     return (
         <section className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -253,15 +242,6 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                     <div className="mt-4 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
                         {errorMessage}
                     </div>
-                ) : null}
-
-                {dashboardData && dashboardData.stats ? (
-                    <section className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        <StatTile label="Games played" value={dashboardData.stats.games_played} />
-                        <StatTile label="Wins" value={dashboardData.stats.games_won} accent="#7ef7bb" />
-                        <StatTile label="Win rate" value={`${dashboardData.stats.win_rate}%`} />
-                        <StatTile label="Provinces captured" value={dashboardData.stats.total_captures} accent="#7fe8ff" />
-                    </section>
                 ) : null}
 
                 {!dashboardData ? (

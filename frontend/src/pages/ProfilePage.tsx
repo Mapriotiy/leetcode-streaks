@@ -1,5 +1,16 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { ArrowLeft, Flame, LogOut, Trophy, UserCircle } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import {
+    ArrowLeft,
+    CalendarDays,
+    CheckCircle2,
+    Crown,
+    Flame,
+    Gamepad2,
+    LogOut,
+    MapPin,
+    Trophy,
+    UserCircle,
+} from "lucide-react";
 import { apiRequest } from "../api/client";
 import { ActivityCalendar } from "../components/dashboard/ActivityCalendar";
 import { Footer } from "../components/Footer";
@@ -10,13 +21,50 @@ type ProfilePageProps = {
     onLogout: () => void;
 };
 
-function StatTile({ label, value, accent }: { label: string; value: ReactNode; accent?: string }) {
+function StreakPill({ count, lit }: { count: number; lit: boolean }) {
     return (
-        <div className="rounded-lg border border-[#3a3a3a] bg-[#262626] px-4 py-3 shadow-xl shadow-black/20">
-            <p className="text-xs text-[#8a8a8a]">{label}</p>
-            <p className="mt-1 text-xl font-semibold tabular-nums" style={{ color: accent ?? "#eff1f6" }}>
-                {value}
-            </p>
+        <span
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold ${
+                lit
+                    ? "border-[#ffa116]/50 bg-[#ffa116]/10 text-[#ffd08a]"
+                    : "border-[#3a3a3a] bg-[#1f1f1f] text-[#8a8a8a]"
+            }`}
+        >
+            <Flame size={15} className={lit ? "text-[#ffa116]" : "text-[#555]"} />
+            {count} day{count === 1 ? "" : "s"}
+        </span>
+    );
+}
+
+function StatTile({
+    icon,
+    label,
+    value,
+    accent,
+}: {
+    icon: React.ReactNode;
+    label: string;
+    value: string | number;
+    accent?: string;
+}) {
+    return (
+        <div className="flex items-center gap-3 rounded-xl border border-[#3a3a3a] bg-[#262626] px-4 py-3.5 shadow-xl shadow-black/20">
+            <span
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border"
+                style={{
+                    borderColor: (accent ?? "#3a3a3a") + "55",
+                    backgroundColor: (accent ?? "#333") + "1f",
+                    color: accent ?? "#b3b3b3",
+                }}
+            >
+                {icon}
+            </span>
+            <div className="min-w-0">
+                <p className="text-xs text-[#8a8a8a]">{label}</p>
+                <p className="text-lg font-bold tabular-nums leading-tight" style={{ color: accent ?? "#eff1f6" }}>
+                    {value}
+                </p>
+            </div>
         </div>
     );
 }
@@ -38,6 +86,10 @@ export function ProfilePage({ onBack, onLogout }: ProfilePageProps) {
         void load();
     }, [load]);
 
+    const stats = data?.stats;
+    const winRate = stats?.win_rate ?? 0;
+    const streakLit = data?.current_streak_state === "lit";
+
     return (
         <main className="min-h-screen bg-transparent p-4 text-white sm:p-6">
             <div className="mx-auto max-w-5xl">
@@ -52,7 +104,7 @@ export function ProfilePage({ onBack, onLogout }: ProfilePageProps) {
                         </button>
                         <div>
                             <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
-                            <p className="mt-1 text-sm text-[#8a8a8a]">Your stats and activity</p>
+                            <p className="mt-1 text-sm text-[#8a8a8a]">Your progress at a glance</p>
                         </div>
                     </div>
                     <button
@@ -71,46 +123,79 @@ export function ProfilePage({ onBack, onLogout }: ProfilePageProps) {
                     </p>
                 ) : null}
 
-                <section className="mt-6 flex flex-col items-center gap-4 rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20 sm:flex-row">
-                    <span className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full border border-[#3a3a3a] bg-[#333333] text-[#b3b3b3]">
-                        {data?.avatar_url ? (
-                            <img src={data.avatar_url} alt="" className="h-full w-full object-cover" />
-                        ) : (
-                            <UserCircle size={40} strokeWidth={1.6} />
-                        )}
-                    </span>
-                    <div className="min-w-0 text-center sm:text-left">
-                        <p className="truncate text-xl font-semibold text-[#eff1f6]">
-                            {data?.display_name ?? "—"}
-                        </p>
-                        {data?.leetcode_username ? (
-                            <p className="mt-1 truncate text-sm text-[#ffa116]">{data.leetcode_username}</p>
-                        ) : (
-                            <p className="mt-1 text-sm text-[#8a8a8a]">LeetCode account not linked</p>
-                        )}
-                        <p className="mt-1 text-xs text-[#666]">
-                            Member of MapCode
-                        </p>
+                <section className="relative mt-6 overflow-hidden rounded-2xl border border-[#3a3a3a] bg-gradient-to-br from-[#2a2a2a] to-[#1d1d1d] p-6 shadow-2xl shadow-black/30">
+                    <div
+                        className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full opacity-25"
+                        style={{ background: "radial-gradient(circle, #ffa116 0%, transparent 70%)" }}
+                    />
+                    <div className="relative flex flex-col items-center gap-4 sm:flex-row">
+                        <span className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-[#ffa116]/40 bg-[#333333] text-[#b3b3b3] shadow-lg">
+                            {data?.avatar_url ? (
+                                <img src={data.avatar_url} alt="" className="h-full w-full object-cover" />
+                            ) : (
+                                <UserCircle size={48} strokeWidth={1.6} />
+                            )}
+                        </span>
+                        <div className="min-w-0 flex-1 text-center sm:text-left">
+                            <p className="truncate text-2xl font-bold text-[#eff1f6]">
+                                {data?.display_name ?? "—"}
+                            </p>
+                            <div className="mt-1.5 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                                {data?.leetcode_username ? (
+                                    <span className="rounded-full border border-[#ffa116]/40 bg-[#ffa116]/10 px-2.5 py-0.5 text-sm font-semibold text-[#ffd08a]">
+                                        @{data.leetcode_username}
+                                    </span>
+                                ) : (
+                                    <span className="text-sm text-[#8a8a8a]">LeetCode account not linked</span>
+                                )}
+                                <StreakPill count={data?.current_streak ?? 0} lit={streakLit} />
+                            </div>
+                            <p className="mt-2 text-xs text-[#666]">
+                                {data?.active_days_count ?? 0} active days on the calendar
+                            </p>
+                        </div>
                     </div>
                 </section>
 
-                <section className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <StatTile
-                        label="Current streak"
-                        value={
-                            <span className="inline-flex items-center gap-1.5">
-                                <Flame size={16} className={data?.current_streak_state === "lit" ? "text-[#ffa116]" : "text-[#666]"} />
-                                {data?.current_streak ?? 0}
+                <section className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                    <StatTile icon={<Trophy size={18} />} label="Longest streak" value={data?.longest_streak ?? 0} accent="#ffd08a" />
+                    <StatTile icon={<CalendarDays size={18} />} label="Active days" value={data?.active_days_count ?? 0} />
+                    <StatTile icon={<CheckCircle2 size={18} />} label="Solved today" value={data?.today_submissions.length ?? 0} accent="#7fe8ff" />
+                    <StatTile icon={<Gamepad2 size={18} />} label="Games played" value={stats?.games_played ?? 0} />
+                </section>
+
+                <section className="mt-4 rounded-2xl border border-[#3a3a3a] bg-[#262626] p-5 shadow-xl shadow-black/20">
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                            <Crown size={18} className="text-[#2bff88]" />
+                            <h2 className="text-sm font-semibold text-[#eff1f6]">Match record</h2>
+                        </div>
+                        <span className="text-lg font-bold tabular-nums text-[#2bff88]">{winRate}%</span>
+                    </div>
+
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#333]">
+                        <div
+                            className="h-full rounded-full bg-gradient-to-r from-[#27d980] to-[#2bff88] transition-all duration-700"
+                            style={{ width: `${Math.min(100, winRate)}%` }}
+                        />
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+                        <div className="flex items-center gap-2 text-[#b3b3b3]">
+                            <Gamepad2 size={15} className="text-[#8a8a8a]" />
+                            <span>
+                                {stats?.games_played ?? 0} games ·{" "}
+                                <span className="font-semibold text-[#7ef7bb]">{stats?.games_won ?? 0} wins</span>
                             </span>
-                        }
-                    />
-                    <StatTile label="Longest streak" value={data?.longest_streak ?? 0} accent="#ffd08a" />
-                    <StatTile label="Active days" value={data?.active_days_count ?? 0} />
-                    <StatTile label="Solved today" value={data?.today_submissions.length ?? 0} accent="#7fe8ff" />
-                    <StatTile label="Games played" value={data?.stats.games_played ?? 0} />
-                    <StatTile label="Wins" value={data?.stats.games_won ?? 0} accent="#7ef7bb" />
-                    <StatTile label="Win rate" value={`${data?.stats.win_rate ?? 0}%`} />
-                    <StatTile label="Provinces captured" value={data?.stats.total_captures ?? 0} accent="#7fe8ff" />
+                        </div>
+                        <div className="flex items-center gap-2 text-[#b3b3b3]">
+                            <MapPin size={15} className="text-[#7fe8ff]" />
+                            <span>
+                                <span className="font-semibold text-[#7fe8ff]">{stats?.total_captures ?? 0}</span>{" "}
+                                provinces captured
+                            </span>
+                        </div>
+                    </div>
                 </section>
 
                 <section className="mt-4">
@@ -119,11 +204,6 @@ export function ProfilePage({ onBack, onLogout }: ProfilePageProps) {
                         activeDaysCount={data?.active_days_count ?? 0}
                     />
                 </section>
-
-                <div className="flex items-center gap-2 text-xs text-[#666]">
-                    <Trophy size={14} />
-                    <span>This profile is generated from your own LeetCode activity.</span>
-                </div>
 
                 <Footer />
             </div>
