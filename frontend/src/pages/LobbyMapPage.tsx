@@ -1,9 +1,11 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { ArrowLeft, LogOut } from 'lucide-react';
+import { ArrowLeft, HelpCircle, LogOut } from 'lucide-react';
 import ProvinceMap from '../components/ProvinceMap';
 import ProvincePopup from '../components/ProvincePopup';
 import { WinnerOverlay } from '../components/WinnerOverlay';
 import { EventLogPanel } from '../components/map/EventLogPanel';
+import { GameSummary } from '../components/map/GameSummary';
+import { HowToPlayModal } from '../components/map/HowToPlayModal';
 import { MapLegend } from '../components/map/MapLegend';
 import { REGIONS } from '../mapRegions';
 import { apiRequest } from '../api/client';
@@ -114,6 +116,8 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     const [loading, setLoading] = useState(true);
     const [isLeaving, setIsLeaving] = useState(false);
     const [leaveError, setLeaveError] = useState<string | null>(null);
+    const [showHelp, setShowHelp] = useState(false);
+    const [showSummary, setShowSummary] = useState(false);
     const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
     const [popPos, setPopPos] = useState<{ x: number; y: number } | null>(null);
     const [hoveredProvinces, setHoveredProvinces] = useState<string[] | null>(null);
@@ -140,6 +144,10 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
         setSelectedProvince(null);
         setPopPos(null);
     }, [lobbyId]);
+
+    useEffect(() => {
+        if (gameStatus === 'finished') setShowSummary(true);
+    }, [gameStatus]);
 
     const factionByPlayer = useMemo(() => {
         const map = new Map<number, number>();
@@ -500,6 +508,15 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                     <div className="flex flex-wrap items-center gap-2">
                         <button
                             type="button"
+                            onClick={() => setShowHelp(true)}
+                            title="How to play"
+                            aria-label="How to play"
+                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                        >
+                            <HelpCircle size={18} />
+                        </button>
+                        <button
+                            type="button"
                             onClick={handleLeave}
                             disabled={isLeaving}
                             className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#3a3a3a] bg-[#262626] px-4 text-sm font-medium text-[#d7d7d7] transition hover:border-red-400/60 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:border-[#3a3a3a] disabled:bg-[#262626] disabled:text-[#777]"
@@ -704,6 +721,17 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                         onReplay={onBack}
                     />
                 ) : null}
+
+                {showHelp && <HowToPlayModal onClose={() => setShowHelp(false)} />}
+
+                <GameSummary
+                    open={showSummary}
+                    winner={winner}
+                    rows={scoreRows}
+                    totalCount={totalCount}
+                    currentUserId={currentUserId}
+                    onClose={() => setShowSummary(false)}
+                />
             </div>
         </main>
     );
