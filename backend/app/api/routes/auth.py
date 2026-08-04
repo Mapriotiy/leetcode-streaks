@@ -158,4 +158,6 @@ def get_me(current_user: User = Depends(get_current_user)):
         avatar_url=current_user.avatar_url,
         leetcode_username=current_user.leetcode_username,
         leetcode_verified_at=current_user.leetcode_verified_at,
+        is_admin=current_user.is_admin,
+        is_banned=current_user.is_banned,
     )

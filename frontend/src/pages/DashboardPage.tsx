@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Flame, Gamepad2, Link2, UserCircle } from "lucide-react";
+import { Flame, Gamepad2, Link2, Shield, UserCircle } from "lucide-react";
 import { apiRequest } from "../api/client";
 import { dashboardCacheKey, readCache, writeCache } from "../api/localCache";
 import { ActivityCalendar } from "../components/dashboard/ActivityCalendar";
@@ -17,6 +17,7 @@ type User = {
     display_name: string | null;
     avatar_url: string | null;
     leetcode_verified_at: string | null;
+    is_admin?: boolean;
 };
 
 type DashboardPageProps = {
@@ -25,6 +26,7 @@ type DashboardPageProps = {
     onLogout: () => void;
     onOpenLobby: (lobbyId: number, players?: LobbyPlayer[], factions?: Faction[]) => void;
     onLinkChanged: () => void;
+    onOpenAdmin: () => void;
 };
 
 // Bump when DashboardData's shape changes so stale-shaped cache is dropped.
@@ -41,7 +43,7 @@ const LANGUAGE_LABELS: Record<string, string> = {
     rust: "Rust",
 };
 
-export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkChanged }: DashboardPageProps) {
+export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkChanged, onOpenAdmin }: DashboardPageProps) {
     // Seed from the last-seen dashboard so returning to the menu paints instantly
     // instead of showing the "Loading dashboard..." placeholder (issue #1).
     const cachedDashboard = readCache<DashboardData>(
@@ -162,6 +164,17 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                                     Logout
                                 </button>
                             </div>
+
+                            {user.is_admin && (
+                                <button
+                                    type="button"
+                                    onClick={onOpenAdmin}
+                                    title="Admin panel"
+                                    className="grid h-10 w-10 place-items-center rounded-md border border-[#4a4a4a] bg-[#333333] text-[#d7d7d7] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                                >
+                                    <Shield size={18} />
+                                </button>
+                            )}
                         </div>
                     </div>
                 </header>

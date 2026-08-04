@@ -26,3 +26,5 @@ class MeResponse(BaseModel):
     avatar_url: str | None = None
     leetcode_username: str | None = None
     leetcode_verified_at: datetime | None = None
+    is_admin: bool = False
+    is_banned: bool = False
