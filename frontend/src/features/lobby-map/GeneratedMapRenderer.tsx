@@ -307,6 +307,8 @@ export function GeneratedMapRenderer({
     const rootRef = useRef<HTMLDivElement | null>(null);
     const layerRef = useRef<HTMLDivElement | null>(null);
     const viewRef = useRef({ zoom: clampZoom(initialZoom, minZoom, maxZoom), x: 0, y: 0 });
+    const displayRef = useRef({ zoom: clampZoom(initialZoom, minZoom, maxZoom), x: 0, y: 0 });
+    const animRef = useRef<number | null>(null);
     const dragRef = useRef<DragState | null>(null);
     const activePointersRef = useRef<Map<number, PointerPoint>>(new Map());
     const pinchRef = useRef<PinchState | null>(null);
@@ -353,21 +355,43 @@ export function GeneratedMapRenderer({
     function applyView() {
         const layer = layerRef.current;
         if (!layer) return;
-        const { zoom: z, x, y } = viewRef.current;
+        const { zoom: z, x, y } = displayRef.current;
         layer.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${z})`;
     }
 
-    function applyViewAnimated() {
-        const layer = layerRef.current;
-        if (!layer) return;
-        layer.style.transition = "transform 90ms cubic-bezier(0.2, 0.8, 0.2, 1)";
-        applyView();
+    // Smoothly glide displayRef toward viewRef every frame. Discrete wheel
+    // notches just move the target; this loop makes the motion continuous.
+    function startSmoothZoom() {
+        if (animRef.current !== null) return;
+        const EASE = 0.22;
+        const tick = () => {
+            const target = viewRef.current;
+            const display = displayRef.current;
+            display.zoom += (target.zoom - display.zoom) * EASE;
+            display.x += (target.x - display.x) * EASE;
+            display.y += (target.y - display.y) * EASE;
+            applyView();
+            if (
+                Math.abs(target.zoom - display.zoom) < 0.001 &&
+                Math.abs(target.x - display.x) < 0.5 &&
+                Math.abs(target.y - display.y) < 0.5
+            ) {
+                displayRef.current = { zoom: target.zoom, x: target.x, y: target.y };
+                applyView();
+                animRef.current = null;
+                return;
+            }
+            animRef.current = requestAnimationFrame(tick);
+        };
+        animRef.current = requestAnimationFrame(tick);
     }
 
     function applyViewInstant() {
-        const layer = layerRef.current;
-        if (!layer) return;
-        layer.style.transition = "none";
+        if (animRef.current !== null) {
+            cancelAnimationFrame(animRef.current);
+            animRef.current = null;
+        }
+        displayRef.current = { ...viewRef.current };
         applyView();
     }
 
@@ -380,7 +404,7 @@ export function GeneratedMapRenderer({
         commitTimerRef.current = window.setTimeout(() => {
             commitTimerRef.current = null;
             commitView();
-        }, 150);
+        }, 200);
     }
 
     useEffect(() => {
@@ -439,13 +463,13 @@ export function GeneratedMapRenderer({
             x: clamped === minZoom ? 0 : viewRef.current.x,
             y: clamped === minZoom ? 0 : viewRef.current.y,
         };
-        applyViewAnimated();
+        startSmoothZoom();
         commitView();
     }
 
     function resetView() {
         viewRef.current = { zoom: clampZoom(initialZoom, minZoom, maxZoom), x: 0, y: 0 };
-        applyViewAnimated();
+        startSmoothZoom();
         commitView();
     }
 
@@ -487,7 +511,7 @@ export function GeneratedMapRenderer({
                     viewRef.current = { ...viewRef.current, zoom: nextZoom };
                 }
             }
-            applyViewAnimated();
+            startSmoothZoom();
             commitViewSoon();
         };
     });
@@ -503,7 +527,7 @@ export function GeneratedMapRenderer({
     function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
         if (!zoomable || event.button !== 0) return;
         if ((event.target as Element).closest("button")) return;
-        if (layerRef.current) layerRef.current.style.transition = "none";
+        applyViewInstant();
         activePointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
         const activePoints = [...activePointersRef.current.values()];
@@ -546,7 +570,7 @@ export function GeneratedMapRenderer({
                 maxZoom,
             );
             const center = pointerCenter(a, b);
-            viewRef.current =
+            const nextView =
                 nextZoom === minZoom
                     ? { zoom: minZoom, x: 0, y: 0 }
                     : {
@@ -554,6 +578,8 @@ export function GeneratedMapRenderer({
                           x: pinch.startPan.x + center.x - pinch.startCenter.x,
                           y: pinch.startPan.y + center.y - pinch.startCenter.y,
                       };
+            viewRef.current = nextView;
+            displayRef.current = nextView;
             applyView();
             return;
         }
@@ -565,6 +591,8 @@ export function GeneratedMapRenderer({
         if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
         viewRef.current.x = drag.originX + dx;
         viewRef.current.y = drag.originY + dy;
+        displayRef.current.x = viewRef.current.x;
+        displayRef.current.y = viewRef.current.y;
         applyView();
     }
 
