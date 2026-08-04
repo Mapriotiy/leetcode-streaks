@@ -69,6 +69,10 @@ type AdminStats = {
     problem_count: number;
     catalog_last_synced_at: string | null;
     failed_syncs: number;
+    dau_today: number;
+    dau_7d: number;
+    solvers_today: number;
+    dau_series: { date: string; active: number }[];
 };
 
 const LIMIT = 50;
@@ -233,8 +237,9 @@ function StatsOverview() {
 
     const cards: Array<{ label: string; value: number | string; accent?: string }> = [
         { label: "Total users", value: stats.total_users },
-        { label: "Banned", value: stats.banned_users, accent: "#ff5d73" },
-        { label: "Admins", value: stats.admin_users, accent: "#ffd08a" },
+        { label: "Active today (DAU)", value: stats.dau_today, accent: "#2bff88" },
+        { label: "Active last 7d", value: stats.dau_7d, accent: "#7fe8ff" },
+        { label: "Solvers today", value: stats.solvers_today, accent: "#ffd08a" },
         { label: "Active lobbies", value: stats.active_lobbies, accent: "#7fe8ff" },
         { label: "Waiting", value: stats.waiting_lobbies },
         { label: "Finished", value: stats.finished_lobbies, accent: "#7ef7bb" },
@@ -247,12 +252,38 @@ function StatsOverview() {
         { label: "Failed syncs", value: stats.failed_syncs, accent: stats.failed_syncs > 0 ? "#ff5d73" : "#7ef7bb" },
     ];
 
+    const maxDau = Math.max(1, ...stats.dau_series.map((day) => day.active));
+
     return (
-        <section className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {cards.map((c) => (
-                <StatCard key={c.label} {...c} />
-            ))}
-        </section>
+        <>
+            <section className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                {cards.map((c) => (
+                    <StatCard key={c.label} {...c} />
+                ))}
+            </section>
+
+            <section className="mt-4 rounded-lg border border-[#3a3a3a] bg-[#262626] p-4 shadow-xl shadow-black/20">
+                <p className="text-xs text-[#8a8a8a]">Active users, last 7 days</p>
+                <div className="mt-3 flex items-end gap-2">
+                    {stats.dau_series.map((day) => (
+                        <div key={day.date} className="flex flex-1 flex-col items-center gap-1">
+                            <span className="text-xs font-semibold tabular-nums text-[#7fe8ff]">
+                                {day.active}
+                            </span>
+                            <div className="flex h-24 w-full items-end overflow-hidden rounded bg-[#1f1f1f]">
+                                <div
+                                    className="w-full rounded-t bg-gradient-to-t from-[#00d9ff]/40 to-[#00d9ff] transition-all duration-500"
+                                    style={{ height: `${(day.active / maxDau) * 100}%` }}
+                                />
+                            </div>
+                            <span className="text-[10px] text-[#666]">
+                                {day.date.slice(5)}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            </section>
+        </>
     );
 }
 

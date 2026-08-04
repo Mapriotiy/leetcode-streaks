@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AdminUserOut(BaseModel):
@@ -52,6 +52,11 @@ class AdminLobbyListResponse(BaseModel):
     lobbies: list[AdminLobbyOut]
 
 
+class AdminDauDayResponse(BaseModel):
+    date: str
+    active: int
+
+
 class AdminStatsResponse(BaseModel):
     total_users: int
     banned_users: int
@@ -63,3 +68,7 @@ class AdminStatsResponse(BaseModel):
     problem_count: int
     catalog_last_synced_at: datetime | None = None
     failed_syncs: int
+    dau_today: int = 0
+    dau_7d: int = 0
+    solvers_today: int = 0
+    dau_series: list[AdminDauDayResponse] = Field(default_factory=list)

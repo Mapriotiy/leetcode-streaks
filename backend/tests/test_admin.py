@@ -155,7 +155,6 @@ def test_admin_stats(tmp_path):
     admin = User(google_sub="g-admin", email="a@test.dev", display_name="Admin", is_admin=True)
     banned = User(google_sub="g-u1", email="u1@test.dev", display_name="U1", is_banned=True)
     client, ids, TestSession = _make_client(tmp_path, [admin, banned])
-
     with TestSession() as session:
         session.add_all([
             _lobby(ids["g-admin"], "Live", "active"),
@@ -174,6 +173,25 @@ def test_admin_stats(tmp_path):
     assert data["waiting_lobbies"] == 1
     assert data["finished_lobbies"] == 0
     assert data["problem_count"] == 0
+    assert data["dau_today"] == 0
+    assert len(data["dau_series"]) == 7
+    app.dependency_overrides.clear()
+
+
+def test_dau_tracking_via_me_and_stats(tmp_path):
+    admin = User(google_sub="g-admin", email="a@test.dev", display_name="Admin", is_admin=True)
+    client, ids, _ = _make_client(tmp_path, [admin])
+    headers = {"Authorization": f"Bearer {create_access_token(ids['g-admin'])}"}
+
+    me = client.get("/api/auth/me", headers=headers)
+    assert me.status_code == 200
+
+    stats = client.get("/api/admin/stats", headers=headers).json()
+    assert stats["dau_today"] == 1
+    assert stats["dau_7d"] == 1
+    assert stats["solvers_today"] == 0
+    assert len(stats["dau_series"]) == 7
+    assert any(day["active"] == 1 for day in stats["dau_series"])
     app.dependency_overrides.clear()
 
 

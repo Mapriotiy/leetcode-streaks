@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, or_
@@ -6,10 +6,12 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_admin
 from app.api.routes.lobby import _delete_lobby_with_children
+from app.models.daily_activity import DailyActivity
 from app.models.leetcode_problem import LeetCodeProblem
 from app.models.lobby import Lobby
 from app.models.lobby_player import LobbyPlayer
 from app.models.user import User
+from app.models.user_activity import UserActivity
 from app.schemas.admin import (
     AdminLobbyListResponse,
     AdminLobbyOut,
@@ -190,6 +192,36 @@ def admin_stats(db: Session = Depends(get_db), _: User = Depends(require_admin))
         .scalar()
     )
 
+    today = _utcnow().date()
+    week_start = today - timedelta(days=6)
+    dau_series = [
+        {"date": (week_start + timedelta(days=offset)).isoformat(), "active": 0}
+        for offset in range(7)
+    ]
+    dau_rows = (
+        db.query(UserActivity.date, func.count(func.distinct(UserActivity.user_id)))
+        .filter(UserActivity.date >= week_start)
+        .group_by(UserActivity.date)
+        .all()
+    )
+    active_by_day = {day.isoformat(): count for day, count in dau_rows}
+    for entry in dau_series:
+        entry["active"] = active_by_day.get(entry["date"], 0)
+
+    dau_today = next(e["active"] for e in dau_series if e["date"] == today.isoformat())
+    dau_7d = (
+        db.query(func.count(func.distinct(UserActivity.user_id)))
+        .filter(UserActivity.date >= week_start)
+        .scalar()
+        or 0
+    )
+    solvers_today = (
+        db.query(func.count(func.distinct(DailyActivity.user_id)))
+        .filter(DailyActivity.date == today, DailyActivity.submissions_count > 0)
+        .scalar()
+        or 0
+    )
+
     return AdminStatsResponse(
         total_users=total_users,
         banned_users=banned_users,
@@ -201,6 +233,10 @@ def admin_stats(db: Session = Depends(get_db), _: User = Depends(require_admin))
         problem_count=problem_count,
         catalog_last_synced_at=catalog_last_synced,
         failed_syncs=failed_syncs,
+        dau_today=dau_today,
+        dau_7d=dau_7d,
+        solvers_today=solvers_today,
+        dau_series=dau_series,
     )
 
 

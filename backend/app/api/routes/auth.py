@@ -26,6 +26,7 @@ from app.services.google_oauth import (
     oauth_session_expires_at,
     verify_google_code,
 )
+from app.services.activity_tracking import record_user_activity
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -149,7 +150,8 @@ async def google_code(payload: GoogleCodeRequest, db: Session = Depends(get_db))
 
 
 @router.get("/me", response_model=MeResponse)
-def get_me(current_user: User = Depends(get_current_user)):
+def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    record_user_activity(current_user.id, db)
     return MeResponse(
         id=current_user.id,
         google_sub=current_user.google_sub,

@@ -36,6 +36,7 @@ from app.services.activity_sync import (
     get_utc_today,
 )
 from app.services.leetcode_sync import get_cached_user_profile, sync_user_daily_activity_by_id
+from app.services.activity_tracking import record_user_activity
 from sqlalchemy import func, or_
 
 router = APIRouter()
@@ -357,6 +358,8 @@ async def get_dashboard(
     background_tasks.add_task(sync_user_daily_activity_by_id, current_user.id)
     for friend_id in friend_ids:
         background_tasks.add_task(sync_user_daily_activity_by_id, friend_id)
+
+    record_user_activity(current_user.id, db)
 
     return DashboardResponse(
         leetcode_username=current_user.leetcode_username,
