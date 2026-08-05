@@ -9,6 +9,7 @@ export type WinVariantProps = {
     lobbyId?: number;
     mapKind?: "default" | "generated";
     capturedColors?: Record<string, string>;
+    draft?: unknown;
     /** Optional map backdrop rendered behind the overlay. */
     background?: ReactNode;
 };

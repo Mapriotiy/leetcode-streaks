@@ -98,6 +98,7 @@ export function WinnerOverlay({
             lobbyId={lobbyId}
             mapKind={mapKind}
             capturedColors={capturedColors}
+            draft={draft}
             background={backdrop}
         />
     );
