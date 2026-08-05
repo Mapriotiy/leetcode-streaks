@@ -179,4 +179,53 @@ def test_generated_map_start_persists_draft_and_topic_problems(db):
     db.commit()
     enriched_event = get_lobby_events(lobby.id, after_id=0, limit=10, db=db)[0]
     assert enriched_event.province_name == "Index Shore"
-    assert enriched_event.region_name == "Arrays and Hashing"
+
+
+def test_default_map_starts_through_generated_path(db):
+    lobby = Lobby(
+        id=2,
+        creator_id=1,
+        name="default",
+        status="waiting",
+        game_mode="free_for_all",
+        map_size="medium",
+        map_config={"kind": "default"},
+        max_players=2,
+        faction_mode=False,
+        faction_count=0,
+        win_condition={"type": "territory_control", "threshold": 0.5},
+    )
+    user = User(id=1, leetcode_username="alice", leetcode_verified_at=datetime(2026, 7, 27, 12, 0))
+    lobby_player = LobbyPlayer(lobby_id=lobby.id, user_id=1, faction_id=1, status="ready")
+    db.add(lobby)
+    db.add(user)
+    db.add(lobby_player)
+
+    db.add_all([
+        _problem(i, f"p-{i}", ["math", "tree"], "Easy")
+        for i in range(1, 40)
+    ])
+    db.flush()
+
+    asyncio.run(TerritoryMode().start(lobby, [(lobby_player, user)], db))
+    db.commit()
+
+    lmap = db.query(LobbyMap).filter_by(lobby_id=lobby.id).one()
+    assert lmap.map_kind == "generated"
+    assert lmap.map_config["kind"] == "generated"
+    assert lmap.map_config["draft"]["id"] == "cinnamon-default"
+    assert lmap.map_config["draft"]["provinceCount"] == 28
+
+    rows = (
+        db.query(LobbyMapProvince)
+        .filter_by(lobby_map_id=lmap.id)
+        .order_by(LobbyMapProvince.order_index.asc())
+        .all()
+    )
+    assert rows
+    assert all(row.province_id.startswith("path") for row in rows)
+
+    payload = TerritoryMode().get_state(lobby, [(lobby_player, user)], db)
+    assert payload["map_selection"]["kind"] == "generated"
+    assert payload["map_selection"]["draft"]["id"] == "cinnamon-default"
+    assert payload["provinces"][0].province_id == "path34"

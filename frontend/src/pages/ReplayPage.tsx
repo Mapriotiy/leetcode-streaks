@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Copy, Pause, Play, RotateCcw } from "lucide-react";
 import { apiRequest } from "../api/client";
-import ProvinceMap from "../components/ProvinceMap";
 import { GeneratedMapRenderer } from "../features/lobby-map/GeneratedMapRenderer";
 import { normalizeLobbyMapSelection } from "../features/lobby-map/api";
 import type { LobbyMapSelection } from "../features/lobby-map/types";
@@ -196,16 +195,12 @@ export function ReplayPage({ lobbyId }: { lobbyId: number }) {
                 </header>
 
                 <section className="relative mt-6 overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#262626] p-4 shadow-xl shadow-black/20">
-                    {mapSelection.kind === "generated" && mapSelection.draft ? (
-                        <GeneratedMapRenderer
-                            draft={mapSelection.draft}
-                            captured={captured}
-                            zoomable
-                            onSelect={() => {}}
-                        />
-                    ) : (
-                        <ProvinceMap captured={captured} onSelect={() => {}} highlightedProvinces={null} />
-                    )}
+                    <GeneratedMapRenderer
+                        draft={mapSelection.draft}
+                        captured={captured}
+                        zoomable
+                        onSelect={() => {}}
+                    />
 
                     <div className="mt-4 border-t border-[#2a2a2a] pt-3">
                         <div

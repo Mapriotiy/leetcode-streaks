@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { GeneratedMapDraft } from "../../../features/lobby-map/types";
 
 export type WinVariantProps = {
     winnerLabel: string | null;
@@ -7,9 +8,8 @@ export type WinVariantProps = {
     onReplay?: () => void;
     stats?: { provinces: number; points: number } | null;
     lobbyId?: number;
-    mapKind?: "default" | "generated";
     capturedColors?: Record<string, string>;
-    draft?: unknown;
+    draft: GeneratedMapDraft;
     /** Optional map backdrop rendered behind the overlay. */
     background?: ReactNode;
 };

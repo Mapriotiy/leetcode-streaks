@@ -1,4 +1,5 @@
 import { apiRequest } from "../../api/client";
+import { DEFAULT_MAP_DRAFT } from "./defaultDraft";
 import type { GeneratedMapDraft, LobbyMapSelection } from "./types";
 
 type LobbyMapSelectionResponse = {
@@ -18,12 +19,16 @@ function isGeneratedMapDraft(value: unknown): value is GeneratedMapDraft {
 }
 
 export function normalizeLobbyMapSelection(value: unknown): LobbyMapSelection {
-    if (!value || typeof value !== "object") return { kind: "default" };
+    if (!value || typeof value !== "object") {
+        return { kind: "generated", draft: DEFAULT_MAP_DRAFT };
+    }
     const selection = value as Partial<LobbyMapSelection>;
     if (selection.kind === "generated" && isGeneratedMapDraft(selection.draft)) {
         return { kind: "generated", draft: selection.draft };
     }
-    return { kind: "default" };
+    // Legacy "default" selections (and anything else) resolve to the canonical
+    // default draft so there is a single generated-map pipeline everywhere.
+    return { kind: "generated", draft: DEFAULT_MAP_DRAFT };
 }
 
 export async function fetchLobbyMapSelection(lobbyId: number): Promise<LobbyMapSelection> {

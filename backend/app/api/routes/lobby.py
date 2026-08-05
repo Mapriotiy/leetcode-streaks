@@ -40,6 +40,7 @@ from app.schemas.lobby import (
 )
 from app.services.events import get_lobby_events
 from app.services.game_modes import get_mode
+from app.services.map_config import build_default_map_draft
 from app.services.lobby_settings import (
     ALLOWED_FACTION_COLORS,
     ALLOWED_PROGRAMMING_LANGUAGES,
@@ -73,7 +74,7 @@ def _invite_url(token: str) -> str:
 
 
 def _default_map_selection() -> dict[str, Any]:
-    return {"kind": "default"}
+    return {"kind": "generated", "draft": build_default_map_draft()}
 
 
 def _normalize_map_selection(value: Any) -> dict[str, Any]:

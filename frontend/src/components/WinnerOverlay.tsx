@@ -12,8 +12,7 @@ type WinnerOverlayProps = {
     youWon: boolean;
     accentColor?: string;
     onReplay?: () => void;
-    mapKind?: "default" | "generated";
-    draft?: GeneratedMapDraft | null;
+    draft: GeneratedMapDraft;
     provinces?: { province_id: string }[];
     stats?: { provinces: number; points: number } | null;
     lobbyId?: number;
@@ -25,7 +24,6 @@ export function WinnerOverlay({
     youWon,
     accentColor = "#c86f3c",
     onReplay,
-    mapKind,
     draft,
     provinces,
     stats,
@@ -33,7 +31,7 @@ export function WinnerOverlay({
     capturedColors,
 }: WinnerOverlayProps) {
     const [phase, setPhase] = useState<"conquest" | "result">("conquest");
-    const hasMap = Boolean(mapKind && provinces && provinces.length > 0);
+    const hasMap = Boolean(draft && provinces && provinces.length > 0);
 
     useEffect(() => {
         if (!hasMap) {
@@ -48,8 +46,7 @@ export function WinnerOverlay({
         () =>
             hasMap ? (
                 <WinnerMapBackdrop
-                    mapKind={mapKind as "default" | "generated"}
-                    draft={draft ?? null}
+                    draft={draft}
                     provinces={provinces ?? []}
                     color={accentColor}
                     capturedColors={capturedColors}
@@ -58,7 +55,7 @@ export function WinnerOverlay({
                     durationMs={WINNER_CUTSCENE_MS}
                 />
             ) : null,
-        [hasMap, mapKind, draft, provinces, accentColor, phase],
+        [hasMap, draft, provinces, accentColor, phase],
     );
 
     if (phase === "conquest" && hasMap) {
@@ -97,7 +94,6 @@ export function WinnerOverlay({
             onReplay={onReplay}
             stats={stats}
             lobbyId={lobbyId}
-            mapKind={mapKind}
             capturedColors={capturedColors}
             draft={draft}
             background={backdrop}

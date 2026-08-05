@@ -1,4 +1,5 @@
 import type { GeneratedMapDraft, LobbyMapSelection } from "./types";
+import { DEFAULT_MAP_DRAFT } from "./defaultDraft";
 
 export function lobbyMapStorageKey(lobbyId: number) {
     return `lobby-${lobbyId}-map-selection`;
@@ -19,17 +20,13 @@ function isGeneratedMapDraft(value: unknown): value is GeneratedMapDraft {
 export function readLobbyMapSelection(lobbyId: number): LobbyMapSelection {
     try {
         const raw = localStorage.getItem(lobbyMapStorageKey(lobbyId));
-        if (!raw) return { kind: "default" };
+        if (!raw) return { kind: "generated", draft: DEFAULT_MAP_DRAFT };
         const parsed = JSON.parse(raw) as LobbyMapSelection;
         if (parsed?.kind === "generated" && isGeneratedMapDraft(parsed.draft)) return parsed;
     } catch {}
-    return { kind: "default" };
+    return { kind: "generated", draft: DEFAULT_MAP_DRAFT };
 }
 
 export function writeLobbyMapSelection(lobbyId: number, selection: LobbyMapSelection) {
-    if (selection.kind === "default") {
-        localStorage.removeItem(lobbyMapStorageKey(lobbyId));
-        return;
-    }
     localStorage.setItem(lobbyMapStorageKey(lobbyId), JSON.stringify(selection));
 }

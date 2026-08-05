@@ -1,13 +1,11 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { ArrowLeft, HelpCircle, LogOut, UserPlus } from 'lucide-react';
-import ProvinceMap from '../components/ProvinceMap';
 import ProvincePopup from '../components/ProvincePopup';
 import { WinnerOverlay } from '../components/WinnerOverlay';
 import { EventLogPanel } from '../components/map/EventLogPanel';
 import { Footer } from '../components/Footer';
 import { HowToPlayModal } from '../components/map/HowToPlayModal';
 import { MapLegend } from '../components/map/MapLegend';
-import { REGIONS } from '../mapRegions';
 import { apiRequest } from '../api/client';
 import { useLobbyEvents } from '../hooks/useLobbyEvents';
 import { GeneratedMapRenderer } from '../features/lobby-map/GeneratedMapRenderer';
@@ -16,6 +14,7 @@ import { DebugPanel } from '../components/debug/DebugPanel';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { AnimatedNumber } from '../components/AnimatedNumber';
 import { generatedRegionsAsLegend } from '../features/lobby-map/generator';
+import { DEFAULT_MAP_DRAFT } from '../features/lobby-map/defaultDraft';
 import { writeLobbyMapSelection } from '../features/lobby-map/storage';
 import { normalizeLobbyMapSelection } from '../features/lobby-map/api';
 import type { LobbyMapSelection } from '../features/lobby-map/types';
@@ -98,17 +97,6 @@ type LobbyMapPageProps = {
 const STATE_POLL_INTERVAL_MS = 7_500;
 const SYNC_INTERVAL_MS = 60_000;
 const SYNC_JITTER_MS = 15_000;
-const STATIC_PROVINCE_ORDER = REGIONS.flatMap((region) => region.provinces);
-const STATIC_PROVINCE_ORDER_INDEX = new Map(STATIC_PROVINCE_ORDER.map((provinceId, index) => [provinceId, index]));
-
-function orderServerProvincesForGeneratedMap(provinces: ProvinceData[]) {
-    return [...provinces].sort((a, b) => {
-        const aIndex = STATIC_PROVINCE_ORDER_INDEX.get(a.province_id) ?? Number.MAX_SAFE_INTEGER;
-        const bIndex = STATIC_PROVINCE_ORDER_INDEX.get(b.province_id) ?? Number.MAX_SAFE_INTEGER;
-        if (aIndex !== bIndex) return aIndex - bIndex;
-        return a.province_id.localeCompare(b.province_id);
-    });
-}
 
 export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmin, onBack, onReplay, onLeft }: LobbyMapPageProps) {
     const [provincesData, setProvincesData] = useState<ProvinceData[]>([]);
@@ -124,7 +112,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
     const [popPos, setPopPos] = useState<{ x: number; y: number } | null>(null);
     const [hoveredProvinces, setHoveredProvinces] = useState<string[] | null>(null);
-    const [mapSelection, setMapSelection] = useState<LobbyMapSelection>({ kind: 'default' });
+    const [mapSelection, setMapSelection] = useState<LobbyMapSelection>({ kind: 'generated', draft: DEFAULT_MAP_DRAFT });
     const [powerups, setPowerups] = useState<Record<number, Record<string, number>>>({});
     const [powerupError, setPowerupError] = useState<string | null>(null);
     const [armedPowerup, setArmedPowerup] = useState<PowerUpKind | null>(null);
@@ -149,7 +137,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
         })();
 
     useEffect(() => {
-        setMapSelection({ kind: 'default' });
+        setMapSelection({ kind: 'generated', draft: DEFAULT_MAP_DRAFT });
         setHoveredProvinces(null);
         setSelectedProvince(null);
         setPopPos(null);
@@ -172,16 +160,13 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     }, [factions]);
 
     const displayedProvincesData = useMemo(() => {
-        if (mapSelection.kind !== 'generated') return provincesData;
-
         const generatedIds = new Set(mapSelection.draft.provinces.map((province) => province.provinceId));
         if (provincesData.some((province) => generatedIds.has(province.province_id))) {
             return provincesData;
         }
 
-        const orderedServerProvinces = orderServerProvincesForGeneratedMap(provincesData);
         return mapSelection.draft.provinces.map((generatedProvince, index) => {
-            const source = orderedServerProvinces[index] ?? null;
+            const source = provincesData[index] ?? null;
             return {
                 province_id: generatedProvince.provinceId,
                 region_id: generatedProvince.regionId,
@@ -218,7 +203,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     }, [displayedProvincesData, factionByPlayer, factionById]);
 
     const legendRegions = useMemo(
-        () => (mapSelection.kind === 'generated' ? generatedRegionsAsLegend(mapSelection.draft) : REGIONS),
+        () => generatedRegionsAsLegend(mapSelection.draft),
         [mapSelection],
     );
 
@@ -489,32 +474,26 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     }, [lobbyId, onLeft]);
 
     const selectedGeneratedProvince =
-        selectedProvince && mapSelection.kind === 'generated'
-            ? mapSelection.draft.provinces.find((p) => p.provinceId === selectedProvince) ?? null
-            : null;
+        selectedProvince ? mapSelection.draft.provinces.find((p) => p.provinceId === selectedProvince) ?? null : null;
 
     const selectedProvinceData = selectedProvince
         ? displayedProvincesData.find((p) => p.province_id === selectedProvince) ??
-          (mapSelection.kind === 'generated'
-              ? ({
-                    province_id: selectedProvince,
-                    region_id: selectedGeneratedProvince?.regionId ?? '',
-                    province_name: selectedGeneratedProvince?.name ?? null,
-                    region_name:
-                        mapSelection.kind === 'generated'
-                            ? mapSelection.draft.regions.find((region) => region.regionId === selectedGeneratedProvince?.regionId)?.name ?? null
-                            : null,
-                    problem: null,
-                    captured_by: null,
-                    captured_by_username: null,
-                    captured_at: null,
-                    captured_runtime_ms: null,
-                    captured_submission_url: null,
-                    capturer_leetcode_username: null,
-                    first_captured_by: null,
-                    fortified_until: null,
-                } satisfies ProvinceData)
-              : null)
+          ({
+                province_id: selectedProvince,
+                region_id: selectedGeneratedProvince?.regionId ?? '',
+                province_name: selectedGeneratedProvince?.name ?? null,
+                region_name:
+                    mapSelection.draft.regions.find((region) => region.regionId === selectedGeneratedProvince?.regionId)?.name ?? null,
+                problem: null,
+                captured_by: null,
+                captured_by_username: null,
+                captured_at: null,
+                captured_runtime_ms: null,
+                captured_submission_url: null,
+                capturer_leetcode_username: null,
+                first_captured_by: null,
+                fortified_until: null,
+            } satisfies ProvinceData)
         : null;
 
     const myFactionId = factionByPlayer.get(currentUserId);
@@ -929,25 +908,15 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                                     className="hidden w-40 shrink-0 list-none space-y-2 md:flex md:flex-col"
                                 />
                                 <div className="relative min-w-0 flex-1">
-                                    {mapSelection.kind === 'generated' ? (
-                                        <GeneratedMapRenderer
-                                            draft={mapSelection.draft}
-                                            captured={displayCaptured}
-                                            onSelect={handleSelect}
-                                            highlightedProvinces={hoveredProvinces}
-                                            bursts={bursts}
-                                            fortified={fortifiedIds}
-                                            maxZoom={window.innerWidth < 768 ? 6 : 3}
-                                        />
-                                    ) : (
-                                        <ProvinceMap
-                                            captured={displayCaptured}
-                                            onSelect={handleSelect}
-                                            highlightedProvinces={hoveredProvinces}
-                                            bursts={bursts}
-                                            fortified={fortifiedIds}
-                                        />
-                                    )}
+                                    <GeneratedMapRenderer
+                                        draft={mapSelection.draft}
+                                        captured={displayCaptured}
+                                        onSelect={handleSelect}
+                                        highlightedProvinces={hoveredProvinces}
+                                        bursts={bursts}
+                                        fortified={fortifiedIds}
+                                        maxZoom={window.innerWidth < 768 ? 6 : 3}
+                                    />
 
                                     {armedPowerup && (
                                         <div className="pointer-events-none absolute left-1/2 top-3 z-30 w-max max-w-[calc(100%_-_1rem)] -translate-x-1/2 rounded-full border border-[#c86f3c]/50 bg-[#1f1f1f]/95 px-3 py-1.5 text-center text-xs font-medium text-[#e8b691]">
@@ -1073,8 +1042,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                         youWon={Boolean(youWon)}
                         accentColor={winnerAccent}
                         onReplay={onReplay}
-                        mapKind={mapSelection.kind}
-                        draft={mapSelection.kind === 'generated' ? mapSelection.draft : null}
+                        draft={mapSelection.draft}
                         provinces={displayedProvincesData.map((p) => ({ province_id: p.province_id }))}
                         stats={{
                             provinces: winnerScoreRow?.count ?? 0,

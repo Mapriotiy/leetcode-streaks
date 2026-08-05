@@ -1,14 +1,12 @@
-import { PROVINCE_NAMES, REGIONS } from './mapRegions';
 import type { GameEventApiData } from './types/events';
 
 export function provinceName(provinceId: string | null): string {
     if (!provinceId) return 'the board';
-    return PROVINCE_NAMES[provinceId] ?? provinceId;
+    return provinceId;
 }
 
-export function regionNameForProvince(provinceId: string | null): string {
-    if (!provinceId) return 'a region';
-    return REGIONS.find((region) => region.provinces.includes(provinceId))?.name ?? 'a region';
+export function regionNameForProvince(_provinceId: string | null): string {
+    return 'a region';
 }
 
 export function eventText(event: GameEventApiData, currentUserId: number): string {

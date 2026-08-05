@@ -65,6 +65,4 @@ export type GeneratedMapDraft = {
     regions: GeneratedMapRegion[];
 };
 
-export type LobbyMapSelection =
-    | { kind: "default" }
-    | { kind: "generated"; draft: GeneratedMapDraft };
+export type LobbyMapSelection = { kind: "generated"; draft: GeneratedMapDraft };

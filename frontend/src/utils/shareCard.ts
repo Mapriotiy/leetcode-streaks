@@ -1,8 +1,6 @@
-import { mapSvgString } from "../mapSvgString";
 import { mapAssetUrl } from "../features/lobby-map/assets";
 import type { GeneratedMapDraft, GeneratedMapIsland } from "../features/lobby-map/types";
 
-const LEET_MAP_BG = `${import.meta.env.BASE_URL}leet_background.webp`;
 const imageCache = new Map<string, Promise<HTMLImageElement>>();
 const svgTextCache = new Map<string, Promise<string>>();
 
@@ -12,10 +10,9 @@ export type ShareCardData = {
     accentColor: string;
     points: number;
     provinces: number;
-    mapKind?: "default" | "generated";
     capturedColors?: Record<string, string>;
     mapBackground?: HTMLCanvasElement | HTMLImageElement | string;
-    draft?: unknown;
+    draft?: GeneratedMapDraft;
 };
 
 function roundRect(
@@ -118,43 +115,6 @@ function drawImageCover(
         drawWidth,
         drawHeight,
     );
-}
-
-function buildColoredMapSvg(colors: Record<string, string>): string | null {
-    try {
-        const doc = new DOMParser().parseFromString(mapSvgString, "image/svg+xml");
-        const svg = doc.querySelector("svg");
-        if (!svg) return null;
-
-        svg.setAttribute("width", "1321");
-        svg.setAttribute("height", "900");
-        svg.querySelectorAll("path.prov").forEach((path) => {
-            const color = colors[path.id];
-            if (!color) return;
-
-            path.setAttribute("fill", color);
-            path.setAttribute("fill-opacity", "0.48");
-            path.setAttribute("stroke", color);
-            path.setAttribute("stroke-opacity", "0.96");
-            path.setAttribute("stroke-width", "3.2");
-            path.setAttribute(
-                "style",
-                [
-                    "opacity:0.58",
-                    `fill:${color}`,
-                    "fill-opacity:0.48",
-                    `stroke:${color}`,
-                    "stroke-opacity:0.96",
-                    "stroke-width:3.2",
-                    `filter:drop-shadow(0 0 4px ${color}) drop-shadow(0 0 10px ${color})`,
-                ].join(";"),
-            );
-        });
-
-        return new XMLSerializer().serializeToString(svg);
-    } catch {
-        return null;
-    }
 }
 
 function drawEmptyGeneratedFallback(ctx: CanvasRenderingContext2D, width: number, height: number) {
@@ -413,27 +373,12 @@ export async function generateShareCard(data: ShareCardData): Promise<string> {
     ctx.clip();
     ctx.filter = "brightness(1.18) contrast(1.08) saturate(1.08)";
 
-    if (data.mapKind === "generated" && isGeneratedMapDraft(data.draft)) {
+    if (data.draft && isGeneratedMapDraft(data.draft)) {
         await drawGeneratedMap(ctx, data.draft, data.capturedColors ?? {}, -70, mapY, width + 140, mapH);
     } else if (data.mapBackground) {
         const src = data.mapBackground;
         const img = typeof src === "string" ? await loadImage(src) : src;
         drawImageCover(ctx, img, 0, mapY, width, mapH);
-    } else if (
-        data.mapKind === "default" &&
-        data.capturedColors &&
-        Object.keys(data.capturedColors).length > 0
-    ) {
-        const base = await loadImage(LEET_MAP_BG);
-        drawImageCover(ctx, base, 0, mapY, width, mapH);
-
-        const svgText = buildColoredMapSvg(data.capturedColors);
-        if (svgText) {
-            const url = URL.createObjectURL(new Blob([svgText], { type: "image/svg+xml" }));
-            const overlay = await loadImage(url);
-            drawImageCover(ctx, overlay, 0, mapY, width, mapH);
-            URL.revokeObjectURL(url);
-        }
     } else {
         drawEmptyGeneratedFallback(ctx, width, mapBandH);
     }

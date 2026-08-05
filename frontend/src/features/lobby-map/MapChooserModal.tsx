@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bookmark, Check, Map as MapIcon, Pencil, RotateCcw, Shuffle, Trash2, X } from "lucide-react";
-import ProvinceMap from "../../components/ProvinceMap";
 import { createMapPreset, deleteMapPreset, listMapPresets, type MapPreset } from "./api";
 import { MAP_SIZE_CONFIG } from "./assets";
 import { generateMapDraft, reassignRegions } from "./generatorClient";
 import { GeneratedMapRenderer } from "./GeneratedMapRenderer";
+import { DEFAULT_MAP_DRAFT } from "./defaultDraft";
 import type { GeneratedMapDraft, GeneratedMapSize, LobbyMapSelection, LobbyMapTopic } from "./types";
 
 type MapChooserModalProps = {
@@ -18,10 +18,6 @@ type MapChooserModalProps = {
 type CatalogPreview = { kind: "default" } | { kind: "preset"; preset: MapPreset };
 
 const SIZE_ORDER = ["small", "medium", "large"] as const satisfies readonly GeneratedMapSize[];
-
-// Stable references so the default-map preview doesn't re-mount ProvinceMap on every render.
-const EMPTY_CAPTURED = new Map<string, string>();
-function noopSelect() {}
 
 function normalizeTopicIds(topics: LobbyMapTopic[], selected: readonly string[]) {
     const known = new Set(topics.map((topic) => topic.id));
@@ -60,7 +56,7 @@ export function MapChooserModal({
         return availableTopics.filter((topic) => ids.has(topic.id));
     }, [availableTopics, selectedTopicIds]);
 
-    const isDefaultCurrent = currentSelection.kind === "default";
+    const isDefaultCurrent = currentSelection.draft.id === DEFAULT_MAP_DRAFT.id;
     function isPresetCurrent(preset: MapPreset) {
         return currentSelection.kind === "generated" && currentSelection.draft.id === preset.draft.id;
     }
@@ -198,7 +194,7 @@ export function MapChooserModal({
     }
 
     function chooseDefault() {
-        void applySelection({ kind: "default" });
+        void applySelection({ kind: "generated", draft: DEFAULT_MAP_DRAFT });
     }
 
     function chooseCatalogPreview() {
@@ -409,7 +405,7 @@ export function MapChooserModal({
                                     {catalogPreview.kind === "default" ? (
                                         <div className="flex h-full items-center justify-center p-4">
                                             <div className="w-full max-w-xl">
-                                                <ProvinceMap captured={EMPTY_CAPTURED} onSelect={noopSelect} highlightedProvinces={null} />
+                                                <GeneratedMapRenderer draft={DEFAULT_MAP_DRAFT} fitHeight className="mx-auto" />
                                             </div>
                                         </div>
                                     ) : (

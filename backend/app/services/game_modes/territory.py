@@ -35,7 +35,10 @@ from app.services.lobby_settings import (
     lobby_programming_language,
     team_by_user,
 )
-from app.services.map_config import PROVINCE_REGION, REGION_NAMES, REGION_TOPICS
+from app.services.map_config import (
+    REGION_TOPICS,
+    build_default_map_draft,
+)
 from app.services.powerups import grant_region_powerup, is_fortified, powerup_counts
 from app.services.problem_picker import pick_problem
 from app.services.problem_catalog import get_problems_by_tags
@@ -67,12 +70,9 @@ class TerritoryMode(GameMode):
             )
 
         selection = _normalize_map_selection(lobby.map_config)
-        if selection["kind"] == "generated":
-            if _start_generated_map(lobby, selection, all_solved, db):
-                return
-            logger.warning("Generated map config for lobby %s is invalid or empty; falling back to default map", lobby.id)
-
-        _start_default_map(lobby, all_solved, db)
+        if not _start_generated_map(lobby, selection, all_solved, db):
+            logger.warning("Map config for lobby %s is invalid or empty; using the default map", lobby.id)
+            _start_generated_map(lobby, _default_map_selection(), all_solved, db)
 
     async def sync(self, lobby: Lobby, players: Players, db: Session) -> dict:
         lmap = _get_lmap(lobby.id, db)
@@ -203,7 +203,7 @@ class TerritoryMode(GameMode):
 
 
 def _default_map_selection() -> dict:
-    return {"kind": "default"}
+    return {"kind": "generated", "draft": build_default_map_draft()}
 
 
 def _normalize_map_selection(value: object) -> dict:
@@ -289,40 +289,6 @@ def _pick_for_region(
     if not prob:
         prob = pick_problem([], None, exclude, db)
     return prob
-
-
-def _start_default_map(lobby: Lobby, all_solved: set[str], db: Session) -> None:
-    lmap = LobbyMap(
-        lobby_id=lobby.id,
-        map_size=lobby.map_size,
-        map_kind="default",
-        map_config=_default_map_selection(),
-    )
-    db.add(lmap)
-    db.flush()
-
-    used: set[str] = set()
-    prov_items = list(PROVINCE_REGION.items())
-    hard_indices = {
-        index
-        for index, (_prov_id, region_id) in enumerate(prov_items)
-        if REGION_TOPICS.get(region_id, {}).get("difficulty") == "Hard"
-    }
-    difficulties = _difficulty_plan(len(prov_items), hard_indices)
-    for order_index, (prov_id, region_id) in enumerate(prov_items):
-        prob = _pick_for_region(region_id, region_id, difficulties[order_index], used, all_solved, db)
-        if not prob:
-            continue
-        used.add(prob.title_slug)
-        db.add(LobbyMapProvince(
-            lobby_map_id=lmap.id,
-            province_id=prov_id,
-            region_id=region_id,
-            region_name=REGION_NAMES.get(region_id),
-            topic_id=region_id,
-            order_index=order_index,
-            problem_title_slug=prob.title_slug,
-        ))
 
 
 def _region_text(region: dict, key: str) -> str | None:

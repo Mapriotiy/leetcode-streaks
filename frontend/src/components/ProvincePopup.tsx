@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { DIFFICULTY_COLORS, PROVINCE_NAMES } from '../mapRegions';
+import { DIFFICULTY_COLORS } from '../mapRegions';
 import { firstCaptureBonus, flagPoints } from '../scoring';
 
 function formatDuration(ms: number): string {
@@ -103,7 +103,7 @@ export default function ProvincePopup({
                 ) : null}
                 <div className="flex items-center justify-between mb-2">
                     <h3 className="text-white text-sm font-semibold">
-                        {provinceName || PROVINCE_NAMES[provinceId] || provinceId}
+                        {provinceName || provinceId}
                     </h3>
                     <button
                         onClick={onClose}

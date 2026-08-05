@@ -13,7 +13,6 @@ export function WinV4({
     onReplay,
     stats,
     lobbyId,
-    mapKind,
     capturedColors,
     draft,
     background,
@@ -122,17 +121,16 @@ export function WinV4({
             </div>
 
             {shareOpen ? (
-                <ShareCardModal
-                    data={{
-                        title,
-                        name: winnerLabel ?? "Cinnamon Code",
-                        accentColor,
-                        points: stats?.points ?? 0,
-                        provinces: stats?.provinces ?? 0,
-                        mapKind,
-                        capturedColors,
-                        draft,
-                    }}
+                    <ShareCardModal
+                        data={{
+                            title,
+                            name: winnerLabel ?? "Cinnamon Code",
+                            accentColor,
+                            points: stats?.points ?? 0,
+                            provinces: stats?.provinces ?? 0,
+                            capturedColors,
+                            draft,
+                        }}
                     replayUrl={replayUrl}
                     onClose={() => setShareOpen(false)}
                 />

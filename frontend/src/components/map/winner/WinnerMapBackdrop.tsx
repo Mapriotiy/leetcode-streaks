@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import ProvinceMap from "../../../components/ProvinceMap";
 import { GeneratedMapRenderer } from "../../../features/lobby-map/GeneratedMapRenderer";
 import type { GeneratedMapDraft } from "../../../features/lobby-map/types";
 
 type WinnerMapBackdropProps = {
-    mapKind: "default" | "generated";
-    draft?: GeneratedMapDraft | null;
+    draft: GeneratedMapDraft;
     provinces: { province_id: string }[];
     color: string;
     capturedColors?: Record<string, string>;
@@ -22,7 +20,6 @@ type WinnerMapBackdropProps = {
  *  the winner's color, like a live conquest replay. The wave runs exactly
  *  once per mount, ignoring prop churn from the lobby poll. */
 export function WinnerMapBackdrop({
-    mapKind,
     draft,
     provinces,
     color,
@@ -94,16 +91,12 @@ export function WinnerMapBackdrop({
     return (
         <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
             <div className="w-full max-w-[1200px] blur-[1px]" style={{ opacity }}>
-                {mapKind === "generated" && draft ? (
-                    <GeneratedMapRenderer
-                        draft={draft}
-                        captured={captured}
-                        zoomable={false}
-                        showBack
-                    />
-                ) : (
-                    <ProvinceMap captured={captured} onSelect={() => {}} highlightedProvinces={null} />
-                )}
+                <GeneratedMapRenderer
+                    draft={draft}
+                    captured={captured}
+                    zoomable={false}
+                    showBack
+                />
             </div>
         </div>
     );

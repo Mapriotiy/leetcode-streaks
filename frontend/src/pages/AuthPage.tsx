@@ -4,8 +4,8 @@ import { useGoogleLogin } from "./auth/useGoogleLogin";
 import { GoogleButton } from "./auth/GoogleButton";
 import { Footer } from "../components/Footer";
 import { Logo } from "../components/Logo";
-import ProvinceMap from "../components/ProvinceMap";
-import { REGIONS } from "../mapRegions";
+import { GeneratedMapRenderer } from "../features/lobby-map/GeneratedMapRenderer";
+import { DEFAULT_MAP_DRAFT } from "../features/lobby-map/defaultDraft";
 
 type AuthPageProps = {
     initialError?: string | null;
@@ -17,7 +17,7 @@ const ENEMY_COLOR = "#ff2d55";
 
 function HeroMap() {
     const [captured, setCaptured] = useState<Map<string, string>>(new Map());
-    const provinces = useMemo(() => REGIONS.flatMap((region) => region.provinces), []);
+    const provinces = useMemo(() => DEFAULT_MAP_DRAFT.provinces.map((p) => p.provinceId), []);
 
     useEffect(() => {
         let index = 0;
@@ -39,7 +39,7 @@ function HeroMap() {
 
     return (
         <div className="pointer-events-none select-none">
-            <ProvinceMap captured={captured} onSelect={() => {}} highlightedProvinces={null} />
+            <GeneratedMapRenderer draft={DEFAULT_MAP_DRAFT} captured={captured} onSelect={() => {}} zoomable={false} />
         </div>
     );
 }
