@@ -8,6 +8,7 @@ import type { LobbyMapSelection } from "../features/lobby-map/types";
 
 const PLAYER_COLORS = ["#00c2ff", "#ff4d6d", "#ffb020", "#27d980", "#9b7cff", "#4f9cff", "#ff7a59", "#a3e635"];
 const STEP_MS = 700;
+const PLAYABLE_TYPES = ["capture", "recapture", "defense", "debug_capture", "debug_uncapture"];
 
 type ReplayEvent = {
     id: number;
@@ -29,21 +30,29 @@ type ReplayFaction = {
     color: string;
 };
 
+type ReplayProvince = {
+    province_id: string;
+    captured_by: number | null;
+};
+
 type ReplayData = {
     game_mode: string;
     status: string;
     map_selection?: LobbyMapSelection | null;
-    provinces: unknown[];
+    provinces: ReplayProvince[];
     events: ReplayEvent[];
     players: ReplayPlayer[];
     factions: ReplayFaction[];
 };
 
-function colorFor(event: ReplayEvent, factions: ReplayFaction[], players: ReplayPlayer[]): string {
-    if (factions.length > 0 && event.actor_faction_id != null) {
-        return factions.find((f) => f.id === event.actor_faction_id)?.color ?? "#888";
+function colorForPlayer(userId: number, factions: ReplayFaction[], players: ReplayPlayer[]): string {
+    if (factions.length > 0) {
+        const player = players.find((p) => p.user_id === userId);
+        if (player?.faction_id != null) {
+            return factions.find((f) => f.id === player.faction_id)?.color ?? "#888";
+        }
     }
-    const index = players.findIndex((p) => p.user_id === event.actor_user_id);
+    const index = players.findIndex((p) => p.user_id === userId);
     return PLAYER_COLORS[index >= 0 ? index % PLAYER_COLORS.length : 0];
 }
 
@@ -61,56 +70,78 @@ export function ReplayPage({ lobbyId }: { lobbyId: number }) {
             .catch((e) => setError(e instanceof Error ? e.message : "Failed to load replay"));
     }, [lobbyId]);
 
-    const captureEvents = useMemo(
+    const factions = data?.factions ?? [];
+    const players = data?.players ?? [];
+
+    const playableEvents = useMemo(
         () =>
             (data?.events ?? []).filter(
-                (event) =>
-                    event.province_id &&
-                    ["capture", "recapture", "defense"].includes(event.event_type),
+                (event) => event.province_id && PLAYABLE_TYPES.includes(event.event_type),
             ),
         [data],
     );
+
+    // Final map state, in case the event timeline is sparse (e.g. debug wins).
+    const finalCaptured = useMemo(() => {
+        const map = new Map<string, string>();
+        for (const province of data?.provinces ?? []) {
+            if (province.captured_by == null) continue;
+            map.set(province.province_id, colorForPlayer(province.captured_by, factions, players));
+        }
+        return map;
+    }, [data, factions, players]);
 
     const mapSelection = useMemo(
         () => normalizeLobbyMapSelection(data?.map_selection ?? null),
         [data],
     );
 
+    const applyEvent = useCallback(
+        (map: Map<string, string>, event: ReplayEvent) => {
+            if (!event.province_id) return;
+            const next = new Map(map);
+            if (event.event_type === "debug_uncapture") {
+                next.delete(event.province_id);
+            } else {
+                next.set(event.province_id, colorForPlayer(event.actor_user_id, factions, players));
+            }
+            return next;
+        },
+        [factions, players],
+    );
+
     const applyUpTo = useCallback(
         (count: number) => {
-            const map = new Map<string, string>();
-            const limit = Math.min(count, captureEvents.length);
+            let map = new Map<string, string>();
+            const limit = Math.min(count, playableEvents.length);
             for (let i = 0; i < limit; i += 1) {
-                const event = captureEvents[i];
-                if (event.province_id) {
-                    map.set(event.province_id, colorFor(event, data?.factions ?? [], data?.players ?? []));
-                }
+                map = applyEvent(map, playableEvents[i]) ?? map;
             }
             setCaptured(map);
         },
-        [captureEvents, data],
+        [playableEvents, applyEvent],
     );
+
+    // Start from the final map when there is nothing to replay (debug-only games).
+    useEffect(() => {
+        if (data && playableEvents.length === 0) {
+            setCaptured(finalCaptured);
+        }
+    }, [data, playableEvents, finalCaptured]);
 
     useEffect(() => {
         if (!playing) return;
-        if (step >= captureEvents.length) {
+        if (step >= playableEvents.length) {
             setPlaying(false);
+            setCaptured(finalCaptured);
             return;
         }
         const timer = window.setTimeout(() => {
-            const event = captureEvents[step];
-            const provinceId = event.province_id;
-            if (provinceId) {
-                setCaptured((prev) => {
-                    const next = new Map(prev);
-                    next.set(provinceId, colorFor(event, data?.factions ?? [], data?.players ?? []));
-                    return next;
-                });
-            }
+            setCaptured((prev) => applyEvent(prev, playableEvents[step]) ?? prev);
             setStep((value) => value + 1);
         }, STEP_MS);
         return () => window.clearTimeout(timer);
-    }, [playing, step, captureEvents, data]);
+    }, [playing, step, playableEvents, applyEvent, finalCaptured]);
 
     const handleCopy = async () => {
         try {
@@ -136,7 +167,7 @@ export function ReplayPage({ lobbyId }: { lobbyId: number }) {
         return <main className="min-h-screen bg-transparent p-6 text-center text-[#8a8a8a]">Loading replay…</main>;
     }
 
-    const progress = captureEvents.length > 0 ? step / captureEvents.length : 0;
+    const progress = playableEvents.length > 0 ? step / playableEvents.length : 1;
 
     return (
         <main className="min-h-screen bg-transparent p-4 text-white sm:p-6">
@@ -182,7 +213,7 @@ export function ReplayPage({ lobbyId }: { lobbyId: number }) {
                             onClick={(e) => {
                                 const rect = e.currentTarget.getBoundingClientRect();
                                 const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                                const target = Math.round(ratio * captureEvents.length);
+                                const target = Math.round(ratio * playableEvents.length);
                                 setStep(target);
                                 applyUpTo(target);
                             }}
@@ -192,38 +223,36 @@ export function ReplayPage({ lobbyId }: { lobbyId: number }) {
                                 style={{ width: `${progress * 100}%` }}
                             />
                         </div>
-                        <div className="mt-3 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        if (step >= captureEvents.length) {
-                                            setStep(0);
-                                            setCaptured(new Map());
-                                        }
-                                        setPlaying((value) => !value);
-                                    }}
-                                    className="grid h-9 w-9 place-items-center rounded-md border border-[#3a3a3a] bg-[#1f1f1f] text-[#d7d7d7] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
-                                    aria-label={playing ? "Pause" : "Play"}
-                                >
-                                    {playing ? <Pause size={16} /> : <Play size={16} />}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setPlaying(false);
+                        <div className="mt-3 flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (step >= playableEvents.length) {
                                         setStep(0);
                                         setCaptured(new Map());
-                                    }}
-                                    className="grid h-9 w-9 place-items-center rounded-md border border-[#3a3a3a] bg-[#1f1f1f] text-[#d7d7d7] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
-                                    aria-label="Restart"
-                                >
-                                    <RotateCcw size={15} />
-                                </button>
-                                <span className="text-xs tabular-nums text-[#8a8a8a]">
-                                    {step}/{captureEvents.length} captures
-                                </span>
-                            </div>
+                                    }
+                                    setPlaying((value) => !value);
+                                }}
+                                className="grid h-9 w-9 place-items-center rounded-md border border-[#3a3a3a] bg-[#1f1f1f] text-[#d7d7d7] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                                aria-label={playing ? "Pause" : "Play"}
+                            >
+                                {playing ? <Pause size={16} /> : <Play size={16} />}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setPlaying(false);
+                                    setStep(0);
+                                    setCaptured(new Map());
+                                }}
+                                className="grid h-9 w-9 place-items-center rounded-md border border-[#3a3a3a] bg-[#1f1f1f] text-[#d7d7d7] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                                aria-label="Restart"
+                            >
+                                <RotateCcw size={15} />
+                            </button>
+                            <span className="text-xs tabular-nums text-[#8a8a8a]">
+                                {playableEvents.length > 0 ? `${step}/${playableEvents.length} captures` : "No capture events"}
+                            </span>
                         </div>
                     </div>
                 </section>
