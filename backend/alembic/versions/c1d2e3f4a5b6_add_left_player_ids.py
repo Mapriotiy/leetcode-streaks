@@ -18,6 +18,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # Fail fast if the table is locked by a long-running session (e.g. an open
+    # SSE connection) instead of hanging the deploy with "no open ports".
+    op.execute("SET lock_timeout = 30000")
     op.add_column("lobbies", sa.Column("left_player_ids", sa.JSON(), nullable=True))
 
 
