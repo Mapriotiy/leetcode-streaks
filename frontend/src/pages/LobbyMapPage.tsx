@@ -644,6 +644,49 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                             </div>
                         );
                     })() : null}
+
+                    {factions.length > 0 && (
+                        <div className="mt-3 border-t border-[#2a2a2a] pt-2.5">
+                            <p className="text-xs font-medium text-[#8a8a8a]">Teams</p>
+                            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                {factions.map((faction) => {
+                                    const members = players.filter((p) => p.faction_id === faction.id);
+                                    return (
+                                        <div
+                                            key={faction.id}
+                                            className="rounded-md border px-2 py-1.5"
+                                            style={{
+                                                borderColor: faction.color + '44',
+                                                backgroundColor: faction.color + '0d',
+                                            }}
+                                        >
+                                            <p
+                                                className="truncate text-xs font-semibold"
+                                                style={{ color: faction.color }}
+                                            >
+                                                {faction.name}
+                                            </p>
+                                            <div className="mt-1 flex flex-col gap-0.5">
+                                                {members.length === 0 ? (
+                                                    <span className="text-[11px] text-[#666]">—</span>
+                                                ) : (
+                                                    members.map((member) => (
+                                                        <span
+                                                            key={member.user_id}
+                                                            className="truncate text-[11px] text-[#d7d7d7]"
+                                                        >
+                                                            {member.leetcode_username ?? `Player #${member.user_id}`}
+                                                            {member.user_id === currentUserId ? ' (you)' : ''}
+                                                        </span>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
                 </section>
 
                 <div className="mt-6 flex items-stretch gap-6">

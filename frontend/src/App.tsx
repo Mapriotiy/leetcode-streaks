@@ -8,7 +8,6 @@ import { ToastProvider } from "./components/toast/ToastProvider";
 import { AuthPage } from "./pages/AuthPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ProfilePage } from "./pages/ProfilePage";
-import { WinnerPreviewPage } from "./pages/WinnerPreviewPage";
 import { LobbyPage } from "./pages/LobbyPage";
 import { LobbyGamePage } from "./pages/LobbyGamePage";
 import { AdminPage } from "./pages/AdminPage";
@@ -34,17 +33,10 @@ const processedOAuthStates = new Set<string>();
 
 export default function App() {
     const isMapTest = new URLSearchParams(window.location.search).get("mapTest") === "1";
-    const isWinnerPreview = new URLSearchParams(window.location.search).get("preview") === "wins";
     return (
         <ToastProvider>
             <Background />
-            {isMapTest ? (
-                <MapTestPage />
-            ) : isWinnerPreview ? (
-                <WinnerPreviewPage />
-            ) : (
-                <MainApp />
-            )}
+            {isMapTest ? <MapTestPage /> : <MainApp />}
         </ToastProvider>
     );
 }
