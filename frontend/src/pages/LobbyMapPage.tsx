@@ -867,6 +867,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                     rows={scoreRows}
                     totalCount={totalCount}
                     currentUserId={currentUserId}
+                    lobbyId={lobbyId}
                     onClose={() => setShowSummary(false)}
                 />
 

@@ -8,6 +8,7 @@ import { ToastProvider } from "./components/toast/ToastProvider";
 import { AuthPage } from "./pages/AuthPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ProfilePage } from "./pages/ProfilePage";
+import { ReplayPage } from "./pages/ReplayPage";
 import { LobbyPage } from "./pages/LobbyPage";
 import { LobbyGamePage } from "./pages/LobbyGamePage";
 import { AdminPage } from "./pages/AdminPage";
@@ -32,11 +33,19 @@ const KEEP_ALIVE_INTERVAL_MS = 10 * 60 * 1000;
 const processedOAuthStates = new Set<string>();
 
 export default function App() {
-    const isMapTest = new URLSearchParams(window.location.search).get("mapTest") === "1";
+    const params = new URLSearchParams(window.location.search);
+    const isMapTest = params.get("mapTest") === "1";
+    const replayParam = params.get("replay");
     return (
         <ToastProvider>
             <Background />
-            {isMapTest ? <MapTestPage /> : <MainApp />}
+            {isMapTest ? (
+                <MapTestPage />
+            ) : replayParam ? (
+                <ReplayPage lobbyId={Number(replayParam)} />
+            ) : (
+                <MainApp />
+            )}
         </ToastProvider>
     );
 }

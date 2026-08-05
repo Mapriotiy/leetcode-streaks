@@ -686,6 +686,42 @@ def get_events(
     return get_lobby_events(lobby_id, after_id, limit, db)
 
 
+@router.get("/{lobby_id}/replay")
+def lobby_replay(lobby_id: int, db: Session = Depends(get_db)):
+    """Public replay payload for a finished lobby (used by shareable links).
+
+    Only exposes finished games so live lobby data is never leaked; the map,
+    events, and factions let the client reconstruct the capture timeline.
+    """
+    lobby = db.get(Lobby, lobby_id)
+    if not lobby:
+        raise HTTPException(404, "Lobby not found")
+    if lobby.status != "finished":
+        raise HTTPException(403, "Replay becomes available once the game ends")
+
+    players = ordered_players(lobby.id, db)
+    state = get_mode(lobby.game_mode).get_state(lobby, players, db)
+    events = [
+        LobbyEventResponse.model_validate(event).model_dump(mode="json")
+        for event in get_lobby_events(lobby_id, 0, limit=10000, db=db)
+    ]
+    players_out = [
+        {
+            "user_id": u.id,
+            "leetcode_username": u.leetcode_username,
+            "faction_id": lp.faction_id,
+        }
+        for lp, u in players
+    ]
+    return {
+        **state,
+        "replay": True,
+        "events": events,
+        "players": players_out,
+        "factions": lobby_factions(lobby) if lobby.faction_mode else [],
+    }
+
+
 def _sse_payload(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
