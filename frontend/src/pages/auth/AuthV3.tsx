@@ -1,0 +1,99 @@
+import { Flame, Map, Users } from "lucide-react";
+import { Footer } from "../../components/Footer";
+import { GoogleButton } from "./GoogleButton";
+import type { AuthFormProps } from "./useGoogleLogin";
+
+const FEATURES = [
+    {
+        icon: Map,
+        title: "Turn solves into territory",
+        body: "Every accepted problem plants your flag on a province. Beat runtimes to steal the map.",
+    },
+    {
+        icon: Users,
+        title: "Play with friends",
+        body: "Create lobbies, form factions, and race your friends to own the map.",
+    },
+    {
+        icon: Flame,
+        title: "Streaks that stick",
+        body: "Daily solves keep your streak — and your color — spreading across the board.",
+    },
+];
+
+export function AuthV3({ errorMessage, isRedirecting, onLogin }: AuthFormProps) {
+    return (
+        <main className="flex min-h-screen flex-col bg-[#0d0e0f] text-white">
+            <div className="flex flex-1 flex-col md:flex-row">
+                {/* Feature panel */}
+                <section className="relative hidden flex-1 flex-col justify-center overflow-hidden border-r border-white/5 bg-gradient-to-br from-[#16171a] to-[#0d0e0f] px-14 py-12 md:flex">
+                    <div className="mb-12 flex items-center gap-2.5">
+                        <span className="grid h-10 w-10 place-items-center rounded-xl border border-[#ffa116]/40 bg-[#ffa116]/10 text-[#ffa116]">
+                            <Flame size={20} strokeWidth={2.2} />
+                        </span>
+                        <span className="text-xl font-bold tracking-tight text-[#eff1f6]">
+                            MapCode
+                        </span>
+                    </div>
+
+                    <h1 className="max-w-md text-4xl font-bold leading-tight tracking-tight">
+                        Solve. <span className="text-[#ffa116]">Capture.</span> Conquer.
+                    </h1>
+                    <p className="mt-3 max-w-md text-sm leading-relaxed text-[#8a8a8a]">
+                        A LeetCode-powered territory game. The more you solve, the more
+                        of the map you own.
+                    </p>
+
+                    <div className="mt-10 space-y-6">
+                        {FEATURES.map((feature) => (
+                            <div key={feature.title} className="flex gap-4">
+                                <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[0.03] text-[#00d9ff]">
+                                    <feature.icon size={18} />
+                                </span>
+                                <div>
+                                    <p className="font-semibold text-[#eff1f6]">{feature.title}</p>
+                                    <p className="mt-1 max-w-sm text-sm text-[#8a8a8a]">{feature.body}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
+                {/* Login form */}
+                <section className="flex flex-1 flex-col items-center justify-center px-6 py-14">
+                    <div className="mb-8 flex items-center gap-2.5 md:hidden">
+                        <span className="grid h-10 w-10 place-items-center rounded-xl border border-[#ffa116]/40 bg-[#ffa116]/10 text-[#ffa116]">
+                            <Flame size={20} strokeWidth={2.2} />
+                        </span>
+                        <span className="text-xl font-bold tracking-tight text-[#eff1f6]">
+                            MapCode
+                        </span>
+                    </div>
+
+                    <div className="w-full max-w-sm">
+                        <h2 className="text-2xl font-semibold tracking-tight">Welcome back</h2>
+                        <p className="mt-2 text-sm text-[#8a8a8a]">
+                            Sign in to continue your conquest.
+                        </p>
+
+                        <div className="mt-8">
+                            <GoogleButton onLogin={onLogin} isRedirecting={isRedirecting} />
+                        </div>
+
+                        {errorMessage ? (
+                            <p className="mt-4 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-center text-sm text-red-200">
+                                {errorMessage}
+                            </p>
+                        ) : null}
+
+                        <p className="mt-6 text-center text-xs text-[#666]">
+                            You'll link your LeetCode account after signing in.
+                        </p>
+                    </div>
+                </section>
+            </div>
+
+            <Footer />
+        </main>
+    );
+}
