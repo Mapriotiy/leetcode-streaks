@@ -3,6 +3,9 @@ import type { GeneratedMapDraft } from "../features/lobby-map/types";
 import { WinV4 } from "./map/winner/WinV4";
 import { WinnerMapBackdrop } from "./map/winner/WinnerMapBackdrop";
 
+/** Length of the pre-result conquest cutscene. */
+export const WINNER_CUTSCENE_MS = 10_000;
+
 type WinnerOverlayProps = {
     winnerLabel: string | null;
     youWon: boolean;
@@ -30,10 +33,9 @@ export function WinnerOverlay({
             setPhase("result");
             return;
         }
-        const duration = Math.max(2200, (provinces?.length ?? 0) * 90 + 700);
-        const timer = window.setTimeout(() => setPhase("result"), duration);
+        const timer = window.setTimeout(() => setPhase("result"), WINNER_CUTSCENE_MS);
         return () => window.clearTimeout(timer);
-    }, [hasMap, provinces]);
+    }, [hasMap]);
 
     const backdrop = useMemo(
         () =>
@@ -45,6 +47,7 @@ export function WinnerOverlay({
                     color={accentColor}
                     prefilled={phase === "result"}
                     opacity={phase === "conquest" ? 0.85 : 0.6}
+                    durationMs={WINNER_CUTSCENE_MS}
                 />
             ) : null,
         [hasMap, mapKind, draft, provinces, accentColor, phase],

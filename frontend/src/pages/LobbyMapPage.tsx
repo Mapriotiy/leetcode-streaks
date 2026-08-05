@@ -5,6 +5,7 @@ import ProvincePopup from '../components/ProvincePopup';
 import { WinnerOverlay } from '../components/WinnerOverlay';
 import { EventLogPanel } from '../components/map/EventLogPanel';
 import { Footer } from '../components/Footer';
+import { WINNER_CUTSCENE_MS } from '../components/WinnerOverlay';
 import { GameSummary } from '../components/map/GameSummary';
 import { HowToPlayModal } from '../components/map/HowToPlayModal';
 import { MapLegend } from '../components/map/MapLegend';
@@ -149,7 +150,10 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     }, [lobbyId]);
 
     useEffect(() => {
-        if (gameStatus === 'finished') setShowSummary(true);
+        if (gameStatus === 'finished') {
+            const timer = window.setTimeout(() => setShowSummary(true), WINNER_CUTSCENE_MS + 6000);
+            return () => window.clearTimeout(timer);
+        }
     }, [gameStatus]);
 
     const factionByPlayer = useMemo(() => {

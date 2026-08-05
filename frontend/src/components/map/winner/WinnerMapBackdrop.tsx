@@ -13,6 +13,8 @@ type WinnerMapBackdropProps = {
     /** Called once the conquest animation has reached the last province. */
     onComplete?: () => void;
     opacity?: number;
+    /** Total time the conquest wave takes (ms); spread evenly over provinces. */
+    durationMs?: number;
 };
 
 /** The played map behind the overlay; its provinces light up one by one in
@@ -25,6 +27,7 @@ export function WinnerMapBackdrop({
     prefilled = false,
     onComplete,
     opacity = 0.6,
+    durationMs = 3000,
 }: WinnerMapBackdropProps) {
     const [captured, setCaptured] = useState<Map<string, string>>(() => {
         if (!prefilled) return new Map();
@@ -38,6 +41,7 @@ export function WinnerMapBackdrop({
             onComplete?.();
             return;
         }
+        const step = Math.max(80, Math.floor(durationMs / provinces.length));
         let index = 0;
         const interval = window.setInterval(() => {
             index += 1;
@@ -51,9 +55,9 @@ export function WinnerMapBackdrop({
                 window.clearInterval(interval);
                 onComplete?.();
             }
-        }, 90);
+        }, step);
         return () => window.clearInterval(interval);
-    }, [provinces, color, prefilled, onComplete]);
+    }, [provinces, color, prefilled, onComplete, durationMs]);
 
     return (
         <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
