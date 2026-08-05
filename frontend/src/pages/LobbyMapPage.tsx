@@ -5,8 +5,6 @@ import ProvincePopup from '../components/ProvincePopup';
 import { WinnerOverlay } from '../components/WinnerOverlay';
 import { EventLogPanel } from '../components/map/EventLogPanel';
 import { Footer } from '../components/Footer';
-import { WINNER_CUTSCENE_MS } from '../components/WinnerOverlay';
-import { GameSummary } from '../components/map/GameSummary';
 import { HowToPlayModal } from '../components/map/HowToPlayModal';
 import { MapLegend } from '../components/map/MapLegend';
 import { REGIONS } from '../mapRegions';
@@ -122,7 +120,6 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     const [isLeaving, setIsLeaving] = useState(false);
     const [leaveError, setLeaveError] = useState<string | null>(null);
     const [showHelp, setShowHelp] = useState(false);
-    const [showSummary, setShowSummary] = useState(false);
     const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
     const [popPos, setPopPos] = useState<{ x: number; y: number } | null>(null);
     const [hoveredProvinces, setHoveredProvinces] = useState<string[] | null>(null);
@@ -149,13 +146,6 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
         setSelectedProvince(null);
         setPopPos(null);
     }, [lobbyId]);
-
-    useEffect(() => {
-        if (gameStatus === 'finished') {
-            const timer = window.setTimeout(() => setShowSummary(true), WINNER_CUTSCENE_MS + 6000);
-            return () => window.clearTimeout(timer);
-        }
-    }, [gameStatus]);
 
     const factionByPlayer = useMemo(() => {
         const map = new Map<number, number>();
@@ -865,16 +855,6 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                 ) : null}
 
                 {showHelp && <HowToPlayModal onClose={() => setShowHelp(false)} />}
-
-                <GameSummary
-                    open={showSummary}
-                    winner={winner}
-                    rows={scoreRows}
-                    totalCount={totalCount}
-                    currentUserId={currentUserId}
-                    lobbyId={lobbyId}
-                    onClose={() => setShowSummary(false)}
-                />
 
                 <Footer />
             </div>

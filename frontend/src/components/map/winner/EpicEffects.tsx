@@ -1,16 +1,16 @@
 import { useMemo, type CSSProperties } from "react";
 
 /** Floating glowing particles drifting upward across the screen. */
-export function EpicParticles({ color, count = 26 }: { color: string; count?: number }) {
+export function EpicParticles({ color, count = 34 }: { color: string; count?: number }) {
     const particles = useMemo(
         () =>
             Array.from({ length: count }, (_, i) => ({
                 left: (i * 37) % 100,
-                size: 2 + (i % 4),
-                delay: (i % 22) * 0.4,
-                duration: 6 + (i % 5) * 1.4,
-                drift: -34 + ((i * 23) % 69),
-                opacity: 0.3 + ((i * 13) % 40) / 100,
+                size: 3 + (i % 5),
+                delay: (i % 24) * 0.35,
+                duration: 5 + (i % 5) * 1.3,
+                drift: -36 + ((i * 23) % 73),
+                opacity: 0.45 + ((i * 17) % 45) / 100,
             })),
         [count],
     );
@@ -28,6 +28,7 @@ export function EpicParticles({ color, count = 26 }: { color: string; count?: nu
                             height: p.size,
                             backgroundColor: color,
                             opacity: p.opacity,
+                            boxShadow: `0 0 10px ${color}`,
                             "--particle-dur": `${p.duration}s`,
                             "--particle-delay": `${p.delay}s`,
                             "--particle-drift": `${p.drift}px`,
@@ -39,12 +40,20 @@ export function EpicParticles({ color, count = 26 }: { color: string; count?: nu
     );
 }
 
-/** Pulsing vertical light beams hugging the left/right screen edges. */
+/** Pulsing vertical light beams + wide edge glows hugging the screen sides. */
 export function SideBeams({ color }: { color: string }) {
     return (
         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-            <div className="side-beam" style={{ left: 0, "--beam-color": color } as CSSProperties} />
-            <div className="side-beam" style={{ right: 0, "--beam-color": color } as CSSProperties} />
+            <div
+                className="absolute inset-y-0 left-0 w-52"
+                style={{ background: `linear-gradient(90deg, ${color}30, transparent)` }}
+            />
+            <div
+                className="absolute inset-y-0 right-0 w-52"
+                style={{ background: `linear-gradient(270deg, ${color}30, transparent)` }}
+            />
+            <div className="side-beam" style={{ left: 10, "--beam-color": color } as CSSProperties} />
+            <div className="side-beam" style={{ right: 10, "--beam-color": color } as CSSProperties} />
         </div>
     );
 }

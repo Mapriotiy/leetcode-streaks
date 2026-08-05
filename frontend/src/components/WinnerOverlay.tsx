@@ -69,6 +69,11 @@ export function WinnerOverlay({
                 />
                 <EpicParticles color={accentColor} />
                 <SideBeams color={accentColor} />
+                <div
+                    aria-hidden
+                    className="light-sweep pointer-events-none absolute inset-0"
+                    style={{ background: `linear-gradient(105deg, transparent 34%, ${accentColor}30 50%, transparent 66%)` }}
+                />
                 <div className="absolute inset-x-0 bottom-[16%] px-6 text-center">
                     <p className="cinematic-title text-2xl font-light uppercase tracking-[0.35em] text-white sm:text-3xl">
                         {winnerLabel ?? (youWon ? "You" : "The winner")}
