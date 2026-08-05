@@ -20,12 +20,12 @@ export function FriendFlame({
         <div
             className={`relative grid ${outerSize} shrink-0 place-items-center overflow-hidden rounded-full border transition ${
                 isLit
-                    ? "border-[#ffb75e]/50 bg-[#ffb75e]/15 shadow-lg shadow-[#ffb75e]/10"
+                    ? "border-[#e07840]/50 bg-[#e07840]/15 shadow-lg shadow-[#e07840]/10"
                     : "border-[#3a3a3a] bg-[#303030]"
             }`}
         >
             {isLit ? (
-                <div className={`flame-glow absolute ${glowSize} rounded-full bg-[#ffb75e]/25 blur-md`} />
+                <div className={`flame-glow absolute ${glowSize} rounded-full bg-[#e07840]/25 blur-md`} />
             ) : null}
 
             <Flame
@@ -33,7 +33,7 @@ export function FriendFlame({
                 strokeWidth={2.4}
                 className={`relative transition ${
                     isLit
-                        ? "fill-[#ffb75e] text-[#ffd9a8]  drop-shadow-[0_0_10px_rgba(255,183,94,0.55)]"
+                        ? "fill-[#e07840] text-[#ffd6ae]  drop-shadow-[0_0_10px_rgba(224,120,64,0.55)]"
                         : "fill-[#6b6b6b] text-[#8a8a8a]"
                 } ${ignite ? "flame-ignite" : ""}`}
             />
