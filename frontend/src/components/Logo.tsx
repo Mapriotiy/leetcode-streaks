@@ -1,11 +1,9 @@
-export function Logo({ size = 20 }: { size?: number }) {
+export function Logo({ className = "" }: { className?: string }) {
     return (
         <img
             src={`${import.meta.env.BASE_URL}logo.svg`}
             alt="MapCode"
-            width={size}
-            height={size}
-            className="object-contain"
+            className={`h-full w-full object-contain ${className}`}
         />
     );
 }

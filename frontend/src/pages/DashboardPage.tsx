@@ -157,7 +157,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                     <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2">
                         <div className="flex items-center gap-2.5">
                             <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#262626]">
-                                <Logo size={22} />
+                                <Logo />
                             </span>
                             <span className="text-lg font-bold tracking-tight text-[#eff1f6]">
                                 MapCode

@@ -79,7 +79,7 @@ export function AuthPage({ initialError = null, onClearError }: AuthPageProps) {
                 <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
                     <div className="flex items-center gap-2.5">
                         <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-lg border border-[#ffa116]/40 bg-[#ffa116]/10">
-                            <Logo size={22} />
+                            <Logo />
                         </span>
                         <span className="text-lg font-bold tracking-tight text-[#eff1f6]">MapCode</span>
                     </div>
