@@ -23,15 +23,14 @@ def _utc_today() -> date:
     return datetime.now(timezone.utc).date()
 
 
-async def sync_user_daily_activity(
-    user: User, db: Session,
+async def sync_user_daily_activity_for_user(
+    user_id: int,
+    leetcode_username: str,
+    db: Session,
 ) -> tuple[LeetCodeProfileResponse, list[RecentAcceptedSubmission]]:
-    if user.leetcode_verified_at is None or not user.leetcode_username:
-        raise ValueError("cannot sync LeetCode activity for an unverified user")
-
     client = LeetCodeClient()
     profile, recent_submissions = await client.fetch_profile_and_submissions(
-        user.leetcode_username,
+        leetcode_username,
         limit=30,
     )
 
@@ -44,7 +43,7 @@ async def sync_user_daily_activity(
     if counts_by_date:
         rows = [
             {
-                "user_id": user.id,
+                "user_id": user_id,
                 "date": activity_date,
                 "submissions_count": submissions_count,
             }
@@ -72,9 +71,21 @@ async def sync_user_daily_activity(
         db.commit()
 
     if recent_submissions:
-        record_submissions(user.id, recent_submissions, db)
+        record_submissions(user_id, recent_submissions, db)
 
     return profile, recent_submissions
+
+
+async def sync_user_daily_activity(
+    user: User, db: Session,
+) -> tuple[LeetCodeProfileResponse, list[RecentAcceptedSubmission]]:
+    user_id = user.id
+    leetcode_username = user.leetcode_username
+
+    if user.leetcode_verified_at is None or not leetcode_username:
+        raise ValueError("cannot sync LeetCode activity for an unverified user")
+
+    return await sync_user_daily_activity_for_user(user_id, leetcode_username, db)
 
 
 def get_utc_today() -> date:

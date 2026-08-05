@@ -20,12 +20,14 @@ if settings.database_url.startswith("postgres"):
         try:
             cursor.execute("SET lock_timeout = 8000")
             cursor.execute("SET statement_timeout = 30000")
+            cursor.execute("SET idle_in_transaction_session_timeout = 60000")
         finally:
             cursor.close()
 
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
+    expire_on_commit=False,
     bind=engine,
 )
 
