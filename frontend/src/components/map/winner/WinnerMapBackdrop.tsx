@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ProvinceMap from "../../../components/ProvinceMap";
 import { GeneratedMapRenderer } from "../../../features/lobby-map/GeneratedMapRenderer";
 import type { GeneratedMapDraft } from "../../../features/lobby-map/types";
@@ -18,7 +18,8 @@ type WinnerMapBackdropProps = {
 };
 
 /** The played map behind the overlay; its provinces light up one by one in
- *  the winner's color, like a live conquest replay. */
+ *  the winner's color, like a live conquest replay. The wave runs exactly
+ *  once per mount, ignoring prop churn from the lobby poll. */
 export function WinnerMapBackdrop({
     mapKind,
     draft,
@@ -34,30 +35,43 @@ export function WinnerMapBackdrop({
         return new Map(provinces.map((p) => [p.province_id, color]));
     });
 
+    // Snapshot once: re-renders / new prop references must not restart the wave.
+    const provincesRef = useRef(provinces);
+    const colorRef = useRef(color);
+    const durationRef = useRef(durationMs);
+    const onCompleteRef = useRef(onComplete);
+    useEffect(() => {
+        provincesRef.current = provinces;
+        colorRef.current = color;
+        durationRef.current = durationMs;
+        onCompleteRef.current = onComplete;
+    }, [provinces, color, durationMs, onComplete]);
+
     useEffect(() => {
         if (prefilled) return;
-        setCaptured(new Map());
-        if (provinces.length === 0) {
-            onComplete?.();
+        const ids = provincesRef.current.map((p) => p.province_id);
+        if (ids.length === 0) {
+            onCompleteRef.current?.();
             return;
         }
-        const step = Math.max(80, Math.floor(durationMs / provinces.length));
+        const step = Math.max(80, Math.floor(durationRef.current / ids.length));
         let index = 0;
         const interval = window.setInterval(() => {
             index += 1;
             setCaptured((prev) => {
                 const next = new Map(prev);
-                const provinceId = provinces[Math.min(index - 1, provinces.length - 1)]?.province_id;
-                if (provinceId) next.set(provinceId, color);
+                const provinceId = ids[Math.min(index - 1, ids.length - 1)];
+                next.set(provinceId, colorRef.current);
                 return next;
             });
-            if (index >= provinces.length) {
+            if (index >= ids.length) {
                 window.clearInterval(interval);
-                onComplete?.();
+                onCompleteRef.current?.();
             }
         }, step);
         return () => window.clearInterval(interval);
-    }, [provinces, color, prefilled, onComplete, durationMs]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
         <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
