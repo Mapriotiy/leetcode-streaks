@@ -200,7 +200,7 @@ def _to_lobby_response(lobby: Lobby, db: Session, invite_url: str | None = None)
     )
 
 
-def _add_player(lobby: Lobby, user_id: int, db: Session) -> None:
+def _add_player(lobby: Lobby, user_id: int, db: Session, faction_id: int | None = None) -> None:
     if db.query(LobbyPlayer).filter_by(lobby_id=lobby.id, user_id=user_id).first():
         return
     if lobby.left_player_ids:
@@ -210,11 +210,14 @@ def _add_player(lobby: Lobby, user_id: int, db: Session) -> None:
         raise HTTPException(409, "Lobby is full")
 
     if lobby.faction_mode and lobby.faction_count > 0:
-        counts: dict[int, int] = {}
-        for (fid,) in db.query(LobbyPlayer.faction_id).filter_by(lobby_id=lobby.id).all():
-            if fid:
-                counts[fid] = counts.get(fid, 0) + 1
-        fid = min(range(1, lobby.faction_count + 1), key=lambda f: counts.get(f, 0))
+        if faction_id is not None and 1 <= faction_id <= lobby.faction_count:
+            fid = faction_id
+        else:
+            counts: dict[int, int] = {}
+            for (fid,) in db.query(LobbyPlayer.faction_id).filter_by(lobby_id=lobby.id).all():
+                if fid:
+                    counts[fid] = counts.get(fid, 0) + 1
+            fid = min(range(1, lobby.faction_count + 1), key=lambda f: counts.get(f, 0))
     else:
         fid = count + 1
 
@@ -367,7 +370,7 @@ def invite_user(
     uid = payload.get("user_id")
     if not uid:
         raise HTTPException(400, "user_id required")
-    _add_player(lobby, int(uid), db)
+    _add_player(lobby, int(uid), db, faction_id=payload.get("faction_id"))
     db.commit()
     invite = db.query(LobbyInvite).filter_by(lobby_id=lobby.id).first()
     return _to_lobby_response(lobby, db, _invite_url(invite.token) if invite else None)

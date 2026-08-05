@@ -134,6 +134,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     const [lobbyInfo, setLobbyInfo] = useState<{ left_players: LobbyPlayer[]; players: LobbyPlayer[]; max_players: number; faction_mode: boolean } | null>(null);
     const [friends, setFriends] = useState<{ friendship_id: number; friend: { id: number; leetcode_username: string | null } }[]>([]);
     const [showAddPlayer, setShowAddPlayer] = useState(false);
+    const [factionChoiceByUser, setFactionChoiceByUser] = useState<Record<number, number>>({});
     const [bursts, setBursts] = useState<Map<string, string>>(new Map());
     const prevOwnersRef = useRef<Map<string, number | null>>(new Map());
     const loadedRef = useRef(false);
@@ -390,15 +391,20 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
         return () => clearInterval(interval);
     }, [loadLobbyInfo]);
 
-    const handleInvitePlayer = useCallback(async (userId: number) => {
+    const handleInvitePlayer = useCallback(async (userId: number, factionId?: number | null) => {
         setReinvitingUserId(userId);
         try {
             const data = await apiRequest<LobbyInfo>(`/lobbies/${lobbyId}/invite-user`, {
                 method: 'POST',
-                body: JSON.stringify({ user_id: userId }),
+                body: JSON.stringify({ user_id: userId, ...(factionId ? { faction_id: factionId } : {}) }),
             });
             setLobbyInfo(data);
             setLeftPlayers(data.left_players ?? []);
+            setFactionChoiceByUser((prev) => {
+                const next = { ...prev };
+                delete next[userId];
+                return next;
+            });
         } catch (e) {
             console.error(e);
         } finally {
@@ -545,6 +551,20 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     const slotLabel = lobbyInfo && !lobbyInfo.faction_mode
         ? `${(lobbyInfo.players?.length ?? 0)}/${lobbyInfo.max_players}`
         : null;
+
+    const factionCounts = useMemo(() => {
+        const counts = new Map<number, number>();
+        for (const p of lobbyInfo?.players ?? []) {
+            if (p.faction_id) counts.set(p.faction_id, (counts.get(p.faction_id) ?? 0) + 1);
+        }
+        return counts;
+    }, [lobbyInfo]);
+    const defaultFactionId = useMemo(() => {
+        if (!lobbyInfo?.faction_mode || factions.length === 0) return null;
+        return [...factions].sort(
+            (a, b) => (factionCounts.get(a.id) ?? 0) - (factionCounts.get(b.id) ?? 0),
+        )[0].id;
+    }, [lobbyInfo, factions, factionCounts]);
 
     const fortifiedIds = useMemo(
         () =>
@@ -693,24 +713,50 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                             <div className="mt-3">
                                 <p className="text-xs font-medium text-[#8a8a8a]">Recently left</p>
                                 <ul className="mt-2 grid gap-2">
-                                    {leftPlayers.map((player) => (
-                                        <li
-                                            key={player.user_id}
-                                            className="flex items-center gap-3 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm"
-                                        >
-                                            <span className="text-[#b3b3b3]">
-                                                {player.leetcode_username ?? `User #${player.user_id}`}
-                                            </span>
-                                            <button
-                                                type="button"
-                                                onClick={() => void handleInvitePlayer(player.user_id)}
-                                                disabled={reinvitingUserId === player.user_id || !hasSlots}
-                                                className="ml-auto rounded-md border border-[#c86f3c]/50 bg-[#c86f3c]/10 px-3 py-1 text-xs font-medium text-[#e8b691] transition hover:bg-[#c86f3c]/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                    {leftPlayers.map((player) => {
+                                        const chosenFaction = factionChoiceByUser[player.user_id] ?? defaultFactionId;
+                                        return (
+                                            <li
+                                                key={player.user_id}
+                                                className="flex items-center gap-3 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm"
                                             >
-                                                {reinvitingUserId === player.user_id ? 'Adding...' : 'Re-invite'}
-                                            </button>
-                                        </li>
-                                    ))}
+                                                <span className="text-[#b3b3b3]">
+                                                    {player.leetcode_username ?? `User #${player.user_id}`}
+                                                </span>
+                                                {lobbyInfo?.faction_mode && factions.length > 0 && (
+                                                    <div className="flex items-center gap-1">
+                                                        {factions.map((faction) => (
+                                                            <button
+                                                                key={faction.id}
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    setFactionChoiceByUser((prev) => ({
+                                                                        ...prev,
+                                                                        [player.user_id]: faction.id,
+                                                                    }))
+                                                                }
+                                                                title={`${faction.name} faction`}
+                                                                className={`h-4 w-4 rounded-full transition ${
+                                                                    chosenFaction === faction.id
+                                                                        ? 'ring-2 ring-white/80 ring-offset-1 ring-offset-[#1f1f1f]'
+                                                                        : 'opacity-50 hover:opacity-100'
+                                                                }`}
+                                                                style={{ backgroundColor: faction.color }}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => void handleInvitePlayer(player.user_id, chosenFaction)}
+                                                    disabled={reinvitingUserId === player.user_id || !hasSlots}
+                                                    className="ml-auto rounded-md border border-[#c86f3c]/50 bg-[#c86f3c]/10 px-3 py-1 text-xs font-medium text-[#e8b691] transition hover:bg-[#c86f3c]/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                                >
+                                                    {reinvitingUserId === player.user_id ? 'Adding...' : 'Re-invite'}
+                                                </button>
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             </div>
                         )}
@@ -718,24 +764,50 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                             <div className="mt-3">
                                 <p className="text-xs font-medium text-[#8a8a8a]">Friends</p>
                                 <ul className="mt-2 grid gap-2">
-                                    {invitableFriends.map((f) => (
-                                        <li
-                                            key={f.friendship_id}
-                                            className="flex items-center gap-3 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm"
-                                        >
-                                            <span className="text-[#b3b3b3]">
-                                                {f.friend.leetcode_username ?? `User #${f.friend.id}`}
-                                            </span>
-                                            <button
-                                                type="button"
-                                                onClick={() => void handleInvitePlayer(f.friend.id)}
-                                                disabled={reinvitingUserId === f.friend.id || !hasSlots}
-                                                className="ml-auto rounded-md border border-[#c86f3c]/50 bg-[#c86f3c]/10 px-3 py-1 text-xs font-medium text-[#e8b691] transition hover:bg-[#c86f3c]/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                    {invitableFriends.map((f) => {
+                                        const chosenFaction = factionChoiceByUser[f.friend.id] ?? defaultFactionId;
+                                        return (
+                                            <li
+                                                key={f.friendship_id}
+                                                className="flex items-center gap-3 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm"
                                             >
-                                                {reinvitingUserId === f.friend.id ? 'Adding...' : 'Add'}
-                                            </button>
-                                        </li>
-                                    ))}
+                                                <span className="text-[#b3b3b3]">
+                                                    {f.friend.leetcode_username ?? `User #${f.friend.id}`}
+                                                </span>
+                                                {lobbyInfo?.faction_mode && factions.length > 0 && (
+                                                    <div className="flex items-center gap-1">
+                                                        {factions.map((faction) => (
+                                                            <button
+                                                                key={faction.id}
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    setFactionChoiceByUser((prev) => ({
+                                                                        ...prev,
+                                                                        [f.friend.id]: faction.id,
+                                                                    }))
+                                                                }
+                                                                title={`${faction.name} faction`}
+                                                                className={`h-4 w-4 rounded-full transition ${
+                                                                    chosenFaction === faction.id
+                                                                        ? 'ring-2 ring-white/80 ring-offset-1 ring-offset-[#1f1f1f]'
+                                                                        : 'opacity-50 hover:opacity-100'
+                                                                }`}
+                                                                style={{ backgroundColor: faction.color }}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => void handleInvitePlayer(f.friend.id, chosenFaction)}
+                                                    disabled={reinvitingUserId === f.friend.id || !hasSlots}
+                                                    className="ml-auto rounded-md border border-[#c86f3c]/50 bg-[#c86f3c]/10 px-3 py-1 text-xs font-medium text-[#e8b691] transition hover:bg-[#c86f3c]/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                                >
+                                                    {reinvitingUserId === f.friend.id ? 'Adding...' : 'Add'}
+                                                </button>
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             </div>
                         )}

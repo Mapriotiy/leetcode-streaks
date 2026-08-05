@@ -83,3 +83,41 @@ def test_leaving_tracks_player_and_reinvite_restores(tmp_path):
     assert body["left_players"] == []
 
     app.dependency_overrides.clear()
+
+
+def test_invite_user_with_chosen_faction(tmp_path):
+    host = User(google_sub="g-h2", email="h2@test.dev", display_name="Host")
+    friend = User(google_sub="g-f2", email="f2@test.dev", display_name="Friend", leetcode_username="friend2_lc")
+    client, ids, TestSession = _make_client(tmp_path, [host, friend])
+
+    with TestSession() as session:
+        lobby = Lobby(
+            creator_id=ids["g-h2"],
+            name="Faction Lobby",
+            status="waiting",
+            game_mode="team_battle",
+            map_size="medium",
+            max_players=0,
+            faction_mode=True,
+            faction_count=2,
+            win_condition={"type": "points", "threshold": 5000},
+        )
+        session.add(lobby)
+        session.commit()
+        lobby_id = lobby.id
+        session.add(LobbyPlayer(lobby_id=lobby_id, user_id=ids["g-h2"], faction_id=2, status="ready"))
+        session.commit()
+
+    host_headers = {"Authorization": f"Bearer {create_access_token(ids['g-h2'])}"}
+
+    res = client.post(
+        f"/api/lobbies/{lobby_id}/invite-user",
+        json={"user_id": ids["g-f2"], "faction_id": 1},
+        headers=host_headers,
+    )
+    assert res.status_code == 200
+    body = res.json()
+    added = next(p for p in body["players"] if p["user_id"] == ids["g-f2"])
+    assert added["faction_id"] == 1
+
+    app.dependency_overrides.clear()
