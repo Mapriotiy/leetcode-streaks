@@ -813,6 +813,12 @@ async def stream_lobby_events(
         raise HTTPException(404, "Lobby not found")
     _require_lobby_member(lobby, user.id, db)
 
+    # Release the dependency session before streaming: an SSE connection can
+    # stay open for hours, and holding `db` (an open transaction on `lobbies`,
+    # `lobby_players`, ...) across it keeps an ACCESS lock that blocks future
+    # DDL — e.g. `alembic upgrade` hangs forever on `ALTER TABLE lobbies`.
+    db.close()
+
     async def event_generator():
         last_id = after_id
         status_sent = False
