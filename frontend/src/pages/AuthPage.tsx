@@ -21,19 +21,17 @@ function HeroMap() {
     useEffect(() => {
         let index = 0;
         const interval = window.setInterval(() => {
+            const id = provinces[index % provinces.length];
+            const isEnemy = Math.floor(index / 2) % 4 === 3;
+            const color = isEnemy
+                ? ENEMY_COLOR
+                : FACTION_COLORS[Math.floor(index / 2) % FACTION_COLORS.length];
             setCaptured((prev) => {
                 const next = new Map(prev);
-                const id = provinces[index % provinces.length];
-                // Every 4th captured province belongs to the enemy.
-                const isEnemy = Math.floor(index / 2) % 4 === 3;
-                next.set(id, isEnemy ? ENEMY_COLOR : FACTION_COLORS[Math.floor(index / 2) % FACTION_COLORS.length]);
+                next.set(id, color);
                 return next;
             });
             index += 1;
-            if (index > provinces.length * 2) {
-                index = 0;
-                setCaptured(new Map());
-            }
         }, 280);
         return () => window.clearInterval(interval);
     }, [provinces]);
