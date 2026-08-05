@@ -18,10 +18,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    with op.batch_alter_table("lobbies") as batch_op:
-        batch_op.add_column(sa.Column("left_player_ids", sa.JSON(), nullable=True))
+    op.add_column("lobbies", sa.Column("left_player_ids", sa.JSON(), nullable=True))
 
 
 def downgrade() -> None:
-    with op.batch_alter_table("lobbies") as batch_op:
-        batch_op.drop_column("left_player_ids")
+    op.drop_column("lobbies", "left_player_ids")
