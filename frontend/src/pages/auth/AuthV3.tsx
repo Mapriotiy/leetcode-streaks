@@ -28,7 +28,7 @@ export function AuthV3({ errorMessage, isRedirecting, onLogin }: AuthFormProps) 
         <main className="flex min-h-screen flex-col bg-[#0d0e0f] text-white">
             <div className="flex flex-1 flex-col md:flex-row">
                 {/* Feature panel */}
-                <section className="relative hidden flex-1 flex-col justify-center overflow-hidden border-r border-white/5 bg-gradient-to-br from-[#16171a] to-[#0d0e0f] px-14 py-12 md:flex">
+                <section className="relative hidden flex-[3] flex-col justify-center overflow-hidden border-r border-white/5 bg-gradient-to-br from-[#16171a] to-[#0d0e0f] px-14 py-12 md:flex">
                     <div className="mb-12 flex items-center gap-2.5">
                         <span className="grid h-10 w-10 place-items-center rounded-xl border border-[#ffa116]/40 bg-[#ffa116]/10 text-[#ffa116]">
                             <Flame size={20} strokeWidth={2.2} />
@@ -62,7 +62,7 @@ export function AuthV3({ errorMessage, isRedirecting, onLogin }: AuthFormProps) 
                 </section>
 
                 {/* Login form */}
-                <section className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-6 py-14">
+                <section className="relative flex flex-[5] flex-col items-center justify-center overflow-hidden px-6 py-14">
                     <div
                         aria-hidden
                         className="absolute inset-0"
