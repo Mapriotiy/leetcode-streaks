@@ -567,6 +567,26 @@ def _points_win_threshold(
         return None
 
 
+def _full_capture_leader(
+    lobby: Lobby,
+    provinces: list[LobbyMapProvince],
+    teams: dict[int, int],
+    difficulty_by_slug: dict[str, str] | None,
+) -> WinnerResult | None:
+    """Deadlock guard: the map is fully owned but no win condition fired, so
+    the game can't progress — crown the current points leader."""
+    if not provinces:
+        return None
+    captured_count = sum(1 for p in provinces if p.captured_by and p.captured_by in teams)
+    if captured_count != len(provinces):
+        return None
+    scores = compute_team_scores(provinces, teams, difficulty_by_slug or {})
+    if not scores:
+        return None
+    leader = max(scores, key=lambda team_id: (scores[team_id].total_points, -team_id))
+    return _winner_result(lobby, leader, "full_capture")
+
+
 def _evaluate_winner(
     lobby: Lobby,
     provinces: list[LobbyMapProvince],
@@ -593,7 +613,7 @@ def _evaluate_winner(
     if wc_type == "points":
         threshold = _points_win_threshold(win_condition, provinces, teams, difficulty_by_slug)
         if threshold is None or threshold <= 0:
-            return None
+            return _full_capture_leader(lobby, provinces, teams, difficulty_by_slug)
         scores = compute_team_scores(provinces, teams, difficulty_by_slug or {})
         qualified = [
             (team, score.total_points)
@@ -601,7 +621,7 @@ def _evaluate_winner(
             if score.total_points >= threshold
         ]
         if not qualified:
-            return None
+            return _full_capture_leader(lobby, provinces, teams, difficulty_by_slug)
         team = max(qualified, key=lambda item: (item[1], -item[0]))[0]
         return _winner_result(lobby, team, "total_points")
 
@@ -614,7 +634,10 @@ def _evaluate_winner(
     best = counts.most_common(1)
     if best and best[0][1] / total >= threshold:
         return _winner_result(lobby, best[0][0], "territory_control")
-    return None
+
+    # Deadlock guard: if the whole map is captured but no win condition fired,
+    # the game has nowhere to go — crown the current leader.
+    return _full_capture_leader(lobby, provinces, teams, difficulty_by_slug)
 
 
 def _winner_result(lobby: Lobby, team: int, reason: str) -> WinnerResult:

@@ -92,10 +92,29 @@ def test_points_win():
 
 def test_points_below_threshold_is_no_win():
     lobby = make_lobby(win_condition={"type": "points", "threshold": 5000})
-    provinces = [make_province(1, captured_by=1), make_province(2, captured_by=2)]
+    # A free province remains, so the game is still in progress.
+    provinces = [make_province(1, captured_by=1), make_province(2, captured_by=None)]
     difficulty = {f"slug-{i}": "Hard" for i in range(1, 3)}
 
     assert _evaluate_winner(lobby, provinces, {1: 1, 2: 2}, difficulty) is None
+
+
+def test_full_capture_crowns_leader_when_threshold_unreachable():
+    lobby = make_lobby(win_condition={"type": "points", "threshold": 5000})
+    # Entire map captured, but the 5000 absolute target is unreachable -> the
+    # game must end anyway, with the current leader winning.
+    provinces = [
+        make_province(1, captured_by=1),
+        make_province(2, captured_by=1),
+        make_province(3, captured_by=2),
+        make_province(4, captured_by=2),
+    ]
+    difficulty = {f"slug-{i}": "Hard" for i in range(1, 5)}
+
+    result = _evaluate_winner(lobby, provinces, {1: 1, 2: 2}, difficulty)
+    assert result is not None
+    assert result.winner_user_id == 1
+    assert result.reason == "full_capture"
 
 
 def test_faction_win_reports_faction_not_user():
