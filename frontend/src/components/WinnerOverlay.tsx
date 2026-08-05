@@ -52,6 +52,7 @@ export function WinnerOverlay({
                     draft={draft ?? null}
                     provinces={provinces ?? []}
                     color={accentColor}
+                    capturedColors={capturedColors}
                     prefilled={phase === "result"}
                     opacity={phase === "conquest" ? 0.85 : 0.6}
                     durationMs={WINNER_CUTSCENE_MS}

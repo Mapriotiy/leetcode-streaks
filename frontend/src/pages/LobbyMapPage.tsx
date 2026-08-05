@@ -537,6 +537,18 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
             breakdown,
         };
     });
+    const winnerScoreRow = (() => {
+        if (!winner) return null;
+        if (winner.winner_faction_id != null) {
+            return scoreRows.find((row) => row.key === winner.winner_faction_id) ?? null;
+        }
+        if (winner.winner_user_id != null) {
+            return scoreRows.find((row) => row.key === winner.winner_user_id) ?? null;
+        }
+
+        const leaderPoints = Math.max(0, ...scoreRows.map((row) => row.points));
+        return scoreRows.find((row) => row.points === leaderPoints) ?? null;
+    })();
 
     return (
         <main className="min-h-screen bg-transparent p-4 text-white sm:p-6">
@@ -847,8 +859,8 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                         draft={mapSelection.kind === 'generated' ? mapSelection.draft : null}
                         provinces={displayedProvincesData.map((p) => ({ province_id: p.province_id }))}
                         stats={{
-                            provinces: scoreRows[0]?.count ?? 0,
-                            points: scoreRows[0]?.points ?? 0,
+                            provinces: winnerScoreRow?.count ?? 0,
+                            points: winnerScoreRow?.points ?? 0,
                         }}
                         lobbyId={lobbyId}
                         capturedColors={Object.fromEntries(displayCaptured)}

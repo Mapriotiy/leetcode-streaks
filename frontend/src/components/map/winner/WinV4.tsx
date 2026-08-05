@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Share2 } from "lucide-react";
 import { EpicParticles, SideBeams } from "./EpicEffects";
 import { ShareCardModal } from "./ShareCardModal";
@@ -19,20 +19,27 @@ export function WinV4({
     background,
 }: WinVariantProps) {
     const [shareOpen, setShareOpen] = useState(false);
+    const [ambientEffectsActive, setAmbientEffectsActive] = useState(true);
     const title = youWon ? "VICTORY" : "SYSTEM FAILURE";
     const replayUrl = `${window.location.origin}${window.location.pathname}?replay=${lobbyId}`;
+    const showAmbientEffects = ambientEffectsActive && !shareOpen;
+
+    useEffect(() => {
+        const timer = window.setTimeout(() => setAmbientEffectsActive(false), 3500);
+        return () => window.clearTimeout(timer);
+    }, []);
 
     return (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-[#0a0a0c]">
-            {background}
+            {shareOpen ? null : background}
             <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: SCANLINES }} />
             <div
                 aria-hidden
                 className="pointer-events-none absolute inset-0"
                 style={{ background: `radial-gradient(45% 35% at 50% 50%, ${accentColor}14, transparent 75%)` }}
             />
-            <EpicParticles color={accentColor} />
-            <SideBeams color={accentColor} />
+            {showAmbientEffects ? <EpicParticles color={accentColor} /> : null}
+            {showAmbientEffects ? <SideBeams color={accentColor} /> : null}
 
             <div className="cinematic-title relative z-10 flex flex-col items-center px-6 text-center">
                 <div
@@ -98,7 +105,7 @@ export function WinV4({
                             className="relative z-10 border px-8 py-3 font-mono text-sm uppercase tracking-widest transition hover:bg-white/5"
                             style={{ borderColor: accentColor, color: accentColor }}
                         >
-                            Reboot &gt;
+                            Dashboard &gt;
                         </button>
                     ) : null}
                     {stats ? (

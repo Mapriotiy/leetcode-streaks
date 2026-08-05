@@ -59,6 +59,20 @@ type PinchState = {
 };
 
 const ZOOM_STEP = 0.35;
+const svgTextCache = new Map<string, Promise<string>>();
+
+function loadSvgText(path: string) {
+    const src = mapAssetUrl(path);
+    const cached = svgTextCache.get(src);
+    if (cached) return cached;
+
+    const promise = fetch(src).then((response) => {
+        if (!response.ok) throw new Error(`${path}: ${response.status} ${response.statusText}`);
+        return response.text();
+    });
+    svgTextCache.set(src, promise);
+    return promise;
+}
 
 function clampZoom(value: number, minZoom: number, maxZoom: number) {
     return Math.max(minZoom, Math.min(maxZoom, value));
@@ -351,9 +365,7 @@ export function GeneratedMapRenderer({
 
         Promise.all(
             draft.islands.map(async (island) => {
-                const response = await fetch(mapAssetUrl(island.svgPath));
-                if (!response.ok) throw new Error(`${island.svgPath}: ${response.status} ${response.statusText}`);
-                return [island.islandId, await response.text()] as const;
+                return [island.islandId, await loadSvgText(island.svgPath)] as const;
             }),
         )
             .then((entries) => {

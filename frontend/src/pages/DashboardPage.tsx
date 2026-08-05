@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Flame, Gamepad2, Link2, Shield, UserCircle } from "lucide-react";
+import { ChevronRight, Flame, Gamepad2, Link2, Shield, UserCircle } from "lucide-react";
 import { apiRequest } from "../api/client";
 import { dashboardCacheKey, readCache, writeCache } from "../api/localCache";
 import { ActivityCalendar } from "../components/dashboard/ActivityCalendar";
@@ -173,9 +173,9 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                                 type="button"
                                 onClick={onOpenProfile}
                                 title="View profile"
-                                className="flex min-w-0 items-center gap-2.5 text-left"
+                                className="group flex min-w-0 items-center gap-2.5 rounded-md border border-[#4a4a4a] bg-[#333333] px-2.5 py-1.5 text-left transition hover:bg-[#3d3d3d] focus:outline-none focus:ring-2 focus:ring-[#ffa116]/30"
                             >
-                                <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full border border-[#3a3a3a] bg-[#333333] text-[#b3b3b3]">
+                                <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full border border-[#4a4a4a] bg-[#262626] text-[#b3b3b3] transition group-hover:text-[#d7d7d7]">
                                     {(dashboardData?.avatar_url ?? user.avatar_url) ? (
                                         <img
                                             src={dashboardData?.avatar_url ?? user.avatar_url ?? ""}
@@ -187,11 +187,18 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                                     )}
                                 </span>
 
-                                <span className="min-w-0 max-w-[10rem] leading-tight">
-                                    <span className="block truncate text-sm font-semibold text-[#eff1f6] transition hover:text-[#ffa116]">
+                                <span className="hidden min-w-0 max-w-[10rem] leading-tight sm:block">
+                                    <span className="block text-[11px] font-medium uppercase tracking-wide text-[#8a8a8a]">
+                                        Profile
+                                    </span>
+                                    <span className="block truncate text-sm font-semibold text-[#eff1f6]">
                                         {headerName}
                                     </span>
                                 </span>
+                                <ChevronRight
+                                    size={16}
+                                    className="hidden shrink-0 text-[#8a8a8a] transition group-hover:translate-x-0.5 group-hover:text-[#d7d7d7] sm:block"
+                                />
                             </button>
 
                                 <button

@@ -1,8 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Copy, Download, X } from "lucide-react";
-import html2canvas from "html2canvas";
-import ProvinceMap from "../../ProvinceMap";
-import { GeneratedMapRenderer } from "../../../features/lobby-map/GeneratedMapRenderer";
 import { generateShareCard, type ShareCardData } from "../../../utils/shareCard";
 
 type ShareCardModalProps = {
@@ -14,37 +11,20 @@ type ShareCardModalProps = {
 export function ShareCardModal({ data, replayUrl, onClose }: ShareCardModalProps) {
     const [cardUrl, setCardUrl] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
-    const mapRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         let cancelled = false;
-        let mounted = true;
         setCardUrl(null);
 
-        (async () => {
-            let background: HTMLCanvasElement | undefined;
-            try {
-                const el = mapRef.current;
-                if (el) {
-                    // Give the map a moment to render assets, then capture it.
-                    await new Promise((resolve) => window.setTimeout(resolve, 400));
-                    if (!mounted) return;
-                    background = await html2canvas(el, {
-                        backgroundColor: "#0a0b0d",
-                        scale: 1,
-                        useCORS: true,
-                    });
-                }
-            } catch {
-                background = undefined;
-            }
-            const url = await generateShareCard({ ...data, mapBackground: background });
-            if (!cancelled) setCardUrl(url);
-        })();
+        const timeoutId = window.setTimeout(() => {
+            void generateShareCard(data).then((url) => {
+                if (!cancelled) setCardUrl(url);
+            });
+        }, 80);
 
         return () => {
             cancelled = true;
-            mounted = false;
+            window.clearTimeout(timeoutId);
         };
     }, [data]);
 
@@ -58,27 +38,9 @@ export function ShareCardModal({ data, replayUrl, onClose }: ShareCardModalProps
         }
     };
 
-    const capturedMap = new Map(Object.entries(data.capturedColors ?? {}));
-    const mapElement =
-        data.mapKind === "generated" && data.draft ? (
-            <GeneratedMapRenderer draft={data.draft as never} captured={capturedMap} zoomable={false} onSelect={() => {}} />
-        ) : (
-            <ProvinceMap captured={capturedMap} onSelect={() => {}} highlightedProvinces={null} />
-        );
-
     return (
-        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-            {/* Off-screen map used only for the capture. */}
-            <div
-                ref={mapRef}
-                aria-hidden
-                className="pointer-events-none fixed left-[-10000px] top-0 z-[-1]"
-                style={{ width: 1080, height: 736, overflow: "hidden", background: "#0a0b0d" }}
-            >
-                {mapElement}
-            </div>
-
-            <div className="w-full max-w-sm overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#202020] shadow-2xl">
+        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/85 p-4">
+            <div className="w-full max-w-md overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#202020] shadow-2xl">
                 <div className="flex items-center justify-between border-b border-[#3a3a3a] px-4 py-2.5">
                     <p className="text-sm font-semibold text-[#eff1f6]">Share</p>
                     <button
@@ -93,7 +55,7 @@ export function ShareCardModal({ data, replayUrl, onClose }: ShareCardModalProps
                     <img src={cardUrl} alt="Share card" className="block w-full" />
                 ) : (
                     <div className="flex h-72 items-center justify-center text-sm text-[#8a8a8a]">
-                        Generating…
+                        Generating...
                     </div>
                 )}
                 <div className="flex flex-col gap-2 p-4">

@@ -1,7 +1,7 @@
 import { useMemo, type CSSProperties } from "react";
 
 /** Floating glowing particles drifting upward across the screen. */
-export function EpicParticles({ color, count = 34 }: { color: string; count?: number }) {
+export function EpicParticles({ color, count = 18 }: { color: string; count?: number }) {
     const particles = useMemo(
         () =>
             Array.from({ length: count }, (_, i) => ({
@@ -28,7 +28,7 @@ export function EpicParticles({ color, count = 34 }: { color: string; count?: nu
                             height: p.size,
                             backgroundColor: color,
                             opacity: p.opacity,
-                            boxShadow: `0 0 10px ${color}`,
+                            boxShadow: `0 0 7px ${color}`,
                             "--particle-dur": `${p.duration}s`,
                             "--particle-delay": `${p.delay}s`,
                             "--particle-drift": `${p.drift}px`,

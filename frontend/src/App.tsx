@@ -118,9 +118,8 @@ function MainApp() {
     );
 
     const goRoot = useCallback(() => {
-        const depth = navDepthRef.current;
         navDepthRef.current = 0;
-        if (depth > 0) window.history.go(-depth);
+        window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
         applyNavState(null);
     }, [applyNavState]);
 
@@ -271,7 +270,10 @@ function MainApp() {
                 factions={activeLobbyFactions}
                 isAdmin={user.is_admin}
                 onBack={goBack}
-                onReplay={() => goRoot()}
+                onReplay={() => {
+                    goRoot();
+                    setDashboardRefreshKey((key) => key + 1);
+                }}
                 onLeft={() => {
                     goRoot();
                     setDashboardRefreshKey((key) => key + 1);
