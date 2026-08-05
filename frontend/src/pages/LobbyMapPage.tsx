@@ -478,6 +478,12 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
         return '#ffa116';
     }, [winner, factionById, factionByPlayer]);
 
+    const youWon =
+        winner?.winner_user_id != null && winner.winner_user_id === currentUserId
+            ? true
+            : winner?.winner_faction_id != null &&
+                factionByPlayer.get(currentUserId) === winner.winner_faction_id;
+
     const neutralCount = displayedProvincesData.filter((p) => !p.captured_by).length;
     const totalCount = displayedProvincesData.length;
     const scoreRows = scoreEntries.map((entry) => {
@@ -798,7 +804,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                 {gameStatus === 'finished' && winner ? (
                     <WinnerOverlay
                         winnerLabel={winner.label}
-                        youWon={winner.winner_user_id === currentUserId}
+                        youWon={Boolean(youWon)}
                         accentColor={winnerAccent}
                         onReplay={onReplay}
                         mapKind={mapSelection.kind}
