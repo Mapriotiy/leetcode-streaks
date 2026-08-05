@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Flame, Map as MapIcon, Play, Users, Zap, Trophy, Grid2x2 } from "lucide-react";
 import { useGoogleLogin } from "./auth/useGoogleLogin";
 import { GoogleButton } from "./auth/GoogleButton";
@@ -16,7 +16,7 @@ const ENEMY_COLOR = "#ff2d55";
 
 function HeroMap() {
     const [captured, setCaptured] = useState<Map<string, string>>(new Map());
-    const provinces = REGIONS.flatMap((region) => region.provinces);
+    const provinces = useMemo(() => REGIONS.flatMap((region) => region.provinces), []);
 
     useEffect(() => {
         let index = 0;
