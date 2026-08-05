@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronDown, Flame, Gamepad2, Link2, LogOut, Shield, UserCircle } from "lucide-react";
+import { ChevronDown, Gamepad2, Link2, LogOut, Shield, UserCircle } from "lucide-react";
 import { apiRequest } from "../api/client";
 import { dashboardCacheKey, readCache, writeCache } from "../api/localCache";
 import { ActivityCalendar } from "../components/dashboard/ActivityCalendar";
@@ -9,6 +9,7 @@ import { CreateLobbyModal } from "../components/CreateLobbyModal";
 import { LeetCodeLinkModal } from "../components/LeetCodeLinkModal";
 import { AnimatedNumber } from "../components/AnimatedNumber";
 import { Footer } from "../components/Footer";
+import { Logo } from "../components/Logo";
 import { OnboardingOverlay, isOnboarded } from "../components/OnboardingOverlay";
 import { DIFFICULTY_COLORS } from "../mapRegions";
 import type { DashboardData, Faction, FriendResponse, LobbyPlayer } from "../types/dashboard";
@@ -155,8 +156,8 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                 <header className="sticky top-0 z-20 -mx-4 -mt-4 mb-6 border-b border-[#2a2a2a] bg-[#1a1a1a]/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:-mt-6 sm:px-6">
                     <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2">
                         <div className="flex items-center gap-2.5">
-                            <span className="grid h-9 w-9 place-items-center rounded-lg border border-[#3a3a3a] bg-[#262626] text-[#ffa116]">
-                                <Flame size={18} strokeWidth={2.2} />
+                            <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#262626]">
+                                <Logo size={22} />
                             </span>
                             <span className="text-lg font-bold tracking-tight text-[#eff1f6]">
                                 MapCode

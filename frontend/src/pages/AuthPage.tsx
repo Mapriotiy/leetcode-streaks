@@ -3,6 +3,7 @@ import { Flame, Map as MapIcon, Play, Users, Zap, Trophy, Grid2x2 } from "lucide
 import { useGoogleLogin } from "./auth/useGoogleLogin";
 import { GoogleButton } from "./auth/GoogleButton";
 import { Footer } from "../components/Footer";
+import { Logo } from "../components/Logo";
 import ProvinceMap from "../components/ProvinceMap";
 import { REGIONS } from "../mapRegions";
 
@@ -77,8 +78,8 @@ export function AuthPage({ initialError = null, onClearError }: AuthPageProps) {
             <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0b0c0e]/85 backdrop-blur">
                 <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
                     <div className="flex items-center gap-2.5">
-                        <span className="grid h-9 w-9 place-items-center rounded-lg border border-[#ffa116]/40 bg-[#ffa116]/10 text-[#ffa116]">
-                            <Flame size={19} strokeWidth={2.2} />
+                        <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-lg border border-[#ffa116]/40 bg-[#ffa116]/10">
+                            <Logo size={22} />
                         </span>
                         <span className="text-lg font-bold tracking-tight text-[#eff1f6]">MapCode</span>
                     </div>
