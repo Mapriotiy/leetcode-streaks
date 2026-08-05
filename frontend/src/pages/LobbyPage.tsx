@@ -158,12 +158,28 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
         }
     }, [lobbyId]);
 
+    const refreshLobby = useCallback(async () => {
+        try {
+            const data = await apiRequest<LobbyData>(`/lobbies/${lobbyId}`);
+            setLobby(data);
+            writeCache(lobbyCacheKey(lobbyId), LOBBY_CACHE_VERSION, data);
+            if (data.invite_url) setInviteUrl(data.invite_url);
+        } catch (e) {
+            console.error(e);
+        }
+    }, [lobbyId]);
+
     useEffect(() => {
         loadLobby();
         apiRequest<Friend[]>('/friends/').then(setFriends).catch(() => {});
         const stored = sessionStorage.getItem(`lobby_invite_${lobbyId}`);
         if (stored) setInviteUrl(stored);
     }, [loadLobby, lobbyId]);
+
+    useEffect(() => {
+        const interval = setInterval(() => void refreshLobby(), 4000);
+        return () => clearInterval(interval);
+    }, [refreshLobby]);
 
     const handleCopy = useCallback(() => {
         if (!inviteUrl) return;
