@@ -164,18 +164,32 @@ function parseViewBox(svgText: string) {
 
 function pathCentroidFromTag(pathTag: string, fallbackIndex: number) {
     const d = getAttr(pathTag, "d") ?? "";
-    const values = [...d.matchAll(/-?\d+(?:\.\d+)?/g)].map((match) => Number(match[0]));
-    if (values.length < 2) return { x: fallbackIndex, y: fallbackIndex };
 
-    let x = 0;
-    let y = 0;
-    let count = 0;
-    for (let index = 0; index < values.length - 1; index += 2) {
-        x += values[index];
-        y += values[index + 1];
-        count += 1;
+    // A province can be several islands (multiple subpaths in one `d`).
+    // Averaging every point pulls the marker into the sea between them, so
+    // pick the centroid of the largest subpath (the main island).
+    const subpaths = d.split(/[Mm]/).filter(Boolean);
+    if (subpaths.length === 0) return { x: fallbackIndex, y: fallbackIndex };
+
+    let best: { x: number; y: number } | null = null;
+    let bestCount = 0;
+    for (const subpath of subpaths) {
+        const values = [...subpath.matchAll(/-?\d+(?:\.\d+)?/g)].map((match) => Number(match[0]));
+        if (values.length < 2) continue;
+        let x = 0;
+        let y = 0;
+        let count = 0;
+        for (let index = 0; index < values.length - 1; index += 2) {
+            x += values[index];
+            y += values[index + 1];
+            count += 1;
+        }
+        if (count > bestCount) {
+            bestCount = count;
+            best = { x: x / count, y: y / count };
+        }
     }
-    return count ? { x: x / count, y: y / count } : { x: fallbackIndex, y: fallbackIndex };
+    return best ?? { x: fallbackIndex, y: fallbackIndex };
 }
 
 function clampPercent(value: number) {
