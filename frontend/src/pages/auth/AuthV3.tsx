@@ -3,6 +3,8 @@ import { Footer } from "../../components/Footer";
 import { GoogleButton } from "./GoogleButton";
 import type { AuthFormProps } from "./useGoogleLogin";
 
+const MAP_BG = `${import.meta.env.BASE_URL}map-bg.webp`;
+
 const FEATURES = [
     {
         icon: Map,
@@ -60,8 +62,28 @@ export function AuthV3({ errorMessage, isRedirecting, onLogin }: AuthFormProps) 
                 </section>
 
                 {/* Login form */}
-                <section className="flex flex-1 flex-col items-center justify-center px-6 py-14">
-                    <div className="mb-8 flex items-center gap-2.5 md:hidden">
+                <section className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-6 py-14">
+                    <div
+                        aria-hidden
+                        className="absolute inset-0"
+                        style={{
+                            backgroundImage: `url(${MAP_BG})`,
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                            filter: "blur(10px) brightness(0.45) saturate(0.85)",
+                            animation: "slow-zoom 34s ease-in-out infinite alternate",
+                        }}
+                    />
+                    <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-0"
+                        style={{
+                            background:
+                                "radial-gradient(70% 60% at 50% 40%, transparent 40%, rgba(10,11,13,0.65) 100%)",
+                        }}
+                    />
+
+                    <div className="relative z-10 mb-8 flex items-center gap-2.5 md:hidden">
                         <span className="grid h-10 w-10 place-items-center rounded-xl border border-[#ffa116]/40 bg-[#ffa116]/10 text-[#ffa116]">
                             <Flame size={20} strokeWidth={2.2} />
                         </span>
@@ -70,9 +92,11 @@ export function AuthV3({ errorMessage, isRedirecting, onLogin }: AuthFormProps) 
                         </span>
                     </div>
 
-                    <div className="w-full max-w-sm">
-                        <h2 className="text-2xl font-semibold tracking-tight">Welcome back</h2>
-                        <p className="mt-2 text-sm text-[#8a8a8a]">
+                    <div className="relative z-10 w-full max-w-sm rounded-3xl border border-white/10 bg-[#141519]/70 p-7 shadow-2xl shadow-black/50 backdrop-blur-md">
+                        <h2 className="text-2xl font-semibold tracking-tight">
+                            Welcome to MapCode
+                        </h2>
+                        <p className="mt-2 text-sm text-[#b3b3b3]">
                             Sign in to continue your conquest.
                         </p>
 
@@ -86,7 +110,7 @@ export function AuthV3({ errorMessage, isRedirecting, onLogin }: AuthFormProps) 
                             </p>
                         ) : null}
 
-                        <p className="mt-6 text-center text-xs text-[#666]">
+                        <p className="mt-6 text-center text-xs text-[#8a8a8a]">
                             You'll link your LeetCode account after signing in.
                         </p>
                     </div>
