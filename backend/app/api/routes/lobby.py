@@ -161,6 +161,20 @@ def _to_lobby_response(lobby: Lobby, db: Session, invite_url: str | None = None)
         )
         for lp, u in ordered_players(lobby.id, db)
     ]
+    left_ids = list(lobby.left_player_ids or [])
+    left_players: list[LobbyPlayerResponse] = []
+    if left_ids:
+        left_users = {u.id: u for u in db.query(User).filter(User.id.in_(left_ids)).all()}
+        left_players = [
+            LobbyPlayerResponse(
+                user_id=uid,
+                leetcode_username=left_users[uid].leetcode_username,
+                faction_id=None,
+                status="left",
+            )
+            for uid in left_ids
+            if uid in left_users
+        ]
     return LobbyResponse(
         id=lobby.id,
         creator_id=lobby.creator_id,
@@ -176,6 +190,7 @@ def _to_lobby_response(lobby: Lobby, db: Session, invite_url: str | None = None)
         programming_language=lobby_programming_language(lobby),
         win_condition=lobby.win_condition,
         players=players,
+        left_players=left_players,
         created_at=lobby.created_at,
         started_at=lobby.started_at,
         finished_at=lobby.finished_at,
@@ -188,6 +203,8 @@ def _to_lobby_response(lobby: Lobby, db: Session, invite_url: str | None = None)
 def _add_player(lobby: Lobby, user_id: int, db: Session) -> None:
     if db.query(LobbyPlayer).filter_by(lobby_id=lobby.id, user_id=user_id).first():
         return
+    if lobby.left_player_ids:
+        lobby.left_player_ids = [uid for uid in lobby.left_player_ids if uid != user_id]
     count = db.query(LobbyPlayer).filter_by(lobby_id=lobby.id).count()
     if not lobby.faction_mode and count >= lobby.max_players:
         raise HTTPException(409, "Lobby is full")
@@ -439,6 +456,9 @@ def leave_lobby(lobby_id: int, current_user: User = Depends(get_current_user), d
         raise HTTPException(404, "Not in lobby")
     db.delete(lp)
     db.flush()
+
+    if current_user.id not in (lobby.left_player_ids or []):
+        lobby.left_player_ids = (lobby.left_player_ids or []) + [current_user.id]
 
     remaining_players = (
         db.query(LobbyPlayer)

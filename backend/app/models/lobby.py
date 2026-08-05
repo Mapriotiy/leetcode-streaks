@@ -34,3 +34,4 @@ class Lobby(Base):
     last_synced_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     sync_started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     sync_error: Mapped[str | None] = mapped_column(String, nullable=True)
+    left_player_ids: Mapped[list] = mapped_column(JSON, nullable=False, default=list)

@@ -9,6 +9,7 @@ import { readLobbyMapSelection, writeLobbyMapSelection } from '../features/lobby
 import { normalizeLobbyMapSelection, saveLobbyMapSelection } from '../features/lobby-map/api';
 import type { LobbyMapSelection, LobbyMapTopic } from '../features/lobby-map/types';
 import { TOPICS } from '../mapRegions';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 type LobbyPlayer = {
     user_id: number;
@@ -38,6 +39,7 @@ type LobbyData = {
     programming_language: string;
     win_condition: Record<string, unknown>;
     players: LobbyPlayer[];
+    left_players: LobbyPlayer[];
     invite_url: string | null;
 };
 
@@ -123,6 +125,9 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
     const [mapSelection, setMapSelection] = useState<LobbyMapSelection>(() => readLobbyMapSelection(lobbyId));
     const [mapSelectionError, setMapSelectionError] = useState<string | null>(null);
     const [isSavingMapSelection, setIsSavingMapSelection] = useState(false);
+    const [confirmLeave, setConfirmLeave] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState(false);
+    const [reinvitingUserId, setReinvitingUserId] = useState<number | null>(null);
 
     const mapTopics: LobbyMapTopic[] = useMemo(
         () =>
@@ -168,21 +173,21 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
     }, [inviteUrl]);
 
     const handleInviteFriend = useCallback(async (userId: number) => {
+        setReinvitingUserId(userId);
         try {
-            await apiRequest(`/lobbies/${lobbyId}/invite-user`, {
+            const data = await apiRequest<LobbyData>(`/lobbies/${lobbyId}/invite-user`, {
                 method: 'POST',
                 body: JSON.stringify({ user_id: userId }),
             });
-            await loadLobby();
+            setLobby(data);
         } catch (e) {
             console.error(e);
+        } finally {
+            setReinvitingUserId(null);
         }
-    }, [lobbyId, loadLobby]);
+    }, [lobbyId]);
 
     const handleLeave = useCallback(async () => {
-        const confirmed = window.confirm('Leave this lobby?');
-        if (!confirmed) return;
-
         setIsLeaving(true);
         setLeaveError(null);
         try {
@@ -197,9 +202,6 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
     }, [lobbyId, onBack]);
 
     const handleDelete = useCallback(async () => {
-        const confirmed = window.confirm('Delete this lobby for everyone? This cannot be undone.');
-        if (!confirmed) return;
-
         setIsDeleting(true);
         setDeleteError(null);
         try {
@@ -600,13 +602,43 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                             {factionError}
                         </p>
                     )}
+                    {(lobby.left_players?.length ?? 0) > 0 && (
+                        <div className="mt-4 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] p-3">
+                            <p className="text-xs font-medium text-[#8a8a8a]">
+                                Recently left ({lobby.left_players.length})
+                            </p>
+                            <ul className="mt-2 grid gap-2">
+                                {lobby.left_players.map((player) => (
+                                    <li
+                                        key={player.user_id}
+                                        className="flex items-center gap-3 rounded-md border border-[#3a3a3a] bg-[#171717] px-3 py-2 text-sm"
+                                    >
+                                        <span className="grid h-7 w-7 place-items-center rounded-full border border-[#444] text-xs text-[#8a8a8a]">
+                                            <UserPlus size={13} />
+                                        </span>
+                                        <span className="text-[#b3b3b3]">
+                                            {player.leetcode_username ?? `User #${player.user_id}`}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => void handleInviteFriend(player.user_id)}
+                                            disabled={reinvitingUserId === player.user_id || isActive}
+                                            className="ml-auto rounded-md border border-[#c86f3c]/50 bg-[#c86f3c]/10 px-3 py-1 text-xs font-medium text-[#e8b691] transition hover:bg-[#c86f3c]/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                            {reinvitingUserId === player.user_id ? 'Inviting...' : 'Re-invite'}
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                 </section>
 
                 <div className="mt-6 flex flex-wrap gap-3">
                     {inLobby && (
                         <button
                             type="button"
-                            onClick={handleLeave}
+                            onClick={() => setConfirmLeave(true)}
                             disabled={isLeaving}
                             className="rounded-md border border-[#3a3a3a] bg-[#262626] px-4 py-2.5 text-sm font-medium text-[#d7d7d7] transition hover:border-red-400/60 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:border-[#3a3a3a] disabled:bg-[#262626] disabled:text-[#777]"
                         >
@@ -617,7 +649,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                     {isCreator && (
                         <button
                             type="button"
-                            onClick={handleDelete}
+                            onClick={() => setConfirmDelete(true)}
                             disabled={isDeleting}
                             className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-sm font-medium text-red-300 transition hover:bg-red-500/20 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-50"
                         >
@@ -666,6 +698,35 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                     onClose={() => setIsMapChooserOpen(false)}
                     onSelect={handleMapSelection}
                 />
+
+                {confirmLeave && (
+                    <ConfirmDialog
+                        title="Leave this lobby?"
+                        message="You can rejoin later through the invite link. The host will move to another player if you leave."
+                        confirmLabel="Leave Lobby"
+                        danger
+                        busy={isLeaving}
+                        onConfirm={() => {
+                            setConfirmLeave(false);
+                            void handleLeave();
+                        }}
+                        onCancel={() => setConfirmLeave(false)}
+                    />
+                )}
+                {confirmDelete && (
+                    <ConfirmDialog
+                        title="Delete this lobby?"
+                        message="This will end the lobby for everyone and cannot be undone."
+                        confirmLabel="Delete Lobby"
+                        danger
+                        busy={isDeleting}
+                        onConfirm={() => {
+                            setConfirmDelete(false);
+                            void handleDelete();
+                        }}
+                        onCancel={() => setConfirmDelete(false)}
+                    />
+                )}
 
                 <Footer />
             </div>

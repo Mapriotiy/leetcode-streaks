@@ -101,6 +101,8 @@ export default function ProvinceMap({ captured, onSelect, highlightedProvinces, 
     const svgWrapRef = useRef<HTMLDivElement>(null);
     const markersRef = useRef<Map<string, Marker>>(new Map());
     const pathStylesRef = useRef<Map<string, string>>(new Map());
+    const onSelectRef = useRef(onSelect);
+    onSelectRef.current = onSelect;
 
     useEffect(() => {
         const el = svgWrapRef.current;
@@ -149,7 +151,7 @@ export default function ProvinceMap({ captured, onSelect, highlightedProvinces, 
             if (!marker) return;
 
             const rect = marker.g.getBoundingClientRect();
-            onSelect(path.id, {
+            onSelectRef.current(path.id, {
                 x: rect.left + rect.width / 2,
                 y: rect.top + rect.height / 2,
             });

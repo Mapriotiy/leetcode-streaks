@@ -31,6 +31,7 @@ class LobbyResponse(BaseModel):
     programming_language: str = "python3"
     win_condition: dict
     players: list[LobbyPlayerResponse]
+    left_players: list[LobbyPlayerResponse] = Field(default_factory=list)
     created_at: datetime
     started_at: Optional[datetime] = None
     finished_at: Optional[datetime] = None

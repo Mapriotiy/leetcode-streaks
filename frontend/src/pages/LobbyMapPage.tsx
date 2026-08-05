@@ -13,6 +13,7 @@ import { useLobbyEvents } from '../hooks/useLobbyEvents';
 import { GeneratedMapRenderer } from '../features/lobby-map/GeneratedMapRenderer';
 import { PowerUpInventory, type PowerUpKind } from '../components/powerups/PowerUpInventory';
 import { DebugPanel } from '../components/debug/DebugPanel';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { AnimatedNumber } from '../components/AnimatedNumber';
 import { generatedRegionsAsLegend } from '../features/lobby-map/generator';
 import { writeLobbyMapSelection } from '../features/lobby-map/storage';
@@ -127,6 +128,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     const [powerups, setPowerups] = useState<Record<number, Record<string, number>>>({});
     const [powerupError, setPowerupError] = useState<string | null>(null);
     const [armedPowerup, setArmedPowerup] = useState<PowerUpKind | null>(null);
+    const [confirmLeave, setConfirmLeave] = useState(false);
     const [bursts, setBursts] = useState<Map<string, string>>(new Map());
     const prevOwnersRef = useRef<Map<string, number | null>>(new Map());
     const loadedRef = useRef(false);
@@ -419,9 +421,6 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     }, []);
 
     const handleLeave = useCallback(async () => {
-        const confirmed = window.confirm('Leave this lobby?');
-        if (!confirmed) return;
-
         setIsLeaving(true);
         setLeaveError(null);
         try {
@@ -579,7 +578,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                         </button>
                         <button
                             type="button"
-                            onClick={handleLeave}
+                            onClick={() => setConfirmLeave(true)}
                             disabled={isLeaving}
                             className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#3a3a3a] bg-[#262626] px-4 text-sm font-medium text-[#d7d7d7] transition hover:border-red-400/60 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:border-[#3a3a3a] disabled:bg-[#262626] disabled:text-[#777]"
                         >
@@ -868,6 +867,21 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                 ) : null}
 
                 {showHelp && <HowToPlayModal onClose={() => setShowHelp(false)} />}
+
+                {confirmLeave && (
+                    <ConfirmDialog
+                        title="Leave this lobby?"
+                        message="Your progress in this game will be lost. You can rejoin later if the lobby is still open."
+                        confirmLabel="Leave Lobby"
+                        danger
+                        busy={isLeaving}
+                        onConfirm={() => {
+                            setConfirmLeave(false);
+                            void handleLeave();
+                        }}
+                        onCancel={() => setConfirmLeave(false)}
+                    />
+                )}
 
                 <Footer />
             </div>
