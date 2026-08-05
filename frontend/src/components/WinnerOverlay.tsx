@@ -17,6 +17,7 @@ type WinnerOverlayProps = {
     provinces?: { province_id: string }[];
     stats?: { provinces: number; points: number } | null;
     lobbyId?: number;
+    capturedColors?: Record<string, string>;
 };
 
 export function WinnerOverlay({
@@ -29,6 +30,7 @@ export function WinnerOverlay({
     provinces,
     stats,
     lobbyId,
+    capturedColors,
 }: WinnerOverlayProps) {
     const [phase, setPhase] = useState<"conquest" | "result">("conquest");
     const hasMap = Boolean(mapKind && provinces && provinces.length > 0);
@@ -94,6 +96,8 @@ export function WinnerOverlay({
             onReplay={onReplay}
             stats={stats}
             lobbyId={lobbyId}
+            mapKind={mapKind}
+            capturedColors={capturedColors}
             background={backdrop}
         />
     );

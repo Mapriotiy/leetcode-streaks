@@ -851,6 +851,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                             points: scoreRows[0]?.points ?? 0,
                         }}
                         lobbyId={lobbyId}
+                        capturedColors={Object.fromEntries(displayCaptured)}
                     />
                 ) : null}
 

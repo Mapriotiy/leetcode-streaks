@@ -7,6 +7,8 @@ export type WinVariantProps = {
     onReplay?: () => void;
     stats?: { provinces: number; points: number } | null;
     lobbyId?: number;
+    mapKind?: "default" | "generated";
+    capturedColors?: Record<string, string>;
     /** Optional map backdrop rendered behind the overlay. */
     background?: ReactNode;
 };

@@ -13,6 +13,8 @@ export function WinV4({
     onReplay,
     stats,
     lobbyId,
+    mapKind,
+    capturedColors,
     background,
 }: WinVariantProps) {
     const [shareOpen, setShareOpen] = useState(false);
@@ -119,6 +121,8 @@ export function WinV4({
                         accentColor,
                         points: stats?.points ?? 0,
                         provinces: stats?.provinces ?? 0,
+                        mapKind,
+                        capturedColors,
                     }}
                     replayUrl={replayUrl}
                     onClose={() => setShareOpen(false)}
