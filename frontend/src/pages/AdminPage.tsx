@@ -235,11 +235,12 @@ function StatsOverview() {
     }
     if (!stats) return null;
 
+    const dauSeries = Array.isArray(stats.dau_series) ? stats.dau_series : [];
     const cards: Array<{ label: string; value: number | string; accent?: string }> = [
         { label: "Total users", value: stats.total_users },
-        { label: "Active today (DAU)", value: stats.dau_today, accent: "#2bff88" },
-        { label: "Active last 7d", value: stats.dau_7d, accent: "#7fe8ff" },
-        { label: "Solvers today", value: stats.solvers_today, accent: "#ffd08a" },
+        { label: "Active today (DAU)", value: stats.dau_today ?? 0, accent: "#2bff88" },
+        { label: "Active last 7d", value: stats.dau_7d ?? 0, accent: "#7fe8ff" },
+        { label: "Solvers today", value: stats.solvers_today ?? 0, accent: "#ffd08a" },
         { label: "Active lobbies", value: stats.active_lobbies, accent: "#7fe8ff" },
         { label: "Waiting", value: stats.waiting_lobbies },
         { label: "Finished", value: stats.finished_lobbies, accent: "#7ef7bb" },
@@ -252,7 +253,7 @@ function StatsOverview() {
         { label: "Failed syncs", value: stats.failed_syncs, accent: stats.failed_syncs > 0 ? "#ff5d73" : "#7ef7bb" },
     ];
 
-    const maxDau = Math.max(1, ...stats.dau_series.map((day) => day.active));
+    const maxDau = Math.max(1, ...dauSeries.map((day) => day.active ?? 0));
 
     return (
         <>
@@ -265,7 +266,7 @@ function StatsOverview() {
             <section className="mt-4 rounded-lg border border-[#3a3a3a] bg-[#262626] p-4 shadow-xl shadow-black/20">
                 <p className="text-xs text-[#8a8a8a]">Active users, last 7 days</p>
                 <div className="mt-3 flex items-end gap-2">
-                    {stats.dau_series.map((day) => (
+                    {dauSeries.map((day) => (
                         <div key={day.date} className="flex flex-1 flex-col items-center gap-1">
                             <span className="text-xs font-semibold tabular-nums text-[#7fe8ff]">
                                 {day.active}
