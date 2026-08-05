@@ -4,7 +4,7 @@ import { WinV4 } from "./map/winner/WinV4";
 import { WinnerMapBackdrop } from "./map/winner/WinnerMapBackdrop";
 
 /** Length of the pre-result conquest cutscene. */
-export const WINNER_CUTSCENE_MS = 10_000;
+export const WINNER_CUTSCENE_MS = 6_000;
 
 type WinnerOverlayProps = {
     winnerLabel: string | null;
