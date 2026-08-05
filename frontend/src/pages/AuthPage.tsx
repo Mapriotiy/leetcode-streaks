@@ -1,6 +1,21 @@
 import { useState } from "react";
+import { Flame } from "lucide-react";
 import { apiRequest } from "../api/client";
 import { Footer } from "../components/Footer";
+
+const MAP_BG = `${import.meta.env.BASE_URL}map-bg.webp`;
+
+const TORN_EDGE_PATH = [
+    "M0.40 0",
+    "L0.355 0.035", "L0.415 0.07", "L0.365 0.105", "L0.425 0.14",
+    "L0.37 0.175", "L0.43 0.21", "L0.36 0.245", "L0.425 0.28",
+    "L0.37 0.315", "L0.435 0.35", "L0.375 0.385", "L0.44 0.42",
+    "L0.38 0.455", "L0.445 0.49", "L0.385 0.525", "L0.45 0.56",
+    "L0.39 0.595", "L0.455 0.63", "L0.395 0.665", "L0.46 0.70",
+    "L0.40 0.735", "L0.465 0.77", "L0.405 0.805", "L0.47 0.84",
+    "L0.41 0.875", "L0.475 0.91", "L0.415 0.945", "L0.485 0.98",
+    "L0.505 1", "L1 1", "L1 0", "Z",
+].join(" ");
 
 type GoogleLoginUrlResponse = {
     auth_url: string;
@@ -33,18 +48,63 @@ export function AuthPage({ initialError = null, onClearError }: AuthPageProps) {
     }
 
     return (
-        <main className="flex min-h-screen flex-col bg-transparent text-white">
-            <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-6 py-10">
-                <section className="w-full max-w-md rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
+        <main className="relative flex min-h-screen flex-col overflow-hidden bg-[#151618] text-white">
+            <svg width="0" height="0" className="absolute" aria-hidden="true">
+                <defs>
+                    <clipPath id="authTornEdge" clipPathUnits="objectBoundingBox">
+                        <path d={TORN_EDGE_PATH} />
+                    </clipPath>
+                </defs>
+            </svg>
+
+            {/* Blurred map: full-bleed on mobile, torn-right on md+ */}
+            <div
+                aria-hidden
+                className="absolute inset-0 md:[clip-path:url(#authTornEdge)]"
+                style={{
+                    filter:
+                        "blur(7px) brightness(0.45) saturate(0.85) drop-shadow(-8px 0 18px rgba(0,0,0,0.55))",
+                }}
+            >
+                <img
+                    src={MAP_BG}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                    draggable={false}
+                />
+            </div>
+
+            {/* Ambient glow on the content side */}
+            <div
+                aria-hidden
+                className="pointer-events-none absolute -left-20 top-1/4 h-80 w-80 rounded-full opacity-25"
+                style={{ background: "radial-gradient(circle, #ffa116 0%, transparent 70%)" }}
+            />
+            <div
+                aria-hidden
+                className="pointer-events-none absolute bottom-0 left-0 h-64 w-96 opacity-15"
+                style={{ background: "radial-gradient(circle, #00d9ff 0%, transparent 70%)" }}
+            />
+
+            {/* Content */}
+            <div className="relative z-10 flex w-full flex-1 flex-col items-center justify-center px-6 py-12 md:w-[48%] md:items-start md:px-12">
+                <div className="mb-8 flex items-center gap-2.5">
+                    <span className="grid h-10 w-10 place-items-center rounded-xl border border-[#ffa116]/40 bg-[#ffa116]/10 text-[#ffa116]">
+                        <Flame size={20} strokeWidth={2.2} />
+                    </span>
+                    <span className="text-xl font-bold tracking-tight text-[#eff1f6]">
+                        MapCode
+                    </span>
+                </div>
+
+                <section className="w-full max-w-md rounded-2xl border border-[#3a3a3a] bg-[#1e1e20]/85 p-7 shadow-2xl shadow-black/40 backdrop-blur-md">
                     <div className="mb-6">
-                        <p className="mb-2 text-sm font-medium text-[#ffa116]">
-                            LeetCode Streaks
-                        </p>
                         <h1 className="text-2xl font-semibold tracking-tight">
                             Welcome back
                         </h1>
                         <p className="mt-2 text-sm text-[#b3b3b3]">
-                            Track a shared coding streak with your friends.
+                            Solve LeetCode problems, capture the map, keep the streak
+                            alive with your friends.
                         </p>
                     </div>
 
@@ -77,7 +137,11 @@ export function AuthPage({ initialError = null, onClearError }: AuthPageProps) {
                     </div>
                 </section>
             </div>
-            <Footer />
+
+            {/* Footer with a readable band over the map */}
+            <div className="relative z-10 bg-gradient-to-t from-[#151618] via-[#151618]/55 to-transparent">
+                <Footer />
+            </div>
         </main>
     );
 }
