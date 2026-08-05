@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { apiRequest } from "./api/client";
 import { clearCache } from "./api/localCache";
@@ -54,6 +54,75 @@ function MainApp() {
     const [activeLobbyPlayers, setActiveLobbyPlayers] = useState<LobbyPlayer[]>([]);
     const [activeLobbyFactions, setActiveLobbyFactions] = useState<Faction[]>([]);
     const [authError, setAuthError] = useState<string | null>(null);
+
+    const navDepthRef = useRef(0);
+
+    type NavState = {
+        screen?: "admin" | "profile" | "lobby" | "game";
+        lobbyId?: number;
+        players?: LobbyPlayer[];
+        factions?: Faction[];
+    };
+
+    const applyNavState = useCallback((state: NavState | null) => {
+        const screen = state?.screen;
+        setShowAdmin(false);
+        setShowProfile(false);
+        if (screen === "admin") {
+            setActiveLobbyId(null);
+            setActiveLobbyPlayers([]);
+            setActiveLobbyFactions([]);
+            setShowAdmin(true);
+            return;
+        }
+        if (screen === "profile") {
+            setActiveLobbyId(null);
+            setActiveLobbyPlayers([]);
+            setActiveLobbyFactions([]);
+            setShowProfile(true);
+            return;
+        }
+        if (screen === "game" && state?.lobbyId != null) {
+            setActiveLobbyId(state.lobbyId);
+            setActiveLobbyPlayers(state.players ?? []);
+            setActiveLobbyFactions(state.factions ?? []);
+            return;
+        }
+        if (screen === "lobby" && state?.lobbyId != null) {
+            setActiveLobbyId(state.lobbyId);
+            setActiveLobbyPlayers([]);
+            setActiveLobbyFactions([]);
+            return;
+        }
+        setActiveLobbyId(null);
+        setActiveLobbyPlayers([]);
+        setActiveLobbyFactions([]);
+    }, []);
+
+    const pushNav = useCallback(
+        (state: NavState) => {
+            navDepthRef.current += 1;
+            window.history.pushState(state, "");
+            applyNavState(state);
+        },
+        [applyNavState],
+    );
+
+    const goRoot = useCallback(() => {
+        const depth = navDepthRef.current;
+        navDepthRef.current = 0;
+        if (depth > 0) window.history.go(-depth);
+        applyNavState(null);
+    }, [applyNavState]);
+
+    useEffect(() => {
+        const onPopState = (event: PopStateEvent) => {
+            navDepthRef.current = Math.max(0, navDepthRef.current - 1);
+            applyNavState(event.state as NavState | null);
+        };
+        window.addEventListener("popstate", onPopState);
+        return () => window.removeEventListener("popstate", onPopState);
+    }, [applyNavState]);
 
     function clearUrlParam(param: string) {
         const url = new URL(window.location.href);
@@ -148,11 +217,12 @@ function MainApp() {
         localStorage.removeItem("pendingLobbyInviteToken");
         setLobbyInviteToken(null);
         clearUrlParam("lobby");
-        setActiveLobbyId(lobbyId);
+        let finalLobbyId = lobbyId;
         try {
             const data = await apiRequest<{ lobby: { id: number }; invite_url: string }>(`/lobbies/${lobbyId}`);
-            setActiveLobbyId(data.lobby?.id ?? lobbyId);
+            finalLobbyId = data.lobby?.id ?? lobbyId;
         } catch {}
+        pushNav({ screen: "lobby", lobbyId: finalLobbyId });
     };
 
     if (isLoadingSession) {
@@ -183,16 +253,9 @@ function MainApp() {
                 players={activeLobbyPlayers}
                 factions={activeLobbyFactions}
                 isAdmin={user.is_admin}
-                onBack={() => {
-                    setActiveLobbyId(null);
-                    setActiveLobbyPlayers([]);
-                    setActiveLobbyFactions([]);
-                    setDashboardRefreshKey((key) => key + 1);
-                }}
+                onBack={() => window.history.back()}
                 onLeft={() => {
-                    setActiveLobbyId(null);
-                    setActiveLobbyPlayers([]);
-                    setActiveLobbyFactions([]);
+                    goRoot();
                     setDashboardRefreshKey((key) => key + 1);
                 }}
             />
@@ -205,14 +268,11 @@ function MainApp() {
                 currentUserId={user.id}
                 currentUserVerified={user.leetcode_verified_at != null}
                 onBack={() => {
-                    setActiveLobbyId(null);
-                    setActiveLobbyFactions([]);
+                    window.history.back();
                     setDashboardRefreshKey((key) => key + 1);
                 }}
                 onGameStarted={(lobbyId, players, factions) => {
-                    setActiveLobbyId(lobbyId);
-                    setActiveLobbyPlayers(players);
-                    setActiveLobbyFactions(factions);
+                    pushNav({ screen: "game", lobbyId, players, factions });
                 }}
             />
         );
@@ -220,7 +280,7 @@ function MainApp() {
         screenKey = "admin";
         screen = (
             <AdminPage
-                onBack={() => setShowAdmin(false)}
+                onBack={() => window.history.back()}
                 onLogout={() => {
                     localStorage.removeItem("accessToken");
                     clearCache();
@@ -233,7 +293,7 @@ function MainApp() {
         screenKey = "profile";
         screen = (
             <ProfilePage
-                onBack={() => setShowProfile(false)}
+                onBack={() => window.history.back()}
                 onLogout={() => {
                     localStorage.removeItem("accessToken");
                     clearCache();
@@ -254,12 +314,16 @@ function MainApp() {
                         clearCache();
                         setUser(null);
                     }}
-                    onOpenAdmin={() => setShowAdmin(true)}
-                    onOpenProfile={() => setShowProfile(true)}
+                    onOpenAdmin={() => pushNav({ screen: "admin" })}
+                    onOpenProfile={() => pushNav({ screen: "profile" })}
                     onOpenLobby={(lobbyId, players, factions) => {
-                        setActiveLobbyId(lobbyId);
-                        setActiveLobbyPlayers(players ?? []);
-                        setActiveLobbyFactions(factions ?? []);
+                        const screen = players && players.length > 0 ? "game" : "lobby";
+                        pushNav({
+                            screen,
+                            lobbyId,
+                            players: players ?? [],
+                            factions: factions ?? [],
+                        });
                     }}
                     onLinkChanged={() => {
                         apiRequest<User>("/auth/me").then(setUser).catch(() => {});
