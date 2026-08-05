@@ -42,6 +42,8 @@ from app.services.problem_catalog import get_problems_by_tags
 from app.services.scoring import (
     TeamScore,
     compute_team_scores,
+    first_capture_bonus,
+    flag_points,
     region_control_by_team,
 )
 from app.services.user_solved import (
@@ -51,8 +53,6 @@ from app.services.user_solved import (
 )
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_POINTS_WIN_THRESHOLD = 5000
 
 
 class TerritoryMode(GameMode):
@@ -175,6 +175,18 @@ class TerritoryMode(GameMode):
             {u.id: u.leetcode_username for u in db.query(User).filter(User.id.in_(uids)).all()}
             if uids else {}
         )
+        win_condition = lobby.win_condition or {}
+        teams = team_by_user(lobby, players)
+        win_target = (
+            _points_win_threshold(
+                win_condition,
+                provinces,
+                teams,
+                {slug: prob.difficulty for slug, prob in problems.items() if prob.difficulty},
+            )
+            if str(win_condition.get("type") or "") == "points"
+            else None
+        )
         return {
             "lobby_id": lobby.id,
             "game_mode": lobby.game_mode,
@@ -186,6 +198,7 @@ class TerritoryMode(GameMode):
             "provinces": [_build_province(p, problems, users) for p in provinces],
             "score": _score_entries(lobby, provinces, players, problems),
             "powerups": {lp.user_id: powerup_counts(lp) for lp, _ in players},
+            "win_target": win_target,
         }
 
 
@@ -508,6 +521,52 @@ def _score_entry(team_id: int, label: str, color: str, score: TeamScore) -> Lobb
     )
 
 
+def _points_win_ratio(player_count: int) -> float:
+    """Share of the map's total points needed to win, scaled by players."""
+    if player_count >= 6:
+        return 0.33
+    if player_count == 5:
+        return 0.36
+    if player_count == 4:
+        return 0.40
+    if player_count == 3:
+        return 0.45
+    return 0.55
+
+
+def _map_total_points(
+    provinces: list[LobbyMapProvince],
+    difficulty_by_slug: dict[str, str] | None,
+) -> int:
+    """Deterministic point potential of the map: flags + first-capture bonuses."""
+    difficulty_by_slug = difficulty_by_slug or {}
+    total = 0
+    for province in provinces:
+        difficulty = difficulty_by_slug.get(province.problem_title_slug)
+        total += flag_points(difficulty) + first_capture_bonus(difficulty)
+    return total
+
+
+def _points_win_threshold(
+    win_condition: dict,
+    provinces: list[LobbyMapProvince],
+    teams: dict[int, int],
+    difficulty_by_slug: dict[str, str] | None,
+) -> int | None:
+    """Win target for a points game: ratio of map potential or an absolute value."""
+    map_total = _map_total_points(provinces, difficulty_by_slug)
+    ratio = win_condition.get("ratio")
+    absolute = win_condition.get("threshold")
+    if ratio is None and absolute is None:
+        ratio = _points_win_ratio(len({team for team in teams.values()}))
+    try:
+        if ratio is not None:
+            return round(float(ratio) * map_total) if map_total else None
+        return int(absolute or 0)
+    except (TypeError, ValueError):
+        return None
+
+
 def _evaluate_winner(
     lobby: Lobby,
     provinces: list[LobbyMapProvince],
@@ -532,10 +591,9 @@ def _evaluate_winner(
         return None
 
     if wc_type == "points":
-        try:
-            threshold = float(win_condition.get("threshold") or DEFAULT_POINTS_WIN_THRESHOLD)
-        except (TypeError, ValueError):
-            threshold = DEFAULT_POINTS_WIN_THRESHOLD
+        threshold = _points_win_threshold(win_condition, provinces, teams, difficulty_by_slug)
+        if threshold is None or threshold <= 0:
+            return None
         scores = compute_team_scores(provinces, teams, difficulty_by_slug or {})
         qualified = [
             (team, score.total_points)

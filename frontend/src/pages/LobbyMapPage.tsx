@@ -63,6 +63,7 @@ type MapApiResponse = {
     provinces: ProvinceData[];
     score: ScoreEntry[];
     powerups?: Record<number, Record<string, number>> | null;
+    win_target?: number | null;
 };
 
 type SyncApiResponse = MapApiResponse & {
@@ -113,6 +114,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     const [scoreEntries, setScoreEntries] = useState<ScoreEntry[]>([]);
     const [gameStatus, setGameStatus] = useState<string>('active');
     const [winner, setWinner] = useState<WinnerInfo | null>(null);
+    const [winTarget, setWinTarget] = useState<number | null>(null);
     const [syncTick, setSyncTick] = useState(0);
     const [loading, setLoading] = useState(true);
     const [isLeaving, setIsLeaving] = useState(false);
@@ -267,6 +269,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
         setScoreEntries(data.score ?? []);
         setGameStatus(data.status);
         setWinner(data.winner ?? null);
+        setWinTarget(data.win_target ?? null);
         setPowerups(data.powerups ?? {});
     }, [lobbyId, ownerColor]);
 
@@ -601,6 +604,41 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                             />
                         )}
                     </div>
+
+                    {winTarget ? (() => {
+                        const leaderPoints = Math.max(0, ...scoreRows.map((row) => row.points));
+                        const leader = scoreRows.find((row) => row.points === leaderPoints);
+                        const myRow = scoreRows.find((row) => row.key === currentUserId);
+                        const myPoints = myRow?.points ?? 0;
+                        const progress = Math.min(100, (leaderPoints / winTarget) * 100);
+                        return (
+                            <div className="mt-3 border-t border-[#2a2a2a] pt-2.5">
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="font-semibold text-[#ffd08a]">
+                                        🏆 Win at {winTarget} pts
+                                    </span>
+                                    {leader && (
+                                        <span className="text-[#8a8a8a]">
+                                            {leader.label}: <span className="tabular-nums text-[#ffa116]">{leaderPoints}</span>
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#333]">
+                                    <div
+                                        className="h-full rounded-full bg-gradient-to-r from-[#ffa116]/60 to-[#ffa116] transition-all duration-500"
+                                        style={{ width: `${progress}%` }}
+                                    />
+                                </div>
+                                <p className="mt-1 text-[11px] text-[#8a8a8a]">
+                                    {myRow
+                                        ? myPoints >= winTarget
+                                            ? "You reached the target!"
+                                            : `You need ${winTarget - myPoints} more pts`
+                                        : "Join a team to see your progress"}
+                                </p>
+                            </div>
+                        );
+                    })() : null}
                 </section>
 
                 <div className="mt-6 flex items-stretch gap-6">

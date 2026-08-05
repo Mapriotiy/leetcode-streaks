@@ -47,7 +47,7 @@ class CreateLobbyRequest(BaseModel):
     faction_mode: bool = False
     faction_count: int = 0
     programming_language: str = "python3"
-    win_condition: dict = {"type": "points", "threshold": 5000, "duration_hours": 0}
+    win_condition: dict = {"type": "points", "duration_hours": 0}
 
 
 class CreateLobbyResponse(BaseModel):
