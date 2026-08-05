@@ -584,6 +584,24 @@ export function GeneratedMapRenderer({
         return () => root.removeEventListener("wheel", onWheel);
     }, [zoomable]);
 
+    // Province selection rides on the native `click` event: the browser already
+    // distinguishes a tap from a drag (movement suppresses click), so it works
+    // reliably on phones without fighting pointer jitter.
+    const clickHandlerRef = useRef<(event: MouseEvent) => void>(() => {});
+    clickHandlerRef.current = (event: MouseEvent) => {
+        if (!zoomable) return;
+        if ((event.target as Element).closest("button")) return;
+        selectProvinceAt(event);
+    };
+
+    useEffect(() => {
+        const root = rootRef.current;
+        if (!root || !zoomable) return;
+        const onClick = (event: MouseEvent) => clickHandlerRef.current(event);
+        root.addEventListener("click", onClick);
+        return () => root.removeEventListener("click", onClick);
+    }, [zoomable]);
+
     function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
         if (!zoomable || event.button !== 0) return;
         if ((event.target as Element).closest("button")) return;
@@ -673,8 +691,8 @@ export function GeneratedMapRenderer({
         fling.lastT = now;
     }
 
-    function findProvincePath(event: PointerEvent<HTMLDivElement>): SVGPathElement | null {
-        const directPath = (event.target as Element).closest<SVGPathElement>(".generated-map-province");
+    function findProvincePath(event: { target: EventTarget | null; clientX: number; clientY: number }): SVGPathElement | null {
+        const directPath = (event.target as Element | null)?.closest?.<SVGPathElement>(".generated-map-province") ?? null;
         if (directPath) return directPath;
 
         for (const element of document.elementsFromPoint(event.clientX, event.clientY)) {
@@ -684,7 +702,7 @@ export function GeneratedMapRenderer({
         return null;
     }
 
-    function selectProvinceAt(event: PointerEvent<HTMLDivElement>) {
+    function selectProvinceAt(event: { target: EventTarget | null; clientX: number; clientY: number }) {
         if (!onSelect) return;
         const path = findProvincePath(event);
         if (!path) return;
@@ -715,12 +733,8 @@ export function GeneratedMapRenderer({
 
         const drag = dragRef.current;
         if (!drag || drag.pointerId !== event.pointerId) {
-            selectProvinceAt(event);
             releasePointer();
             return;
-        }
-        if (!drag.moved) {
-            selectProvinceAt(event);
         }
         dragRef.current = null;
         commitView();
