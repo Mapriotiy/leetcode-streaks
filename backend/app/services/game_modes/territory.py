@@ -553,16 +553,18 @@ def _points_win_threshold(
     teams: dict[int, int],
     difficulty_by_slug: dict[str, str] | None,
 ) -> int | None:
-    """Win target for a points game: ratio of map potential or an absolute value."""
+    """Win target for a points game: a share of the map's point potential.
+
+    Defaults to a ratio that scales with player count; an explicit `ratio`
+    overrides it. Legacy absolute `threshold` values (from the old 5000-point
+    default) are ignored so every lobby behaves consistently.
+    """
     map_total = _map_total_points(provinces, difficulty_by_slug)
     ratio = win_condition.get("ratio")
-    absolute = win_condition.get("threshold")
-    if ratio is None and absolute is None:
+    if ratio is None:
         ratio = _points_win_ratio(len({team for team in teams.values()}))
     try:
-        if ratio is not None:
-            return round(float(ratio) * map_total) if map_total else None
-        return int(absolute or 0)
+        return round(float(ratio) * map_total) if map_total else None
     except (TypeError, ValueError):
         return None
 

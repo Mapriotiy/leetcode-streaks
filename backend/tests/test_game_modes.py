@@ -28,13 +28,14 @@ def make_lobby(faction_mode=False, win_condition=None, **kwargs) -> Lobby:
     )
 
 
-def make_province(i: int, region: str = "r1", captured_by=None) -> LobbyMapProvince:
+def make_province(i: int, region: str = "r1", captured_by=None, first_captured_by=None) -> LobbyMapProvince:
     return LobbyMapProvince(
         lobby_map_id=1,
         province_id=f"p{i}",
         region_id=region,
         problem_title_slug=f"slug-{i}",
         captured_by=captured_by,
+        first_captured_by=first_captured_by,
     )
 
 
@@ -75,15 +76,17 @@ def test_territory_below_threshold_is_no_win():
 
 
 def test_points_win():
-    lobby = make_lobby(win_condition={"type": "points", "threshold": 1000})
+    lobby = make_lobby(win_condition={"type": "points"})
     provinces = [
-        make_province(1, captured_by=1),
-        make_province(2, captured_by=1),
-        make_province(3, captured_by=1),
-        make_province(4, captured_by=2),
+        make_province(1, captured_by=1, first_captured_by=1),
+        make_province(2, captured_by=1, first_captured_by=1),
+        make_province(3, captured_by=1, first_captured_by=1),
+        make_province(4, captured_by=2, first_captured_by=2),
     ]
     difficulty = {f"slug-{i}": "Hard" for i in range(1, 5)}
 
+    # 2 players -> 55% of the map's point potential (4 * 750 = 3000) = 1650.
+    # Team 1 (3 Hard provinces with first-capture bonuses) reaches 2250.
     result = _evaluate_winner(lobby, provinces, {1: 1, 2: 2}, difficulty)
     assert result is not None
     assert result.winner_user_id == 1
