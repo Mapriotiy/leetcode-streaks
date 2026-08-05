@@ -39,7 +39,7 @@ export function WinV4({ winnerLabel, youWon, accentColor = "#00d9ff", onReplay, 
 
                 {winnerLabel ? (
                     <p className="mt-6 font-mono text-base uppercase tracking-[0.25em]" style={{ color: accentColor }}>
-                        &gt; {winnerLabel}
+                        &gt; {winnerLabel} claims the map
                     </p>
                 ) : null}
 
