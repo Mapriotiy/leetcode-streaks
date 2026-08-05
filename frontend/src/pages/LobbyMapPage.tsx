@@ -219,8 +219,6 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
         return map;
     }, [displayedProvincesData, factionByPlayer, factionById]);
 
-    const { events } = useLobbyEvents(lobbyId, syncTick);
-
     const legendRegions = useMemo(
         () => (mapSelection.kind === 'generated' ? generatedRegionsAsLegend(mapSelection.draft) : REGIONS),
         [mapSelection],
@@ -234,6 +232,53 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
         if (fid > 0 && fid <= FACTION_COLORS.length) return FACTION_COLORS[fid - 1];
         return '#888888';
     }, [factionByPlayer, factionById]);
+
+    // Live captures pushed over SSE are applied on top of the server-derived
+    // state so the map reacts instantly; the next poll reconciles anyway.
+    const [liveCaptures, setLiveCaptures] = useState<Map<string, string>>(new Map());
+    const appliedEventIdsRef = useRef<Set<number>>(new Set());
+
+    const displayCaptured = useMemo(() => {
+        const map = new Map(captured);
+        for (const [id, color] of liveCaptures) map.set(id, color);
+        return map;
+    }, [captured, liveCaptures]);
+
+    const { events } = useLobbyEvents(lobbyId, syncTick);
+
+    useEffect(() => {
+        for (const event of events) {
+            if (appliedEventIdsRef.current.has(event.id)) continue;
+            if (
+                (event.event_type === 'capture' ||
+                    event.event_type === 'recapture' ||
+                    event.event_type === 'defense') &&
+                event.province_id
+            ) {
+                appliedEventIdsRef.current.add(event.id);
+                const color = ownerColor(event.actor_user_id);
+                if (!color) continue;
+                const provinceId = event.province_id;
+                setLiveCaptures((prev) => {
+                    const next = new Map(prev);
+                    next.set(provinceId, color);
+                    return next;
+                });
+                setBursts((prev) => {
+                    const next = new Map(prev);
+                    next.set(provinceId, color);
+                    return next;
+                });
+                window.setTimeout(() => {
+                    setBursts((prev) => {
+                        const next = new Map(prev);
+                        next.delete(provinceId);
+                        return next;
+                    });
+                }, 1200);
+            }
+        }
+    }, [events, ownerColor]);
 
     const applyMapData = useCallback((data: MapApiResponse) => {
         const serverSelection = normalizeLobbyMapSelection(data.map_selection);
@@ -667,7 +712,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                                     {mapSelection.kind === 'generated' ? (
                                         <GeneratedMapRenderer
                                             draft={mapSelection.draft}
-                                            captured={captured}
+                                            captured={displayCaptured}
                                             onSelect={handleSelect}
                                             highlightedProvinces={hoveredProvinces}
                                             bursts={bursts}
@@ -675,7 +720,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                                         />
                                     ) : (
                                         <ProvinceMap
-                                            captured={captured}
+                                            captured={displayCaptured}
                                             onSelect={handleSelect}
                                             highlightedProvinces={hoveredProvinces}
                                             bursts={bursts}

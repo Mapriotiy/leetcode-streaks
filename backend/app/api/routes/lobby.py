@@ -1,16 +1,22 @@
 """Lobby lifecycle routes. Game logic lives in app.services.game_modes;
 these routes dispatch on lobby.game_mode via the mode registry."""
 
+import asyncio
+import json
 import logging
 import secrets
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+import jwt
+from fastapi import APIRouter, Depends, HTTPException, Query
+from starlette.responses import StreamingResponse
+from jwt.exceptions import InvalidTokenError
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.core.config import settings
-from app.db.session import get_db
+from app.core.security import ALGORITHM
+from app.db.session import SessionLocal, get_db
 from app.models.lobby import Lobby
 from app.models.lobby_board_cell import LobbyBoardCell
 from app.models.lobby_event import LobbyEvent
@@ -678,3 +684,61 @@ def get_events(
         raise HTTPException(404, "Lobby not found")
     limit = max(1, min(limit, 200))
     return get_lobby_events(lobby_id, after_id, limit, db)
+
+
+def _sse_payload(event: str, data: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(data)}\n\n"
+
+
+@router.get("/{lobby_id}/events/stream")
+async def stream_lobby_events(
+    lobby_id: int,
+    token: str = Query(...),
+    after_id: int = 0,
+    db: Session = Depends(get_db),
+):
+    """Server-Sent Events: pushes new lobby events live as the sync writes them.
+
+    This is a read-only channel over our own `lobby_events` table — it never
+    touches the LeetCode sync, so the number of external calls is unchanged.
+    EventSource can't set an Authorization header, so the JWT rides in a query
+    param; the membership check still gates access.
+    """
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[ALGORITHM])
+        user_id = int(payload.get("sub"))
+    except (InvalidTokenError, TypeError, ValueError):
+        raise HTTPException(401, "Invalid token")
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(401, "Invalid token")
+    lobby = db.get(Lobby, lobby_id)
+    if not lobby:
+        raise HTTPException(404, "Lobby not found")
+    _require_lobby_member(lobby, user.id, db)
+
+    async def event_generator():
+        last_id = after_id
+        status_sent = False
+        while True:
+            session = SessionLocal()
+            try:
+                for event in get_lobby_events(lobby_id, last_id, limit=100, db=session):
+                    data = LobbyEventResponse.model_validate(event).model_dump(mode="json")
+                    yield _sse_payload("event", data)
+                    last_id = event.id
+                current = session.get(Lobby, lobby_id)
+                if current is not None and current.status == "finished" and not status_sent:
+                    status_sent = True
+                    yield _sse_payload("status", {"status": "finished"})
+                    await asyncio.sleep(2)
+                    return
+            finally:
+                session.close()
+            await asyncio.sleep(1.0)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
