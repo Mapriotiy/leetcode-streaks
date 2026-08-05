@@ -1,8 +1,14 @@
+@import url("https://fonts.googleapis.com/css2?family=Comfortaa:wght@600;700&display=swap");
 @import "tailwindcss";
 
 body {
     margin: 0;
     background: #1a1a1a;
+}
+
+.brand-wordmark {
+    font-family: "Comfortaa", ui-rounded, "Avenir Next Rounded", "Nunito", system-ui, sans-serif;
+    letter-spacing: 0;
 }
 
 @media (min-width: 1920px) {
@@ -121,11 +127,11 @@ body {
     0%,
     100% {
         opacity: 0.85;
-        filter: drop-shadow(0 0 2px rgba(255, 161, 22, 0.7));
+        filter: drop-shadow(0 0 2px rgba(200, 111, 60, 0.7));
     }
     50% {
         opacity: 1;
-        filter: drop-shadow(0 0 7px rgba(255, 161, 22, 1));
+        filter: drop-shadow(0 0 7px rgba(200, 111, 60, 1));
     }
 }
 

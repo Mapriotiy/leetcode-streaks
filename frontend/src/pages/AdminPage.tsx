@@ -108,13 +108,13 @@ export function AdminPage({ onBack, onLogout }: { onBack: () => void; onLogout: 
                         <button
                             type="button"
                             onClick={onBack}
-                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
                         >
                             <ArrowLeft size={20} />
                         </button>
                         <div>
                             <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-                                <Shield size={22} className="text-[#ffa116]" />
+                                <Shield size={22} className="text-[#c86f3c]" />
                                 Admin
                             </h1>
                             <p className="mt-1 text-sm text-[#8a8a8a]">Overview, users, lobbies</p>
@@ -240,12 +240,12 @@ function StatsOverview() {
         { label: "Total users", value: stats.total_users },
         { label: "Active today (DAU)", value: stats.dau_today ?? 0, accent: "#2bff88" },
         { label: "Active last 7d", value: stats.dau_7d ?? 0, accent: "#7fe8ff" },
-        { label: "Solvers today", value: stats.solvers_today ?? 0, accent: "#ffd08a" },
+        { label: "Solvers today", value: stats.solvers_today ?? 0, accent: "#e8b691" },
         { label: "Active lobbies", value: stats.active_lobbies, accent: "#7fe8ff" },
         { label: "Waiting", value: stats.waiting_lobbies },
         { label: "Finished", value: stats.finished_lobbies, accent: "#7ef7bb" },
         { label: "Games today", value: stats.games_today, accent: "#7ef7bb" },
-        { label: "Problems in catalog", value: stats.problem_count, accent: "#ffa116" },
+        { label: "Problems in catalog", value: stats.problem_count, accent: "#c86f3c" },
         {
             label: "Catalog last sync",
             value: stats.catalog_last_synced_at ? formatDate(stats.catalog_last_synced_at) : "never",
@@ -345,7 +345,7 @@ function UsersTab() {
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="Search name, email, LeetCode…"
-                        className="w-full rounded-md border border-[#3a3a3a] bg-[#1f1f1f] py-2 pl-9 pr-3 text-sm text-white outline-none focus:border-[#ffa116]/70"
+                        className="w-full rounded-md border border-[#3a3a3a] bg-[#1f1f1f] py-2 pl-9 pr-3 text-sm text-white outline-none focus:border-[#c86f3c]/70"
                     />
                 </div>
                 <span className="text-xs text-[#8a8a8a]">{total} user{total === 1 ? "" : "s"}</span>
@@ -402,7 +402,7 @@ function UsersTab() {
                                         <td className="px-4 py-3 text-[#d7d7d7]">{user.email ?? "—"}</td>
                                         <td className="px-4 py-3 text-[#d7d7d7]">
                                             {user.leetcode_username ? (
-                                                <span className="text-[#ffa116]">{user.leetcode_username}</span>
+                                                <span className="text-[#c86f3c]">{user.leetcode_username}</span>
                                             ) : (
                                                 <span className="text-[#666]">—</span>
                                             )}
@@ -410,7 +410,7 @@ function UsersTab() {
                                         <td className="px-4 py-3 text-[#b3b3b3]">{formatDate(user.created_at)}</td>
                                         <td className="px-4 py-3">
                                             {user.is_admin ? (
-                                                <span className="inline-flex items-center gap-1 rounded-full bg-[#ffa116]/15 px-2 py-0.5 text-[0.625rem] font-semibold text-[#ffd08a]">
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-[#c86f3c]/15 px-2 py-0.5 text-[0.625rem] font-semibold text-[#e8b691]">
                                                     <Star size={10} /> ADMIN
                                                 </span>
                                             ) : (
@@ -424,7 +424,7 @@ function UsersTab() {
                                                     disabled={busy}
                                                     onClick={() => void runAction(user, () => apiRequest(`/admin/users/${user.id}`, { method: "PATCH", body: JSON.stringify({ is_admin: !user.is_admin }) }))}
                                                     title={user.is_admin ? "Revoke admin" : "Make admin"}
-                                                    className={`grid h-8 w-8 place-items-center rounded-md border text-sm transition disabled:opacity-50 ${user.is_admin ? "border-[#ffa116]/50 bg-[#ffa116]/10 text-[#ffa116] hover:bg-[#ffa116]/20" : "border-[#3a3a3a] bg-[#1f1f1f] text-[#b3b3b3] hover:border-[#ffa116]/60 hover:text-[#ffa116]"}`}
+                                                    className={`grid h-8 w-8 place-items-center rounded-md border text-sm transition disabled:opacity-50 ${user.is_admin ? "border-[#c86f3c]/50 bg-[#c86f3c]/10 text-[#c86f3c] hover:bg-[#c86f3c]/20" : "border-[#3a3a3a] bg-[#1f1f1f] text-[#b3b3b3] hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"}`}
                                                 >
                                                     <Star size={15} />
                                                 </button>
@@ -457,9 +457,9 @@ function UsersTab() {
             </div>
 
             <div className="flex items-center justify-between border-t border-[#3a3a3a] px-4 py-3">
-                <button type="button" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - LIMIT))} className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-1.5 text-sm text-[#d7d7d7] transition hover:border-[#ffa116]/60 disabled:cursor-not-allowed disabled:opacity-40">Prev</button>
+                <button type="button" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - LIMIT))} className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-1.5 text-sm text-[#d7d7d7] transition hover:border-[#c86f3c]/60 disabled:cursor-not-allowed disabled:opacity-40">Prev</button>
                 <span className="text-xs text-[#8a8a8a]">Page {currentPage} of {totalPages}</span>
-                <button type="button" disabled={offset + LIMIT >= total} onClick={() => setOffset(offset + LIMIT)} className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-1.5 text-sm text-[#d7d7d7] transition hover:border-[#ffa116]/60 disabled:cursor-not-allowed disabled:opacity-40">Next</button>
+                <button type="button" disabled={offset + LIMIT >= total} onClick={() => setOffset(offset + LIMIT)} className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-1.5 text-sm text-[#d7d7d7] transition hover:border-[#c86f3c]/60 disabled:cursor-not-allowed disabled:opacity-40">Next</button>
             </div>
         </section>
     );
@@ -528,8 +528,8 @@ function LobbiesTab() {
                             onClick={() => { setStatus(s); setOffset(0); }}
                             className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
                                 status === s
-                                    ? "bg-[#ffa116] text-[#111]"
-                                    : "border border-[#3a3a3a] bg-[#1f1f1f] text-[#b3b3b3] hover:border-[#ffa116]/60 hover:text-white"
+                                    ? "bg-[#c86f3c] text-[#111]"
+                                    : "border border-[#3a3a3a] bg-[#1f1f1f] text-[#b3b3b3] hover:border-[#c86f3c]/60 hover:text-white"
                             }`}
                         >
                             {s}
@@ -543,7 +543,7 @@ function LobbiesTab() {
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                             placeholder="Search lobby name…"
-                            className="w-full rounded-md border border-[#3a3a3a] bg-[#1f1f1f] py-2 pl-9 pr-3 text-sm text-white outline-none focus:border-[#ffa116]/70"
+                            className="w-full rounded-md border border-[#3a3a3a] bg-[#1f1f1f] py-2 pl-9 pr-3 text-sm text-white outline-none focus:border-[#c86f3c]/70"
                         />
                     </div>
                     <span className="text-xs text-[#8a8a8a]">{total}</span>
@@ -604,7 +604,7 @@ function LobbiesTab() {
                                                         }
                                                     }}
                                                     title="Force end"
-                                                    className="grid h-8 w-8 place-items-center rounded-md border border-[#3a3a3a] bg-[#1f1f1f] text-[#b3b3b3] transition hover:border-[#ffa116]/60 hover:text-[#ffa116] disabled:cursor-not-allowed disabled:opacity-40"
+                                                    className="grid h-8 w-8 place-items-center rounded-md border border-[#3a3a3a] bg-[#1f1f1f] text-[#b3b3b3] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c] disabled:cursor-not-allowed disabled:opacity-40"
                                                 >
                                                     <Flag size={14} />
                                                 </button>
@@ -632,9 +632,9 @@ function LobbiesTab() {
             </div>
 
             <div className="flex items-center justify-between border-t border-[#3a3a3a] px-4 py-3">
-                <button type="button" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - LIMIT))} className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-1.5 text-sm text-[#d7d7d7] transition hover:border-[#ffa116]/60 disabled:cursor-not-allowed disabled:opacity-40">Prev</button>
+                <button type="button" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - LIMIT))} className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-1.5 text-sm text-[#d7d7d7] transition hover:border-[#c86f3c]/60 disabled:cursor-not-allowed disabled:opacity-40">Prev</button>
                 <span className="text-xs text-[#8a8a8a]">Page {currentPage} of {totalPages}</span>
-                <button type="button" disabled={offset + LIMIT >= total} onClick={() => setOffset(offset + LIMIT)} className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-1.5 text-sm text-[#d7d7d7] transition hover:border-[#ffa116]/60 disabled:cursor-not-allowed disabled:opacity-40">Next</button>
+                <button type="button" disabled={offset + LIMIT >= total} onClick={() => setOffset(offset + LIMIT)} className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-1.5 text-sm text-[#d7d7d7] transition hover:border-[#c86f3c]/60 disabled:cursor-not-allowed disabled:opacity-40">Next</button>
             </div>
         </section>
     );

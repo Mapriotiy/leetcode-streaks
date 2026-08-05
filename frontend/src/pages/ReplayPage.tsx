@@ -176,7 +176,7 @@ export function ReplayPage({ lobbyId }: { lobbyId: number }) {
                     <div className="flex items-center gap-4">
                         <a
                             href="/"
-                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
                         >
                             <ArrowLeft size={20} />
                         </a>
@@ -188,7 +188,7 @@ export function ReplayPage({ lobbyId }: { lobbyId: number }) {
                     <button
                         type="button"
                         onClick={() => void handleCopy()}
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#3a3a3a] bg-[#262626] px-4 text-sm font-medium text-[#d7d7d7] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#3a3a3a] bg-[#262626] px-4 text-sm font-medium text-[#d7d7d7] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
                     >
                         <Copy size={16} />
                         {copied ? "Copied!" : "Copy replay link"}
@@ -219,7 +219,7 @@ export function ReplayPage({ lobbyId }: { lobbyId: number }) {
                             }}
                         >
                             <div
-                                className="h-full rounded-full bg-[#ffa116] transition-all"
+                                className="h-full rounded-full bg-[#c86f3c] transition-all"
                                 style={{ width: `${progress * 100}%` }}
                             />
                         </div>
@@ -233,7 +233,7 @@ export function ReplayPage({ lobbyId }: { lobbyId: number }) {
                                     }
                                     setPlaying((value) => !value);
                                 }}
-                                className="grid h-9 w-9 place-items-center rounded-md border border-[#3a3a3a] bg-[#1f1f1f] text-[#d7d7d7] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                                className="grid h-9 w-9 place-items-center rounded-md border border-[#3a3a3a] bg-[#1f1f1f] text-[#d7d7d7] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
                                 aria-label={playing ? "Pause" : "Play"}
                             >
                                 {playing ? <Pause size={16} /> : <Play size={16} />}
@@ -245,7 +245,7 @@ export function ReplayPage({ lobbyId }: { lobbyId: number }) {
                                     setStep(0);
                                     setCaptured(new Map());
                                 }}
-                                className="grid h-9 w-9 place-items-center rounded-md border border-[#3a3a3a] bg-[#1f1f1f] text-[#d7d7d7] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                                className="grid h-9 w-9 place-items-center rounded-md border border-[#3a3a3a] bg-[#1f1f1f] text-[#d7d7d7] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
                                 aria-label="Restart"
                             >
                                 <RotateCcw size={15} />

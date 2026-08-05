@@ -362,7 +362,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                     <button
                         type="button"
                         onClick={onBack}
-                        className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                        className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
                     >
                         <ArrowLeft size={20} />
                     </button>
@@ -415,7 +415,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                                         type="button"
                                         onClick={() => setIsMapChooserOpen(true)}
                                         disabled={isSavingMapSelection}
-                                        className="inline-flex h-9 w-full shrink-0 items-center justify-center gap-2 rounded-md border border-white/10 bg-[#262626] px-3 text-xs font-semibold text-[#d7d7d7] transition hover:border-[#ffa116]/60 hover:text-white disabled:cursor-not-allowed disabled:text-[#777] sm:h-7 sm:w-7 sm:px-0"
+                                        className="inline-flex h-9 w-full shrink-0 items-center justify-center gap-2 rounded-md border border-white/10 bg-[#262626] px-3 text-xs font-semibold text-[#d7d7d7] transition hover:border-[#c86f3c]/60 hover:text-white disabled:cursor-not-allowed disabled:text-[#777] sm:h-7 sm:w-7 sm:px-0"
                                         aria-label="Choose map"
                                     >
                                         <MapIcon size={14} />
@@ -451,7 +451,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                             <button
                                 type="button"
                                 onClick={() => setShowFriends(!showFriends)}
-                                className="flex items-center gap-1 text-xs text-[#ffa116] hover:text-[#ffb84d]"
+                                className="flex items-center gap-1 text-xs text-[#c86f3c] hover:text-[#d9823f]"
                             >
                                 <Plus size={14} />
                                 Add Friends
@@ -470,7 +470,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                                 >
                                     <UserPlus size={14} className="text-[#8a8a8a]" />
                                     {f.friend.leetcode_username ?? `User #${f.friend.id}`}
-                                    <span className="ml-auto text-xs text-[#ffa116]">Invite</span>
+                                    <span className="ml-auto text-xs text-[#c86f3c]">Invite</span>
                                 </button>
                             ))}
                         </div>
@@ -494,7 +494,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                                         }}
                                         className={`rounded-md border bg-[#1f1f1f] p-3 transition ${
                                             draggingPlayerId
-                                                ? 'border-[#ffa116]/60 bg-[#2a2418]'
+                                                ? 'border-[#c86f3c]/60 bg-[#2a2418]'
                                                 : 'border-[#3a3a3a]'
                                         }`}
                                     >
@@ -514,7 +514,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                                                                 void handleUpdateFaction({ ...faction, color: nextColor });
                                                             }}
                                                             aria-label={`${faction.name} color`}
-                                                            className="h-8 w-28 rounded-md border border-[#3a3a3a] bg-[#171717] pl-7 pr-2 text-xs text-[#d7d7d7] outline-none focus:border-[#ffa116]/70"
+                                                            className="h-8 w-28 rounded-md border border-[#3a3a3a] bg-[#171717] pl-7 pr-2 text-xs text-[#d7d7d7] outline-none focus:border-[#c86f3c]/70"
                                                         >
                                                             {FACTION_PALETTE.map((option) => (
                                                                 <option key={option.color} value={option.color}>
@@ -527,7 +527,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                                                         value={faction.name}
                                                         onChange={(event) => patchFactionLocally(faction.id, { name: event.target.value })}
                                                         onBlur={(event) => handleUpdateFaction({ ...faction, name: event.currentTarget.value })}
-                                                        className="min-w-0 flex-1 rounded-md border border-[#3a3a3a] bg-[#171717] px-2 py-1.5 text-xs font-medium text-white outline-none focus:border-[#ffa116]/70"
+                                                        className="min-w-0 flex-1 rounded-md border border-[#3a3a3a] bg-[#171717] px-2 py-1.5 text-xs font-medium text-white outline-none focus:border-[#c86f3c]/70"
                                                     />
                                                 </>
                                             ) : (
@@ -559,7 +559,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                                                     {player.leetcode_username ?? 'Unverified'}
                                                 </span>
                                                 {player.user_id === lobby.creator_id && (
-                                                    <span className="ml-auto text-xs text-[#ffa116]">Host</span>
+                                                    <span className="ml-auto text-xs text-[#c86f3c]">Host</span>
                                                 )}
                                             </div>
                                         ))}
@@ -583,12 +583,12 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                                         className="flex items-center gap-3 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm"
                                     >
                                         <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-                                        <UserCheck size={16} className="text-[#ffa116]" />
+                                        <UserCheck size={16} className="text-[#c86f3c]" />
                                         <span className="text-[#eff1f6]">
                                             {player.leetcode_username ?? 'Unverified'}
                                         </span>
                                         {player.user_id === lobby.creator_id && (
-                                            <span className="text-xs text-[#ffa116] ml-auto">Host</span>
+                                            <span className="text-xs text-[#c86f3c] ml-auto">Host</span>
                                         )}
                                     </li>
                                 );
@@ -630,7 +630,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                             type="button"
                             onClick={handleStart}
                             disabled={isStarting}
-                            className="flex-1 rounded-md bg-[#ffa116] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#ffb84d] disabled:cursor-not-allowed disabled:bg-[#3a3a3a] disabled:text-[#777]"
+                            className="flex-1 rounded-md bg-[#c86f3c] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#d9823f] disabled:cursor-not-allowed disabled:bg-[#3a3a3a] disabled:text-[#777]"
                         >
                             <Gamepad2 size={16} className="inline-block mr-2" />
                             {isStarting

@@ -23,7 +23,7 @@ const STEPS = [
     {
         icon: Map,
         title: "Solve. Capture. Conquer.",
-        body: "MapCode turns your LeetCode grind into a live map battle. Every solved problem plants your flag on a province.",
+        body: "Cinnamon Code turns your LeetCode grind into a live map battle. Every solved problem plants your flag on a province.",
     },
     {
         icon: Link2,
@@ -62,7 +62,7 @@ export function OnboardingOverlay({ onClose }: { onClose: () => void }) {
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
             <div className="w-full max-w-md rounded-lg border border-[#3a3a3a] bg-[#202020] p-6 shadow-2xl">
                 <div className="flex items-start justify-between">
-                    <span className="grid h-12 w-12 place-items-center rounded-lg border border-[#ffa116]/40 bg-[#ffa116]/10 text-[#ffa116]">
+                    <span className="grid h-12 w-12 place-items-center rounded-lg border border-[#c86f3c]/40 bg-[#c86f3c]/10 text-[#c86f3c]">
                         <Icon size={24} />
                     </span>
                     <button
@@ -83,7 +83,7 @@ export function OnboardingOverlay({ onClose }: { onClose: () => void }) {
                             <span
                                 key={index}
                                 className={`h-1.5 rounded-full transition-all ${
-                                    index === step ? "w-6 bg-[#ffa116]" : "w-1.5 bg-[#3a3a3a]"
+                                    index === step ? "w-6 bg-[#c86f3c]" : "w-1.5 bg-[#3a3a3a]"
                                 }`}
                             />
                         ))}
@@ -91,7 +91,7 @@ export function OnboardingOverlay({ onClose }: { onClose: () => void }) {
                     <button
                         type="button"
                         onClick={isLast ? finish : () => setStep((value) => value + 1)}
-                        className="rounded-md bg-[#ffa116] px-4 py-2 text-sm font-semibold text-[#111] transition hover:bg-[#ffb84d]"
+                        className="rounded-md bg-[#c86f3c] px-4 py-2 text-sm font-semibold text-[#111] transition hover:bg-[#d9823f]"
                     >
                         {isLast ? "Let's go" : "Next"}
                     </button>

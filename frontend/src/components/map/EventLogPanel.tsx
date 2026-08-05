@@ -22,7 +22,7 @@ export function EventLogPanel({ events, currentUserId, className = '' }: EventLo
             className={`flex flex-col rounded-md border border-[#3a3a3a] bg-[#1f1f1f] ${className}`}
         >
             <div className="flex items-center gap-2 border-b border-[#3a3a3a] px-3 py-2.5">
-                <ScrollText size={14} className="text-[#ffa116]" />
+                <ScrollText size={14} className="text-[#c86f3c]" />
                 <h2 className="text-xs font-semibold uppercase tracking-wide text-[#a3a3a3]">
                     Battle log
                 </h2>

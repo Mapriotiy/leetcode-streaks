@@ -77,12 +77,7 @@ export function AuthPage({ initialError = null, onClearError }: AuthPageProps) {
             {/* Nav */}
             <header className="sticky top-0 z-40 border-b border-white/5 bg-[#0b0c0e]/85 backdrop-blur">
                 <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
-                    <div className="flex items-center gap-2.5">
-                        <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-lg border border-[#ffa116]/40 bg-[#ffa116]/10">
-                            <Logo />
-                        </span>
-                        <span className="text-lg font-bold tracking-tight text-[#eff1f6]">MapCode</span>
-                    </div>
+                    <Logo className="text-[1.08rem]" />
                     <div className="flex items-center gap-4">
                         <a href="#how" className="hidden text-sm text-[#9a9a9a] transition hover:text-white sm:block">
                             How it works
@@ -100,16 +95,16 @@ export function AuthPage({ initialError = null, onClearError }: AuthPageProps) {
                 <div
                     aria-hidden
                     className="pointer-events-none absolute -top-20 right-0 h-96 w-96 rounded-full opacity-20"
-                    style={{ background: "radial-gradient(circle, #ffa116 0%, transparent 70%)" }}
+                    style={{ background: "radial-gradient(circle, #c86f3c 0%, transparent 70%)" }}
                 />
                 <div className="relative">
-                    <span className="inline-flex items-center gap-2 rounded-full border border-[#ffa116]/30 bg-[#ffa116]/10 px-3 py-1 text-xs font-semibold text-[#ffd08a]">
+                    <span className="inline-flex items-center gap-2 rounded-full border border-[#c86f3c]/30 bg-[#c86f3c]/10 px-3 py-1 text-xs font-semibold text-[#e8b691]">
                         Free · play with friends
                     </span>
                     <h1 className="mt-5 text-4xl font-black leading-tight tracking-tight sm:text-6xl">
                         Solve LeetCode.
                         <br />
-                        <span className="text-[#ffa116]">Capture the map.</span>
+                        <span className="text-[#c86f3c]">Capture the map.</span>
                     </h1>
                     <p className="mt-5 max-w-md text-base leading-relaxed text-[#9a9a9a]">
                         Turn your daily grind into a live territory battle. Plant flags, steal provinces,
@@ -148,7 +143,7 @@ export function AuthPage({ initialError = null, onClearError }: AuthPageProps) {
 
             {/* How it works */}
             <section id="how" className="mx-auto max-w-6xl px-6 py-16">
-                <p className="text-center text-xs font-semibold uppercase tracking-[0.3em] text-[#ffa116]">
+                <p className="text-center text-xs font-semibold uppercase tracking-[0.3em] text-[#c86f3c]">
                     How it works
                 </p>
                 <h2 className="mt-3 text-center text-3xl font-bold tracking-tight sm:text-4xl">
@@ -158,10 +153,10 @@ export function AuthPage({ initialError = null, onClearError }: AuthPageProps) {
                     {STEPS.map((step, index) => (
                         <div
                             key={step.title}
-                            className="rounded-2xl border border-white/10 bg-[#141519] p-6 transition hover:border-[#ffa116]/40"
+                            className="rounded-2xl border border-white/10 bg-[#141519] p-6 transition hover:border-[#c86f3c]/40"
                         >
                             <div className="flex items-center gap-3">
-                                <span className="grid h-11 w-11 place-items-center rounded-xl border border-[#ffa116]/30 bg-[#ffa116]/10 text-[#ffa116]">
+                                <span className="grid h-11 w-11 place-items-center rounded-xl border border-[#c86f3c]/30 bg-[#c86f3c]/10 text-[#c86f3c]">
                                     <step.icon size={20} />
                                 </span>
                                 <span className="text-xs font-bold text-[#666]">0{index + 1}</span>
@@ -175,7 +170,7 @@ export function AuthPage({ initialError = null, onClearError }: AuthPageProps) {
 
             {/* Features */}
             <section id="features" className="mx-auto max-w-6xl px-6 py-16">
-                <p className="text-center text-xs font-semibold uppercase tracking-[0.3em] text-[#ffa116]">
+                <p className="text-center text-xs font-semibold uppercase tracking-[0.3em] text-[#c86f3c]">
                     Features
                 </p>
                 <h2 className="mt-3 text-center text-3xl font-bold tracking-tight sm:text-4xl">
@@ -204,7 +199,7 @@ export function AuthPage({ initialError = null, onClearError }: AuthPageProps) {
                 <div
                     aria-hidden
                     className="pointer-events-none absolute inset-0 -z-10"
-                    style={{ background: "radial-gradient(50% 50% at 50% 100%, rgba(255,161,22,0.12), transparent 70%)" }}
+                    style={{ background: "radial-gradient(50% 50% at 50% 100%, rgba(200,111,60,0.12), transparent 70%)" }}
                 />
                 <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
                     Ready to claim your first province?

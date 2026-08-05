@@ -42,7 +42,7 @@ export function BingoBoard({ cells, teamColor, winningLine, currentUserId }: Bin
                             type="button"
                             onClick={() => setOpenCell(cell.cell_index)}
                             className={`relative flex aspect-square flex-col items-center justify-center gap-1 rounded-md border p-1.5 text-center transition hover:border-white/40 ${
-                                isWinning ? 'ring-2 ring-[#ffa116] shadow-lg shadow-[#ffa116]/20' : ''
+                                isWinning ? 'ring-2 ring-[#c86f3c] shadow-lg shadow-[#c86f3c]/20' : ''
                             }`}
                             style={{
                                 borderColor: claimColor ? claimColor + '99' : '#3a3a3a',

@@ -216,7 +216,7 @@ export default function ProvinceMap({ captured, onSelect, highlightedProvinces, 
                     'd',
                     'M0 -12 L3.2 -10.5 L3.2 -6.8 C3.2 -4.2 1.7 -2.6 0 -1.6 C-1.7 -2.6 -3.2 -4.2 -3.2 -6.8 L-3.2 -10.5 Z',
                 );
-                shield.setAttribute('fill', '#ffa116');
+                shield.setAttribute('fill', '#c86f3c');
                 shield.setAttribute('stroke', '#3a2a08');
                 shield.setAttribute('stroke-width', '0.3');
                 shield.classList.add('fortify-shield');

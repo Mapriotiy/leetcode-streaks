@@ -23,7 +23,7 @@ type WinnerOverlayProps = {
 export function WinnerOverlay({
     winnerLabel,
     youWon,
-    accentColor = "#ffa116",
+    accentColor = "#c86f3c",
     onReplay,
     mapKind,
     draft,

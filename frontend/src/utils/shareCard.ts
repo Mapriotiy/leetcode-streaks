@@ -457,9 +457,25 @@ export async function generateShareCard(data: ShareCardData): Promise<string> {
     ctx.fillRect(0, 0, width, height);
 
     ctx.textAlign = "center";
-    ctx.fillStyle = "#ffa116";
-    ctx.font = "800 38px system-ui, sans-serif";
-    ctx.fillText("MapCode", width / 2, 92);
+    ctx.font = "800 38px Comfortaa, system-ui, sans-serif";
+    const brandPrefix = "cinnamon";
+    const brandDot = ".";
+    const brandSuffix = "code";
+    const brandWidth =
+        ctx.measureText(brandPrefix).width +
+        ctx.measureText(brandDot).width +
+        ctx.measureText(brandSuffix).width;
+    let brandX = (width - brandWidth) / 2;
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#f2eee9";
+    ctx.fillText(brandPrefix, brandX, 92);
+    brandX += ctx.measureText(brandPrefix).width;
+    ctx.fillStyle = "#df6a24";
+    ctx.fillText(brandDot, brandX, 92);
+    brandX += ctx.measureText(brandDot).width;
+    ctx.fillStyle = "#f2eee9";
+    ctx.fillText(brandSuffix, brandX, 92);
+    ctx.textAlign = "center";
 
     ctx.fillStyle = "rgba(255,255,255,0.36)";
     ctx.font = "500 24px system-ui, sans-serif";
@@ -485,7 +501,7 @@ export async function generateShareCard(data: ShareCardData): Promise<string> {
 
     const stats = [
         { label: "Provinces", value: String(provinceCount), color: "#7fe8ff" },
-        { label: "Points", value: String(data.points), color: "#ffa116" },
+        { label: "Points", value: String(data.points), color: "#c86f3c" },
     ];
     const cellW = panelW / stats.length;
     stats.forEach((stat, index) => {

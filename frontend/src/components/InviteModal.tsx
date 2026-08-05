@@ -106,7 +106,7 @@ export function InviteModal({
             <section className="w-full max-w-md rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 text-white shadow-xl shadow-black/30">
                 <div className="flex items-start justify-between gap-4">
                     <div>
-                        <p className="text-sm font-medium text-[#ffa116]">
+                        <p className="text-sm font-medium text-[#c86f3c]">
                             LeetCode Streaks invite
                         </p>
                         <h2 className="mt-2 text-2xl font-semibold tracking-tight">
@@ -157,7 +157,7 @@ export function InviteModal({
                             type="button"
                             onClick={handleAcceptInvite}
                             disabled={isAccepting || invite.status !== "pending"}
-                            className="mt-6 w-full rounded-md bg-[#ffa116] px-4 py-2.5 text-sm font-semibold text-[#111111] transition hover:bg-[#ffb84d] disabled:cursor-not-allowed disabled:bg-[#3a3a3a] disabled:text-[#777777]"
+                            className="mt-6 w-full rounded-md bg-[#c86f3c] px-4 py-2.5 text-sm font-semibold text-[#111111] transition hover:bg-[#d9823f] disabled:cursor-not-allowed disabled:bg-[#3a3a3a] disabled:text-[#777777]"
                         >
                             {isAccepting
                                 ? "Accepting..."

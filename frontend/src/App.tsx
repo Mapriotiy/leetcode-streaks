@@ -466,7 +466,7 @@ function LobbyInviteModal({ token, onBack, onAccepted }: {
             <div className="w-full max-w-sm rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-2xl">
                 <h2 className="text-lg font-semibold text-white">Lobby Invite</h2>
                 <p className="mt-2 text-sm text-[#b3b3b3]">
-                    <span className="text-[#ffa116]">{info.creator_username}</span> invited you to <strong className="text-white">{info.lobby_name}</strong>
+                    <span className="text-[#c86f3c]">{info.creator_username}</span> invited you to <strong className="text-white">{info.lobby_name}</strong>
                 </p>
                 <p className="mt-1 text-xs text-[#8a8a8a]">
                     {info.faction_mode
@@ -484,7 +484,7 @@ function LobbyInviteModal({ token, onBack, onAccepted }: {
                 ) : (
                     <div className="mt-4 flex gap-2">
                         <button type="button" onClick={onBack} className="flex-1 rounded-md border border-[#3a3a3a] bg-[#333] px-4 py-2 text-sm text-[#d7d7d7]">Back</button>
-                        <button type="button" onClick={handleAccept} className="flex-1 rounded-md bg-[#ffa116] px-4 py-2 text-sm font-semibold text-[#111]">Accept</button>
+                        <button type="button" onClick={handleAccept} className="flex-1 rounded-md bg-[#c86f3c] px-4 py-2 text-sm font-semibold text-[#111]">Accept</button>
                     </div>
                 )}
             </div>

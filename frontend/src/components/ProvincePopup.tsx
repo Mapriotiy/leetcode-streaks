@@ -119,11 +119,11 @@ export default function ProvincePopup({
                 </div>
 
                 {fortified && (
-                    <div className="mb-2.5 rounded-md border border-[#ffa116]/50 bg-[#ffa116]/10 px-3 py-1.5 text-center text-xs font-semibold text-[#ffd08a]">
+                    <div className="mb-2.5 rounded-md border border-[#c86f3c]/50 bg-[#c86f3c]/10 px-3 py-1.5 text-center text-xs font-semibold text-[#e8b691]">
                         <span className="flex items-center justify-center gap-1.5">
                             🛡 Fortified
                             {fortifiedUntil && (
-                                <span className="tabular-nums text-[#ffd08a]">
+                                <span className="tabular-nums text-[#e8b691]">
                                     ·{" "}
                                     {new Date(fortifiedUntil).getFullYear() >= 9999
                                         ? "∞"
@@ -155,7 +155,7 @@ export default function ProvincePopup({
                             >
                                 {problem.difficulty}
                             </span>
-                            <span className="text-[#ffa116]">
+                            <span className="text-[#c86f3c]">
                                 +{flagPoints(problem.difficulty)}
                             </span>
                         </span>

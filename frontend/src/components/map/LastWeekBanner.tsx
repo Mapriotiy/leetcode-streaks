@@ -7,13 +7,13 @@ type LastWeekBannerProps = {
 
 export function LastWeekBanner({ lastWeekResult, currentUserId }: LastWeekBannerProps) {
     return (
-        <section className="mt-3 rounded-lg border border-[#ffa116]/30 bg-[#ffa116]/5 px-4 py-3 text-center text-sm shadow-sm">
+        <section className="mt-3 rounded-lg border border-[#c86f3c]/30 bg-[#c86f3c]/5 px-4 py-3 text-center text-sm shadow-sm">
             {lastWeekResult.winner_user_id === null ? (
                 <span className="text-[#a3a3a3]">
                     Last week was a tie: {lastWeekResult.player_regions} vs {lastWeekResult.friend_regions} regions
                 </span>
             ) : lastWeekResult.winner_user_id === currentUserId ? (
-                <span className="text-[#ffa116]">
+                <span className="text-[#c86f3c]">
                     You won last week: {lastWeekResult.player_regions} vs {lastWeekResult.friend_regions} regions
                 </span>
             ) : (

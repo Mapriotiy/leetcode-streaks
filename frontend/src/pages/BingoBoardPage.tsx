@@ -177,7 +177,7 @@ export function BingoBoardPage({ lobbyId, currentUserId, players, factions, onBa
                         <button
                             type="button"
                             onClick={onBack}
-                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
                         >
                             <ArrowLeft size={20} />
                         </button>
@@ -205,8 +205,8 @@ export function BingoBoardPage({ lobbyId, currentUserId, players, factions, onBa
                 )}
 
                 {gameStatus === 'finished' && (
-                    <section className="mt-6 rounded-lg border border-[#ffa116]/40 bg-[#ffa116]/10 px-4 py-4 text-center shadow-xl shadow-black/20">
-                        <p className="text-xl font-semibold text-[#ffa116]">
+                    <section className="mt-6 rounded-lg border border-[#c86f3c]/40 bg-[#c86f3c]/10 px-4 py-4 text-center shadow-xl shadow-black/20">
+                        <p className="text-xl font-semibold text-[#c86f3c]">
                             {winner?.label
                                 ? winner.winner_user_id === currentUserId
                                     ? '🏆 BINGO — You win!'

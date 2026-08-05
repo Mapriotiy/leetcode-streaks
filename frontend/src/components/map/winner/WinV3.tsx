@@ -1,7 +1,7 @@
 import { Crown } from "lucide-react";
 import type { WinVariantProps } from "./types";
 
-export function WinV3({ winnerLabel, youWon, accentColor = "#ffa116", onReplay, stats, background }: WinVariantProps) {
+export function WinV3({ winnerLabel, youWon, accentColor = "#c86f3c", onReplay, stats, background }: WinVariantProps) {
     const title = youWon ? "VICTORY" : "DEFEAT";
     return (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-[#0a0a0c]">
@@ -41,7 +41,7 @@ export function WinV3({ winnerLabel, youWon, accentColor = "#ffa116", onReplay, 
                         </div>
                         <div>
                             <p className="text-xs uppercase tracking-widest text-[#8a8a8a]">Points</p>
-                            <p className="mt-1 text-2xl font-bold tabular-nums text-[#ffa116]">{stats.points}</p>
+                            <p className="mt-1 text-2xl font-bold tabular-nums text-[#c86f3c]">{stats.points}</p>
                         </div>
                     </div>
                 ) : null}
@@ -50,7 +50,7 @@ export function WinV3({ winnerLabel, youWon, accentColor = "#ffa116", onReplay, 
                     <button
                         type="button"
                         onClick={onReplay}
-                        className="mt-7 w-full rounded-md bg-[#ffa116] px-5 py-3 text-sm font-bold uppercase tracking-widest text-[#111] transition hover:bg-[#ffb84d]"
+                        className="mt-7 w-full rounded-md bg-[#c86f3c] px-5 py-3 text-sm font-bold uppercase tracking-widest text-[#111] transition hover:bg-[#d9823f]"
                     >
                         Back to lobby
                     </button>

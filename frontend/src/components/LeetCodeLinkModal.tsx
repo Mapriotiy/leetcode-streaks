@@ -222,7 +222,7 @@ export function LeetCodeLinkModal({ onClose, onChanged }: LeetCodeLinkModalProps
             >
                 <div className="mb-4 flex items-start justify-between">
                     <div className="flex items-center gap-2">
-                        <Link2 size={18} className="text-[#ffa116]" />
+                        <Link2 size={18} className="text-[#c86f3c]" />
                         <h2 className="text-lg font-semibold text-white">
                             {linked ? "LeetCode account" : "Link LeetCode account"}
                         </h2>
@@ -269,7 +269,7 @@ export function LeetCodeLinkModal({ onClose, onChanged }: LeetCodeLinkModalProps
                                 type="text"
                                 autoComplete="off"
                                 placeholder="your-leetcode-username"
-                                className="rounded-md border border-[#3a3a3a] bg-[#1a1a1a] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#777777] focus:border-[#ffa116] focus:ring-2 focus:ring-[#ffa116]/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="rounded-md border border-[#3a3a3a] bg-[#1a1a1a] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#777777] focus:border-[#c86f3c] focus:ring-2 focus:ring-[#c86f3c]/20 disabled:cursor-not-allowed disabled:opacity-60"
                             />
                         </label>
 
@@ -289,7 +289,7 @@ export function LeetCodeLinkModal({ onClose, onChanged }: LeetCodeLinkModalProps
                                             href={problemUrl("two-sum")}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="inline-flex items-center gap-1 text-[#ffa116] hover:text-[#ffb84d]"
+                                            className="inline-flex items-center gap-1 text-[#c86f3c] hover:text-[#d9823f]"
                                         >
                                             Two Sum <ExternalLink size={12} />
                                         </a>{" "}
@@ -301,7 +301,7 @@ export function LeetCodeLinkModal({ onClose, onChanged }: LeetCodeLinkModalProps
                                     type="button"
                                     onClick={handleStart}
                                     disabled={busy}
-                                    className="w-full rounded-md bg-[#ffa116] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#ffb84d] disabled:cursor-not-allowed disabled:bg-[#3a3a3a] disabled:text-[#777]"
+                                    className="w-full rounded-md bg-[#c86f3c] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#d9823f] disabled:cursor-not-allowed disabled:bg-[#3a3a3a] disabled:text-[#777]"
                                 >
                                     {busy ? "Starting..." : "Start verification"}
                                 </button>
@@ -317,7 +317,7 @@ export function LeetCodeLinkModal({ onClose, onChanged }: LeetCodeLinkModalProps
                                             href={problemUrl(verification.problem_slug)}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="inline-flex items-center gap-1 font-medium text-[#ffa116] hover:text-[#ffb84d]"
+                                            className="inline-flex items-center gap-1 font-medium text-[#c86f3c] hover:text-[#d9823f]"
                                         >
                                             Two Sum <ExternalLink size={12} />
                                         </a>{" "}
@@ -334,7 +334,7 @@ export function LeetCodeLinkModal({ onClose, onChanged }: LeetCodeLinkModalProps
                                     type="button"
                                     onClick={handleVerify}
                                     disabled={busy || cooldownLeft > 0}
-                                    className="w-full rounded-md bg-[#ffa116] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#ffb84d] disabled:cursor-not-allowed disabled:bg-[#3a3a3a] disabled:text-[#777]"
+                                    className="w-full rounded-md bg-[#c86f3c] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#d9823f] disabled:cursor-not-allowed disabled:bg-[#3a3a3a] disabled:text-[#777]"
                                 >
                                     <RefreshCw size={15} className="inline-block mr-2" />
                                     {cooldownLeft > 0

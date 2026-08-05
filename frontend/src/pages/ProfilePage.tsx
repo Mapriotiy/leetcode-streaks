@@ -26,11 +26,11 @@ function StreakPill({ count, lit }: { count: number; lit: boolean }) {
         <span
             className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold ${
                 lit
-                    ? "border-[#ffa116]/50 bg-[#ffa116]/10 text-[#ffd08a]"
+                    ? "border-[#c86f3c]/50 bg-[#c86f3c]/10 text-[#e8b691]"
                     : "border-[#3a3a3a] bg-[#1f1f1f] text-[#8a8a8a]"
             }`}
         >
-            <Flame size={15} className={lit ? "text-[#ffa116]" : "text-[#555]"} />
+            <Flame size={15} className={lit ? "text-[#c86f3c]" : "text-[#555]"} />
             {count} day{count === 1 ? "" : "s"}
         </span>
     );
@@ -98,7 +98,7 @@ export function ProfilePage({ onBack, onLogout }: ProfilePageProps) {
                         <button
                             type="button"
                             onClick={onBack}
-                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
                         >
                             <ArrowLeft size={20} />
                         </button>
@@ -126,10 +126,10 @@ export function ProfilePage({ onBack, onLogout }: ProfilePageProps) {
                 <section className="relative mt-6 overflow-hidden rounded-2xl border border-[#3a3a3a] bg-gradient-to-br from-[#2a2a2a] to-[#1d1d1d] p-6 shadow-2xl shadow-black/30">
                     <div
                         className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full opacity-25"
-                        style={{ background: "radial-gradient(circle, #ffa116 0%, transparent 70%)" }}
+                        style={{ background: "radial-gradient(circle, #c86f3c 0%, transparent 70%)" }}
                     />
                     <div className="relative flex flex-col items-center gap-4 sm:flex-row">
-                        <span className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-[#ffa116]/40 bg-[#333333] text-[#b3b3b3] shadow-lg">
+                        <span className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-[#c86f3c]/40 bg-[#333333] text-[#b3b3b3] shadow-lg">
                             {data?.avatar_url ? (
                                 <img src={data.avatar_url} alt="" className="h-full w-full object-cover" />
                             ) : (
@@ -142,7 +142,7 @@ export function ProfilePage({ onBack, onLogout }: ProfilePageProps) {
                             </p>
                             <div className="mt-1.5 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
                                 {data?.leetcode_username ? (
-                                    <span className="rounded-full border border-[#ffa116]/40 bg-[#ffa116]/10 px-2.5 py-0.5 text-sm font-semibold text-[#ffd08a]">
+                                    <span className="rounded-full border border-[#c86f3c]/40 bg-[#c86f3c]/10 px-2.5 py-0.5 text-sm font-semibold text-[#e8b691]">
                                         @{data.leetcode_username}
                                     </span>
                                 ) : (
@@ -158,7 +158,7 @@ export function ProfilePage({ onBack, onLogout }: ProfilePageProps) {
                 </section>
 
                 <section className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-                    <StatTile icon={<Trophy size={18} />} label="Longest streak" value={data?.longest_streak ?? 0} accent="#ffd08a" />
+                    <StatTile icon={<Trophy size={18} />} label="Longest streak" value={data?.longest_streak ?? 0} accent="#e8b691" />
                     <StatTile icon={<CalendarDays size={18} />} label="Active days" value={data?.active_days_count ?? 0} />
                     <StatTile icon={<CheckCircle2 size={18} />} label="Solved today" value={data?.today_submissions.length ?? 0} accent="#7fe8ff" />
                     <StatTile icon={<Gamepad2 size={18} />} label="Games played" value={stats?.games_played ?? 0} />

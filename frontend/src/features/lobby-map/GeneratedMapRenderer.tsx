@@ -1061,8 +1061,8 @@ function GeneratedMapStyles() {
                     width: 0.9rem;
                     height: 0.9rem;
                     place-items: center;
-                    color: #ffa116;
-                    filter: drop-shadow(0 0 4px rgba(255, 161, 22, 0.9));
+                    color: #c86f3c;
+                    filter: drop-shadow(0 0 4px rgba(200, 111, 60, 0.9));
                     animation: fortify-shimmer 1.5s ease-in-out infinite;
                     pointer-events: none;
                 }

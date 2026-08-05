@@ -90,7 +90,7 @@ export function WinV4({
                             style={{ borderColor: accentColor + "55", backgroundColor: "rgba(10,10,12,0.6)" }}
                         >
                             <p className="font-mono text-xs uppercase tracking-widest text-[#8a8a8a]">Points</p>
-                            <p className="mt-1 font-mono text-2xl font-bold tabular-nums text-[#ffa116]">
+                            <p className="mt-1 font-mono text-2xl font-bold tabular-nums text-[#c86f3c]">
                                 {stats.points}
                             </p>
                         </div>
@@ -125,7 +125,7 @@ export function WinV4({
                 <ShareCardModal
                     data={{
                         title,
-                        name: winnerLabel ?? "MapCode",
+                        name: winnerLabel ?? "Cinnamon Code",
                         accentColor,
                         points: stats?.points ?? 0,
                         provinces: stats?.provinces ?? 0,

@@ -145,7 +145,7 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
                                     }}
                                     className={`relative aspect-square overflow-hidden rounded-md border transition ${
                                         gameMode === m.value
-                                            ? 'border-[#ffa116] bg-[#ffa116]/10 text-[#ffa116]'
+                                            ? 'border-[#c86f3c] bg-[#c86f3c]/10 text-[#c86f3c]'
                                             : 'border-[#3a3a3a] bg-[#1f1f1f] text-[#eff1f6] hover:border-white/30'
                                     }`}
                                 >
@@ -178,7 +178,7 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
                         <select
                             value={programmingLanguage}
                             onChange={(event) => setProgrammingLanguage(event.currentTarget.value)}
-                            className="w-full rounded-md border border-[#3a3a3a] bg-[#1a1a1a] px-3 py-2 text-sm text-white outline-none focus:border-[#ffa116]/70"
+                            className="w-full rounded-md border border-[#3a3a3a] bg-[#1a1a1a] px-3 py-2 text-sm text-white outline-none focus:border-[#c86f3c]/70"
                         >
                             {PROGRAMMING_LANGUAGES.map((language) => (
                                 <option key={language.value} value={language.value}>
@@ -199,7 +199,7 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
                                         onClick={() => setFactionCount(n)}
                                         className={`flex-1 rounded-md border py-2 text-sm font-medium transition ${
                                             factionCount === n
-                                                ? 'border-[#ffa116] bg-[#ffa116]/10 text-[#ffa116]'
+                                                ? 'border-[#c86f3c] bg-[#c86f3c]/10 text-[#c86f3c]'
                                                 : 'border-[#3a3a3a] bg-[#1f1f1f] text-[#eff1f6] hover:border-white/30'
                                         }`}
                                     >
@@ -217,7 +217,7 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
                                     Invite Friends
                                 </label>
                                 <div className="flex items-center gap-2">
-                                    <span className="rounded-full bg-[#333] px-2 py-0.5 text-xs font-semibold text-[#ffa116]">
+                                    <span className="rounded-full bg-[#333] px-2 py-0.5 text-xs font-semibold text-[#c86f3c]">
                                         {selectedFriends.size} selected
                                     </span>
                                     {selectedFriends.size > 0 && (
@@ -241,7 +241,7 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
                                     value={friendSearch}
                                     onChange={(event) => setFriendSearch(event.target.value)}
                                     placeholder="Search friends"
-                                    className="w-full rounded-md border border-[#3a3a3a] bg-[#171717] py-2 pl-9 pr-3 text-sm text-white outline-none transition placeholder:text-[#666] focus:border-[#ffa116]/70"
+                                    className="w-full rounded-md border border-[#3a3a3a] bg-[#171717] py-2 pl-9 pr-3 text-sm text-white outline-none transition placeholder:text-[#666] focus:border-[#c86f3c]/70"
                                 />
                             </div>
 
@@ -252,7 +252,7 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
                                             key={friend.friendship_id}
                                             type="button"
                                             onClick={() => toggleFriend(friend.friend.id)}
-                                            className="inline-flex max-w-full items-center gap-1 rounded-full border border-[#ffa116]/50 bg-[#ffa116]/10 px-2 py-1 text-xs font-medium text-[#ffd08a] transition hover:border-red-300/60 hover:text-red-200"
+                                            className="inline-flex max-w-full items-center gap-1 rounded-full border border-[#c86f3c]/50 bg-[#c86f3c]/10 px-2 py-1 text-xs font-medium text-[#e8b691] transition hover:border-red-300/60 hover:text-red-200"
                                         >
                                             <span className="truncate">
                                                 {friend.friend.leetcode_username ?? `User #${friend.friend.id}`}
@@ -279,7 +279,7 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
                                                 <span
                                                     className={`grid h-5 w-5 shrink-0 place-items-center rounded border transition ${
                                                         isSelected
-                                                            ? 'border-[#ffa116] bg-[#ffa116] text-[#111]'
+                                                            ? 'border-[#c86f3c] bg-[#c86f3c] text-[#111]'
                                                             : 'border-[#555] bg-[#1f1f1f] text-transparent'
                                                     }`}
                                                 >
@@ -303,7 +303,7 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
                     type="button"
                     onClick={handleCreate}
                     disabled={loading || !name.trim()}
-                    className="mt-5 w-full shrink-0 rounded-md bg-[#ffa116] py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#ffb84d] disabled:cursor-not-allowed disabled:bg-[#3a3a3a] disabled:text-[#777]"
+                    className="mt-5 w-full shrink-0 rounded-md bg-[#c86f3c] py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#d9823f] disabled:cursor-not-allowed disabled:bg-[#3a3a3a] disabled:text-[#777]"
                 >
                     {loading ? 'Creating...' : 'Create Lobby'}
                 </button>

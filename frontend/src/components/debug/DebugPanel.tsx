@@ -120,7 +120,7 @@ export function DebugPanel({
                                 [powerup]: 1,
                             })
                         }
-                        className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-2 py-1.5 font-semibold text-[#ffd08a] transition hover:border-[#ffa116]/60 disabled:opacity-50"
+                        className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-2 py-1.5 font-semibold text-[#e8b691] transition hover:border-[#c86f3c]/60 disabled:opacity-50"
                     >
                         +{powerup}
                     </button>
@@ -181,7 +181,7 @@ export function DebugPanel({
                         type="button"
                         disabled={finished || busy}
                         onClick={() => finish(null)}
-                        className="rounded-md border border-[#ffa116]/50 bg-[#ffa116]/10 px-2 py-1.5 font-semibold text-[#ffd08a] transition hover:bg-[#ffa116]/20 disabled:opacity-40"
+                        className="rounded-md border border-[#c86f3c]/50 bg-[#c86f3c]/10 px-2 py-1.5 font-semibold text-[#e8b691] transition hover:bg-[#c86f3c]/20 disabled:opacity-40"
                     >
                         Draw
                     </button>

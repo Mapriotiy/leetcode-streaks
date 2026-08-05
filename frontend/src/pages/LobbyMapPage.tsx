@@ -502,15 +502,15 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     );
 
     const winnerAccent = useMemo(() => {
-        if (!winner) return '#ffa116';
+        if (!winner) return '#c86f3c';
         if (winner.winner_faction_id != null) {
-            return factionById.get(winner.winner_faction_id)?.color ?? '#ffa116';
+            return factionById.get(winner.winner_faction_id)?.color ?? '#c86f3c';
         }
         if (winner.winner_user_id != null) {
             const fid = factionByPlayer.get(winner.winner_user_id) ?? 0;
-            return factionById.get(fid)?.color ?? FACTION_COLORS[fid - 1] ?? '#ffa116';
+            return factionById.get(fid)?.color ?? FACTION_COLORS[fid - 1] ?? '#c86f3c';
         }
-        return '#ffa116';
+        return '#c86f3c';
     }, [winner, factionById, factionByPlayer]);
 
     const youWon =
@@ -558,7 +558,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                         <button
                             type="button"
                             onClick={onBack}
-                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
                         >
                             <ArrowLeft size={20} />
                         </button>
@@ -573,7 +573,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                             onClick={() => setShowHelp(true)}
                             title="How to play"
                             aria-label="How to play"
-                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
                         >
                             <HelpCircle size={18} />
                         </button>
@@ -600,8 +600,8 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                 )}
 
                 {gameStatus === 'finished' && (
-                    <section className="mt-6 rounded-lg border border-[#ffa116]/40 bg-[#ffa116]/10 px-4 py-4 text-center shadow-xl shadow-black/20">
-                        <p className="text-xl font-semibold text-[#ffa116]">
+                    <section className="mt-6 rounded-lg border border-[#c86f3c]/40 bg-[#c86f3c]/10 px-4 py-4 text-center shadow-xl shadow-black/20">
+                        <p className="text-xl font-semibold text-[#c86f3c]">
                             {winner?.label
                                 ? winner.winner_user_id === currentUserId
                                     ? '🏆 You win!'
@@ -625,13 +625,13 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                                         {row.count}/{totalCount}
                                     </span>
                                     <span
-                                        className="text-xs font-semibold tabular-nums text-[#ffa116]"
+                                        className="text-xs font-semibold tabular-nums text-[#c86f3c]"
                                         title={row.breakdown}
                                     >
                                         <AnimatedNumber value={row.points} /> pts
                                     </span>
                                     {row.regionControlPoints > 0 && (
-                                        <span className="rounded-full bg-[#ffa116]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#ffd08a]" title={`Holding whole regions: +${row.regionControlPoints}`}>
+                                        <span className="rounded-full bg-[#c86f3c]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#e8b691]" title={`Holding whole regions: +${row.regionControlPoints}`}>
                                             👑
                                         </span>
                                     )}
@@ -672,18 +672,18 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                         return (
                             <div className="mt-3 border-t border-[#2a2a2a] pt-2.5">
                                 <div className="flex items-center justify-between text-xs">
-                                    <span className="font-semibold text-[#ffd08a]">
+                                    <span className="font-semibold text-[#e8b691]">
                                         🏆 Win at {winTarget} pts
                                     </span>
                                     {leader && (
                                         <span className="text-[#8a8a8a]">
-                                            {leader.label}: <span className="tabular-nums text-[#ffa116]">{leaderPoints}</span>
+                                            {leader.label}: <span className="tabular-nums text-[#c86f3c]">{leaderPoints}</span>
                                         </span>
                                     )}
                                 </div>
                                 <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#333]">
                                     <div
-                                        className="h-full rounded-full bg-gradient-to-r from-[#ffa116]/60 to-[#ffa116] transition-all duration-500"
+                                        className="h-full rounded-full bg-gradient-to-r from-[#c86f3c]/60 to-[#c86f3c] transition-all duration-500"
                                         style={{ width: `${progress}%` }}
                                     />
                                 </div>
@@ -732,7 +732,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                                     )}
 
                                     {armedPowerup && (
-                                        <div className="pointer-events-none absolute left-1/2 top-3 z-30 w-max max-w-[calc(100%_-_1rem)] -translate-x-1/2 rounded-full border border-[#ffa116]/50 bg-[#1f1f1f]/95 px-3 py-1.5 text-center text-xs font-medium text-[#ffd08a]">
+                                        <div className="pointer-events-none absolute left-1/2 top-3 z-30 w-max max-w-[calc(100%_-_1rem)] -translate-x-1/2 rounded-full border border-[#c86f3c]/50 bg-[#1f1f1f]/95 px-3 py-1.5 text-center text-xs font-medium text-[#e8b691]">
                                             Select a province to use{" "}
                                             {armedPowerup === 'reroll'
                                                 ? 'Reroll'

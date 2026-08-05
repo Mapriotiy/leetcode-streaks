@@ -1,6 +1,6 @@
 import type { WinVariantProps } from "./types";
 
-export function WinV1({ winnerLabel, youWon, accentColor = "#ffa116", onReplay, background }: WinVariantProps) {
+export function WinV1({ winnerLabel, youWon, accentColor = "#c86f3c", onReplay, background }: WinVariantProps) {
     const title = youWon ? "VICTORY" : "DEFEAT";
     return (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-[#0a0a0c]">

@@ -56,8 +56,8 @@ export function PowerUpInventory({ powerups, armed, onArm }: PowerUpInventoryPro
                             className={`grid h-11 w-11 place-items-center rounded-full border-2 transition ${
                                 kind
                                     ? isArmed
-                                        ? "border-[#ffa116] bg-[#ffa116]/25 text-[#ffa116] ring-2 ring-[#ffa116]/40"
-                                        : "border-[#3a3a3a] bg-[#262626] text-[#d7d7d7] hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                                        ? "border-[#c86f3c] bg-[#c86f3c]/25 text-[#c86f3c] ring-2 ring-[#c86f3c]/40"
+                                        : "border-[#3a3a3a] bg-[#262626] text-[#d7d7d7] hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
                                     : "border-dashed border-[#3a3a3a] bg-[#1f1f1f]/80 text-[#555]"
                             }`}
                         >
@@ -69,7 +69,7 @@ export function PowerUpInventory({ powerups, armed, onArm }: PowerUpInventoryPro
                         <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 w-max max-w-44 -translate-x-1/2 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-2 py-1 text-center text-[0.6875rem] opacity-0 transition group-hover:opacity-100">
                             {kind ? (
                                 <span className="text-[#d7d7d7]">
-                                    <span className="font-semibold text-[#ffa116]">{POWERUP_LABELS[kind]}</span>
+                                    <span className="font-semibold text-[#c86f3c]">{POWERUP_LABELS[kind]}</span>
                                     {" — "}
                                     {POWERUP_HINTS[kind]}
                                 </span>

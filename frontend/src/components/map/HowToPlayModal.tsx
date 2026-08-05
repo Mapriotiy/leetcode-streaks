@@ -37,7 +37,7 @@ export function HowToPlayModal({ onClose }: { onClose: () => void }) {
                 <div className="mt-4 space-y-3">
                     {SECTIONS.map((section) => (
                         <div key={section.title} className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] p-3">
-                            <p className="text-sm font-semibold text-[#ffd08a]">{section.title}</p>
+                            <p className="text-sm font-semibold text-[#e8b691]">{section.title}</p>
                             <p className="mt-1 text-sm leading-relaxed text-[#b3b3b3]">{section.body}</p>
                         </div>
                     ))}
@@ -46,7 +46,7 @@ export function HowToPlayModal({ onClose }: { onClose: () => void }) {
                 <button
                     type="button"
                     onClick={onClose}
-                    className="mt-5 w-full rounded-md bg-[#ffa116] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#ffb84d]"
+                    className="mt-5 w-full rounded-md bg-[#c86f3c] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#d9823f]"
                 >
                     Got it
                 </button>
