@@ -92,6 +92,7 @@ type LobbyMapPageProps = {
     factions: Faction[];
     isAdmin: boolean;
     onBack: () => void;
+    onReplay: () => void;
     onLeft: () => void;
 };
 
@@ -110,7 +111,7 @@ function orderServerProvincesForGeneratedMap(provinces: ProvinceData[]) {
     });
 }
 
-export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmin, onBack, onLeft }: LobbyMapPageProps) {
+export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmin, onBack, onReplay, onLeft }: LobbyMapPageProps) {
     const [provincesData, setProvincesData] = useState<ProvinceData[]>([]);
     const [scoreEntries, setScoreEntries] = useState<ScoreEntry[]>([]);
     const [gameStatus, setGameStatus] = useState<string>('active');
@@ -762,7 +763,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                         winnerLabel={winner.label}
                         youWon={winner.winner_user_id === currentUserId}
                         accentColor={winnerAccent}
-                        onReplay={onBack}
+                        onReplay={onReplay}
                         mapKind={mapSelection.kind}
                         draft={mapSelection.kind === 'generated' ? mapSelection.draft : null}
                         provinces={displayedProvincesData.map((p) => ({ province_id: p.province_id }))}

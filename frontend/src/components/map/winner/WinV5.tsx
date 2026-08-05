@@ -8,7 +8,7 @@ export function WinV5({ winnerLabel, youWon, accentColor = "#ffa116", onReplay, 
             <div aria-hidden className="pointer-events-none absolute inset-0 opacity-60" style={{ background: `linear-gradient(180deg, transparent, ${accentColor}14 50%, transparent)` }} />
 
             <div className="cinematic-title relative flex flex-col items-center px-6 text-center">
-                <div aria-hidden className="absolute -inset-12" style={{ background: "radial-gradient(70% 70% at 50% 50%, rgba(0,0,0,0.7), transparent 78%)" }} />
+                <div aria-hidden className="pointer-events-none absolute -inset-12" style={{ background: "radial-gradient(70% 70% at 50% 50%, rgba(0,0,0,0.7), transparent 78%)" }} />
                 <h1 className="relative text-6xl font-thin uppercase tracking-[0.5em] text-white sm:text-8xl">
                     {title}
                 </h1>
@@ -22,7 +22,7 @@ export function WinV5({ winnerLabel, youWon, accentColor = "#ffa116", onReplay, 
                     <button
                         type="button"
                         onClick={onReplay}
-                        className="relative mt-14 text-xs uppercase tracking-[0.4em] text-[#8a8a8a] transition hover:text-white"
+                        className="relative z-10 mt-14 text-xs uppercase tracking-[0.4em] text-[#8a8a8a] transition hover:text-white"
                     >
                         Back to lobby
                     </button>

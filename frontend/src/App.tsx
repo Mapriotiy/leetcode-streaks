@@ -270,6 +270,7 @@ function MainApp() {
                 factions={activeLobbyFactions}
                 isAdmin={user.is_admin}
                 onBack={goBack}
+                onReplay={() => goRoot()}
                 onLeft={() => {
                     goRoot();
                     setDashboardRefreshKey((key) => key + 1);

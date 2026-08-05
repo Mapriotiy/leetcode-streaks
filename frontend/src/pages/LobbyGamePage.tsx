@@ -23,6 +23,7 @@ type LobbyGamePageProps = {
     factions: Faction[];
     isAdmin: boolean;
     onBack: () => void;
+    onReplay: () => void;
     onLeft: () => void;
 };
 
