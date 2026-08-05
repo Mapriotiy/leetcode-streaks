@@ -21,13 +21,15 @@ from app.models.lobby_player import LobbyPlayer
 from app.models.user import User
 from app.schemas.debug import (
     DebugCaptureRequest,
+    DebugFinishRequest,
+    DebugFinishResponse,
     DebugPowerupsGrant,
     DebugPowerupsResponse,
     DebugProvinceResponse,
 )
 from app.services.powerups import POWERUP_TYPES, powerup_counts
 from app.services.scoring import flag_points
-from app.services.game_modes.base import finish_lobby
+from app.services.game_modes.base import WinnerResult, finish_lobby
 from app.services.game_modes.territory import _evaluate_winner
 from app.services.lobby_settings import ordered_players, team_by_user
 
@@ -215,3 +217,33 @@ def debug_uncapture(
     db.commit()
     db.refresh(province)
     return _to_province(province)
+
+
+@router.post("/lobbies/{lobby_id}/finish", response_model=DebugFinishResponse)
+def debug_finish(
+    lobby_id: int,
+    payload: DebugFinishRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    """Force a game result. winner_user_id/faction_id select the winner; both
+    None ends the lobby as a draw. Uses the real finish path so the winner
+    banner, summary, and game_won event fire exactly like a natural end."""
+    lobby = _get_lobby(lobby_id, db)
+    if lobby.status == "finished":
+        raise HTTPException(status_code=409, detail="Lobby is already finished")
+
+    players = ordered_players(lobby.id, db)
+    winner = WinnerResult(
+        winner_user_id=payload.winner_user_id,
+        winner_faction_id=payload.winner_faction_id,
+        reason="admin_forced",
+    )
+    finish_lobby(lobby, winner, players, db)
+    db.commit()
+    db.refresh(lobby)
+    return DebugFinishResponse(
+        status=lobby.status,
+        winner_user_id=lobby.winner_id,
+        winner_faction_id=lobby.winner_faction_id,
+    )

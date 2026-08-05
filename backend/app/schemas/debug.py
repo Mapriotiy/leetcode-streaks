@@ -15,6 +15,17 @@ class DebugCaptureRequest(BaseModel):
     runtime_ms: int | None = None
 
 
+class DebugFinishRequest(BaseModel):
+    winner_user_id: int | None = None
+    winner_faction_id: int | None = None
+
+
+class DebugFinishResponse(BaseModel):
+    status: str
+    winner_user_id: int | None = None
+    winner_faction_id: int | None = None
+
+
 class DebugPowerupsResponse(BaseModel):
     user_id: int
     powerups: dict[str, int]

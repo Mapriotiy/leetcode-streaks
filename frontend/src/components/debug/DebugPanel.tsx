@@ -14,6 +14,7 @@ type DebugPanelProps = {
     currentUserId: number;
     selectedProvinceId: string | null;
     selectedProvinceName: string | null;
+    finished?: boolean;
     onChanged: () => void;
 };
 
@@ -29,6 +30,7 @@ export function DebugPanel({
     currentUserId,
     selectedProvinceId,
     selectedProvinceName,
+    finished = false,
     onChanged,
 }: DebugPanelProps) {
     const [open, setOpen] = useState(true);
@@ -36,6 +38,14 @@ export function DebugPanel({
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+
+    const opponent = players.find((player) => player.user_id !== playerId);
+
+    const finish = (winnerUserId: number | null) =>
+        void run(`/admin/debug/lobbies/${lobbyId}/finish`, {
+            winner_user_id: winnerUserId,
+            winner_faction_id: null,
+        });
 
     const run = async (path: string, body?: unknown) => {
         setBusy(true);
@@ -149,6 +159,40 @@ export function DebugPanel({
                         className="flex-1 rounded-md border border-red-400/50 bg-red-500/10 px-2 py-1.5 font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-40"
                     >
                         Release
+                    </button>
+                </div>
+            </div>
+
+            <div className="mt-3 border-t border-[#2a2a2a] pt-2.5">
+                <p className="text-[#8a8a8a]">
+                    Finish game as{" "}
+                    <span className="text-[#eff1f6]">{playerLabel(players.find((p) => p.user_id === playerId) ?? players[0])}</span>
+                </p>
+                <div className="mt-1.5 grid grid-cols-3 gap-1">
+                    <button
+                        type="button"
+                        disabled={finished || busy}
+                        onClick={() => finish(playerId)}
+                        className="rounded-md border border-[#2bff88]/50 bg-[#2bff88]/10 px-2 py-1.5 font-semibold text-[#7ef7bb] transition hover:bg-[#2bff88]/20 disabled:opacity-40"
+                    >
+                        Win
+                    </button>
+                    <button
+                        type="button"
+                        disabled={finished || busy}
+                        onClick={() => finish(null)}
+                        className="rounded-md border border-[#ffa116]/50 bg-[#ffa116]/10 px-2 py-1.5 font-semibold text-[#ffd08a] transition hover:bg-[#ffa116]/20 disabled:opacity-40"
+                    >
+                        Draw
+                    </button>
+                    <button
+                        type="button"
+                        disabled={finished || busy || !opponent}
+                        onClick={() => opponent && finish(opponent.user_id)}
+                        title={opponent ? `Win for ${playerLabel(opponent)}` : "No opponent"}
+                        className="rounded-md border border-red-400/50 bg-red-500/10 px-2 py-1.5 font-semibold text-red-300 transition hover:bg-red-500/20 disabled:opacity-40"
+                    >
+                        Lose
                     </button>
                 </div>
             </div>

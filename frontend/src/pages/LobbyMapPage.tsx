@@ -666,6 +666,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                                                 selectedGeneratedProvince?.name ??
                                                 null
                                             }
+                                            finished={gameStatus === 'finished'}
                                             onChanged={() => void loadMap()}
                                         />
                                     )}

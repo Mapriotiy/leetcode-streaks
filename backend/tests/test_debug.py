@@ -237,3 +237,95 @@ def test_debug_capture_can_finish_game(tmp_path):
     assert state["status"] == "finished"
     assert state["winner"]["winner_user_id"] == ids["g-p1"]
     app.dependency_overrides.clear()
+
+
+def test_debug_force_win_and_draw(tmp_path):
+    admin = User(google_sub="g-admin", email="a@test.dev", display_name="Admin", is_admin=True, leetcode_username="adminlc")
+    player = User(google_sub="g-p1", email="p1@test.dev", display_name="P1", leetcode_username="p1lc")
+    client, ids, TestSession = _make_client(tmp_path, [admin, player])
+
+    with TestSession() as session:
+        lobby = Lobby(
+            creator_id=ids["g-admin"],
+            name="Finish",
+            status="active",
+            game_mode="free_for_all",
+            map_size="medium",
+            max_players=2,
+            faction_mode=False,
+            faction_count=0,
+            win_condition={"type": "territory_control", "threshold": 0.5, "duration_hours": 0},
+        )
+        session.add(lobby)
+        session.commit()
+        lobby_id = lobby.id
+        session.add(LobbyPlayer(lobby_id=lobby_id, user_id=ids["g-admin"], status="accepted"))
+        session.add(LobbyPlayer(lobby_id=lobby_id, user_id=ids["g-p1"], status="accepted"))
+        session.commit()
+
+    headers = {"Authorization": f"Bearer {create_access_token(ids['g-admin'])}"}
+
+    # Force a win for the player.
+    res = client.post(
+        f"/api/admin/debug/lobbies/{lobby_id}/finish",
+        json={"winner_user_id": ids["g-p1"]},
+        headers=headers,
+    )
+    assert res.status_code == 200
+    assert res.json()["status"] == "finished"
+    assert res.json()["winner_user_id"] == ids["g-p1"]
+
+    state = client.get(f"/api/lobbies/{lobby_id}/map", headers=headers).json()
+    assert state["status"] == "finished"
+    assert state["winner"]["winner_user_id"] == ids["g-p1"]
+
+    # Already finished -> 409.
+    again = client.post(
+        f"/api/admin/debug/lobbies/{lobby_id}/finish",
+        json={"winner_user_id": ids["g-p1"]},
+        headers=headers,
+    )
+    assert again.status_code == 409
+    app.dependency_overrides.clear()
+
+
+def test_debug_force_draw(tmp_path):
+    admin = User(google_sub="g-admin", email="a@test.dev", display_name="Admin", is_admin=True, leetcode_username="adminlc")
+    player = User(google_sub="g-p1", email="p1@test.dev", display_name="P1", leetcode_username="p1lc")
+    client, ids, TestSession = _make_client(tmp_path, [admin, player])
+
+    with TestSession() as session:
+        lobby = Lobby(
+            creator_id=ids["g-admin"],
+            name="Draw",
+            status="active",
+            game_mode="free_for_all",
+            map_size="medium",
+            max_players=2,
+            faction_mode=False,
+            faction_count=0,
+            win_condition={"type": "territory_control", "threshold": 0.5, "duration_hours": 0},
+        )
+        session.add(lobby)
+        session.commit()
+        lobby_id = lobby.id
+        session.add(LobbyPlayer(lobby_id=lobby_id, user_id=ids["g-admin"], status="accepted"))
+        session.commit()
+
+    headers = {"Authorization": f"Bearer {create_access_token(ids['g-admin'])}"}
+
+    res = client.post(
+        f"/api/admin/debug/lobbies/{lobby_id}/finish",
+        json={"winner_user_id": None, "winner_faction_id": None},
+        headers=headers,
+    )
+    assert res.status_code == 200
+    assert res.json()["status"] == "finished"
+    assert res.json()["winner_user_id"] is None
+
+    state = client.get(f"/api/lobbies/{lobby_id}/map", headers=headers).json()
+    assert state["status"] == "finished"
+    assert state["winner"]["winner_user_id"] is None
+    assert state["winner"]["winner_faction_id"] is None
+    assert state["winner"]["label"] is None
+    app.dependency_overrides.clear()
