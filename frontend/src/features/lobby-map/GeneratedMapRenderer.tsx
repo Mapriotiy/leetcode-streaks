@@ -648,7 +648,10 @@ export function GeneratedMapRenderer({
         if (!drag || drag.pointerId !== event.pointerId) return;
         const dx = event.clientX - drag.startX;
         const dy = event.clientY - drag.startY;
-        if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
+        // Touch taps carry more finger jitter than mouse clicks; keep them taps
+        // so province selection works reliably on phones.
+        const tapThreshold = event.pointerType === 'touch' ? 10 : 3;
+        if (Math.abs(dx) + Math.abs(dy) > tapThreshold) drag.moved = true;
         viewRef.current.x = drag.originX + dx;
         viewRef.current.y = drag.originY + dy;
         displayRef.current.x = viewRef.current.x;

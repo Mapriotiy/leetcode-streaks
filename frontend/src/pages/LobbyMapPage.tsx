@@ -717,6 +717,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                                             highlightedProvinces={hoveredProvinces}
                                             bursts={bursts}
                                             fortified={fortifiedIds}
+                                            maxZoom={window.innerWidth < 768 ? 6 : 3}
                                         />
                                     ) : (
                                         <ProvinceMap
