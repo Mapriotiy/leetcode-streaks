@@ -5,7 +5,7 @@ const SCANLINES = `repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, r
 export function WinV4({ winnerLabel, youWon, accentColor = "#00d9ff", onReplay, background }: WinVariantProps) {
     const title = youWon ? "VICTORY" : "SYSTEM FAILURE";
     return (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-black/40">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-[#0a0a0c]">
             {background}
             <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: SCANLINES }} />
             <div

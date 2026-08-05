@@ -3,15 +3,15 @@ import type { WinVariantProps } from "./types";
 export function WinV1({ winnerLabel, youWon, accentColor = "#ffa116", onReplay, background }: WinVariantProps) {
     const title = youWon ? "VICTORY" : "DEFEAT";
     return (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-black/85">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-[#0a0a0c]">
             {background}
             <div
                 aria-hidden
                 className="pointer-events-none absolute inset-0"
                 style={{ background: `radial-gradient(52% 42% at 50% 45%, ${accentColor}22, transparent 72%)` }}
             />
-            <div aria-hidden className="absolute inset-x-0 top-0 h-[7vh] bg-black/80" />
-            <div aria-hidden className="absolute inset-x-0 bottom-0 h-[7vh] bg-black/80" />
+            <div aria-hidden className="absolute inset-x-0 top-0 h-[7vh] bg-[#0a0a0c]" />
+            <div aria-hidden className="absolute inset-x-0 bottom-0 h-[7vh] bg-[#0a0a0c]" />
 
             <div className="cinematic-title relative flex flex-col items-center px-6 text-center">
                 <div aria-hidden className="absolute -inset-10" style={{ background: "radial-gradient(70% 70% at 50% 50%, rgba(0,0,0,0.75), transparent 75%)" }} />

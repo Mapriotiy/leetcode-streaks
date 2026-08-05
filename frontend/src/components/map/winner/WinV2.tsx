@@ -3,7 +3,7 @@ import type { WinVariantProps } from "./types";
 export function WinV2({ winnerLabel, youWon, accentColor = "#ffa116", onReplay, background }: WinVariantProps) {
     const title = youWon ? "VICTORY" : "DEFEATED";
     return (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-black/85">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-[#0a0a0c]">
             {background}
             <div
                 aria-hidden
