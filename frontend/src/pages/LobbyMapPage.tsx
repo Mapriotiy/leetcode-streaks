@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { ArrowLeft, HelpCircle, LogOut } from 'lucide-react';
+import { ArrowLeft, HelpCircle, LogOut, UserPlus } from 'lucide-react';
 import ProvinceMap from '../components/ProvinceMap';
 import ProvincePopup from '../components/ProvincePopup';
 import { WinnerOverlay } from '../components/WinnerOverlay';
@@ -129,6 +129,11 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     const [powerupError, setPowerupError] = useState<string | null>(null);
     const [armedPowerup, setArmedPowerup] = useState<PowerUpKind | null>(null);
     const [confirmLeave, setConfirmLeave] = useState(false);
+    const [leftPlayers, setLeftPlayers] = useState<LobbyPlayer[]>([]);
+    const [reinvitingUserId, setReinvitingUserId] = useState<number | null>(null);
+    const [lobbyInfo, setLobbyInfo] = useState<{ left_players: LobbyPlayer[]; players: LobbyPlayer[]; max_players: number; faction_mode: boolean } | null>(null);
+    const [friends, setFriends] = useState<{ friendship_id: number; friend: { id: number; leetcode_username: string | null } }[]>([]);
+    const [showAddPlayer, setShowAddPlayer] = useState(false);
     const [bursts, setBursts] = useState<Map<string, string>>(new Map());
     const prevOwnersRef = useRef<Map<string, number | null>>(new Map());
     const loadedRef = useRef(false);
@@ -357,6 +362,50 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
             .finally(() => setLoading(false));
     }, [loadMap, sync]);
 
+    type LobbyInfo = {
+        left_players: LobbyPlayer[];
+        players: LobbyPlayer[];
+        max_players: number;
+        faction_mode: boolean;
+    };
+
+    const loadLobbyInfo = useCallback(async () => {
+        try {
+            const data = await apiRequest<LobbyInfo>(`/lobbies/${lobbyId}`);
+            setLobbyInfo(data);
+            setLeftPlayers(data.left_players ?? []);
+        } catch (e) {
+            console.error(e);
+        }
+    }, [lobbyId]);
+
+    useEffect(() => {
+        loadLobbyInfo();
+        apiRequest<{ friendship_id: number; friend: { id: number; leetcode_username: string | null } }[]>(
+            '/friends/',
+        )
+            .then(setFriends)
+            .catch(() => {});
+        const interval = setInterval(() => void loadLobbyInfo(), 5000);
+        return () => clearInterval(interval);
+    }, [loadLobbyInfo]);
+
+    const handleInvitePlayer = useCallback(async (userId: number) => {
+        setReinvitingUserId(userId);
+        try {
+            const data = await apiRequest<LobbyInfo>(`/lobbies/${lobbyId}/invite-user`, {
+                method: 'POST',
+                body: JSON.stringify({ user_id: userId }),
+            });
+            setLobbyInfo(data);
+            setLeftPlayers(data.left_players ?? []);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setReinvitingUserId(null);
+        }
+    }, [lobbyId]);
+
     useEffect(() => {
         if (gameStatus === 'finished') return;
         const interval = setInterval(loadMap, STATE_POLL_INTERVAL_MS);
@@ -486,6 +535,17 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
         selectedProvinceData?.fortified_until != null &&
         new Date(selectedProvinceData.fortified_until).getTime() > Date.now();
 
+    const inGameIds = useMemo(() => new Set((lobbyInfo?.players ?? []).map((p) => p.user_id)), [lobbyInfo]);
+    const leftIds = useMemo(() => new Set(leftPlayers.map((p) => p.user_id)), [leftPlayers]);
+    const invitableFriends = useMemo(
+        () => friends.filter((f) => !inGameIds.has(f.friend.id) && !leftIds.has(f.friend.id)),
+        [friends, inGameIds, leftIds],
+    );
+    const hasSlots = lobbyInfo ? lobbyInfo.faction_mode || lobbyInfo.max_players > (lobbyInfo.players?.length ?? 0) : true;
+    const slotLabel = lobbyInfo && !lobbyInfo.faction_mode
+        ? `${(lobbyInfo.players?.length ?? 0)}/${lobbyInfo.max_players}`
+        : null;
+
     const fortifiedIds = useMemo(
         () =>
             new Set(
@@ -567,6 +627,17 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                         </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
+                        {gameStatus !== 'finished' && (invitableFriends.length > 0 || leftPlayers.length > 0) && (
+                            <button
+                                type="button"
+                                onClick={() => setShowAddPlayer((v) => !v)}
+                                className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#c86f3c]/50 bg-[#c86f3c]/10 px-3 text-sm font-medium text-[#e8b691] transition hover:bg-[#c86f3c]/20"
+                            >
+                                <UserPlus size={16} />
+                                Add player
+                                {slotLabel ? ` (${slotLabel})` : ''}
+                            </button>
+                        )}
                         <button
                             type="button"
                             onClick={() => setShowHelp(true)}
@@ -596,6 +667,82 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                     <p className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
                         {leaveError}
                     </p>
+                )}
+
+                {showAddPlayer && (
+                    <section className="mt-4 rounded-lg border border-[#3a3a3a] bg-[#262626] p-4">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-sm font-semibold text-[#d7d7d7]">Add players</h2>
+                            <button
+                                type="button"
+                                onClick={() => setShowAddPlayer(false)}
+                                className="text-xs text-[#8a8a8a] transition hover:text-[#d7d7d7]"
+                            >
+                                Close
+                            </button>
+                        </div>
+                        {slotLabel && (
+                            <p className="mt-1 text-xs text-[#8a8a8a]">Players: {slotLabel}</p>
+                        )}
+                        {!hasSlots && (
+                            <p className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+                                Lobby is full — no free slots.
+                            </p>
+                        )}
+                        {leftPlayers.length > 0 && (
+                            <div className="mt-3">
+                                <p className="text-xs font-medium text-[#8a8a8a]">Recently left</p>
+                                <ul className="mt-2 grid gap-2">
+                                    {leftPlayers.map((player) => (
+                                        <li
+                                            key={player.user_id}
+                                            className="flex items-center gap-3 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm"
+                                        >
+                                            <span className="text-[#b3b3b3]">
+                                                {player.leetcode_username ?? `User #${player.user_id}`}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => void handleInvitePlayer(player.user_id)}
+                                                disabled={reinvitingUserId === player.user_id || !hasSlots}
+                                                className="ml-auto rounded-md border border-[#c86f3c]/50 bg-[#c86f3c]/10 px-3 py-1 text-xs font-medium text-[#e8b691] transition hover:bg-[#c86f3c]/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                {reinvitingUserId === player.user_id ? 'Adding...' : 'Re-invite'}
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                        {invitableFriends.length > 0 && (
+                            <div className="mt-3">
+                                <p className="text-xs font-medium text-[#8a8a8a]">Friends</p>
+                                <ul className="mt-2 grid gap-2">
+                                    {invitableFriends.map((f) => (
+                                        <li
+                                            key={f.friendship_id}
+                                            className="flex items-center gap-3 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm"
+                                        >
+                                            <span className="text-[#b3b3b3]">
+                                                {f.friend.leetcode_username ?? `User #${f.friend.id}`}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => void handleInvitePlayer(f.friend.id)}
+                                                disabled={reinvitingUserId === f.friend.id || !hasSlots}
+                                                className="ml-auto rounded-md border border-[#c86f3c]/50 bg-[#c86f3c]/10 px-3 py-1 text-xs font-medium text-[#e8b691] transition hover:bg-[#c86f3c]/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                            >
+                                                {reinvitingUserId === f.friend.id ? 'Adding...' : 'Add'}
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                        {leftPlayers.length === 0 && invitableFriends.length === 0 && (
+                            <p className="mt-3 text-sm text-[#8a8a8a]">No one to add right now.</p>
+                        )}
+                    </section>
                 )}
 
                 {gameStatus === 'finished' && (
