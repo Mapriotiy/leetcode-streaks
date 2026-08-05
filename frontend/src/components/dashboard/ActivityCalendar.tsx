@@ -8,15 +8,15 @@ function getHeatmapCellClass(count: number) {
     }
 
     if (count === 1) {
-        return "bg-[#5c431c]";
+        return "bg-[#4d3526]";
     }
 
     if (count <= 3) {
-        return "bg-[#8f641f]";
+        return "bg-[#7a4a2c]";
     }
 
     if (count <= 6) {
-        return "bg-[#c9861b]";
+        return "bg-[#a86138]";
     }
 
     return "bg-[#c86f3c]";
