@@ -86,7 +86,7 @@ export function FriendsList({ friends, onFriendRemoved, onError }: FriendsListPr
                     type="button"
                     onClick={handleCreateInvite}
                     disabled={isCreatingInvite}
-                    className="rounded-md bg-[#d96424] px-4 py-2 text-sm font-semibold text-[#111111] transition hover:bg-[#e07940] disabled:cursor-not-allowed disabled:bg-[#3a3a3a] disabled:text-[#777777]"
+                    className="rounded-md bg-[#ffb75e] px-4 py-2 text-sm font-semibold text-[#111111] transition hover:bg-[#ffc979] disabled:cursor-not-allowed disabled:bg-[#3a3a3a] disabled:text-[#777777]"
                 >
                     {isCreatingInvite ? "Creating..." : "Create invite link"}
                 </button>

@@ -19,7 +19,7 @@ function getHeatmapCellClass(count: number) {
         return "bg-[#c9861b]";
     }
 
-    return "bg-[#d96424]";
+    return "bg-[#ffb75e]";
 }
 
 function formatMonthLabel(monthDate: Date) {
@@ -116,7 +116,7 @@ export function ActivityCalendar({ activityCalendar, activeDaysCount }: Activity
                         onClick={() =>
                             setSelectedCalendarMonth((month) => addMonths(month, -1))
                         }
-                        className="grid h-7 w-7 place-items-center rounded-md border border-[#3a3a3a] bg-[#333333] text-[#b3b3b3] transition hover:border-[#d96424]/60 hover:text-[#d96424]"
+                        className="grid h-7 w-7 place-items-center rounded-md border border-[#3a3a3a] bg-[#333333] text-[#b3b3b3] transition hover:border-[#ffb75e]/60 hover:text-[#ffb75e]"
                         aria-label="Previous month"
                     >
                         <ChevronLeft size={16} />
@@ -128,7 +128,7 @@ export function ActivityCalendar({ activityCalendar, activeDaysCount }: Activity
                             setSelectedCalendarMonth((month) => addMonths(month, 1))
                         }
                         disabled={isCurrentCalendarMonth}
-                        className="grid h-7 w-7 place-items-center rounded-md border border-[#3a3a3a] bg-[#333333] text-[#b3b3b3] transition hover:border-[#d96424]/60 hover:text-[#d96424] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[#3a3a3a] disabled:hover:text-[#b3b3b3]"
+                        className="grid h-7 w-7 place-items-center rounded-md border border-[#3a3a3a] bg-[#333333] text-[#b3b3b3] transition hover:border-[#ffb75e]/60 hover:text-[#ffb75e] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[#3a3a3a] disabled:hover:text-[#b3b3b3]"
                         aria-label="Next month"
                     >
                         <ChevronRight size={16} />
