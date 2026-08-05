@@ -1,10 +1,11 @@
 import { Crown } from "lucide-react";
 import type { WinVariantProps } from "./types";
 
-export function WinV3({ winnerLabel, youWon, accentColor = "#ffa116", onReplay, stats }: WinVariantProps) {
+export function WinV3({ winnerLabel, youWon, accentColor = "#ffa116", onReplay, stats, background }: WinVariantProps) {
     const title = youWon ? "VICTORY" : "DEFEAT";
     return (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-[#0a0b0d]">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-black/80">
+            {background}
             <div
                 aria-hidden
                 className="pointer-events-none absolute inset-0"
@@ -13,7 +14,7 @@ export function WinV3({ winnerLabel, youWon, accentColor = "#ffa116", onReplay, 
                 }}
             />
 
-            <div className="cinematic-title w-full max-w-md rounded-2xl border border-white/10 bg-[#121317]/80 p-8 text-center shadow-2xl backdrop-blur-md">
+            <div className="cinematic-title relative w-full max-w-md rounded-2xl border border-white/10 bg-[#121317]/90 p-8 text-center shadow-2xl backdrop-blur-md">
                 <div
                     className="mx-auto grid h-20 w-20 place-items-center rounded-full border"
                     style={{

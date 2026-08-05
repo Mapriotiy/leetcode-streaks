@@ -2,10 +2,11 @@ import type { WinVariantProps } from "./types";
 
 const SCANLINES = `repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 4px)`;
 
-export function WinV4({ winnerLabel, youWon, accentColor = "#00d9ff", onReplay }: WinVariantProps) {
+export function WinV4({ winnerLabel, youWon, accentColor = "#00d9ff", onReplay, background }: WinVariantProps) {
     const title = youWon ? "VICTORY" : "SYSTEM FAILURE";
     return (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-[#070708]">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-black/85">
+            {background}
             <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: SCANLINES }} />
             <div
                 aria-hidden
@@ -14,6 +15,7 @@ export function WinV4({ winnerLabel, youWon, accentColor = "#00d9ff", onReplay }
             />
 
             <div className="cinematic-title relative flex flex-col items-center px-6 text-center">
+                <div aria-hidden className="absolute -inset-12" style={{ background: "radial-gradient(70% 70% at 50% 50%, rgba(0,0,0,0.8), transparent 78%)" }} />
                 <h1
                     className="relative font-mono text-5xl font-black tracking-tight sm:text-7xl"
                     style={{ color: "#f2f2f2" }}

@@ -759,6 +759,9 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                         youWon={winner.winner_user_id === currentUserId}
                         accentColor={winnerAccent}
                         onReplay={onBack}
+                        mapKind={mapSelection.kind}
+                        draft={mapSelection.kind === 'generated' ? mapSelection.draft : null}
+                        provinces={displayedProvincesData.map((p) => ({ province_id: p.province_id }))}
                     />
                 ) : null}
 
