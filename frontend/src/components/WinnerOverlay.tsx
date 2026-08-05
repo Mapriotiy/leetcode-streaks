@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { GeneratedMapDraft } from "../features/lobby-map/types";
 import { WinV4 } from "./map/winner/WinV4";
 import { WinnerMapBackdrop } from "./map/winner/WinnerMapBackdrop";
+import { EpicParticles, SideBeams } from "./map/winner/EpicEffects";
 
 /** Length of the pre-result conquest cutscene. */
 export const WINNER_CUTSCENE_MS = 6_000;
@@ -14,6 +15,8 @@ type WinnerOverlayProps = {
     mapKind?: "default" | "generated";
     draft?: GeneratedMapDraft | null;
     provinces?: { province_id: string }[];
+    stats?: { provinces: number; points: number } | null;
+    lobbyId?: number;
 };
 
 export function WinnerOverlay({
@@ -24,6 +27,8 @@ export function WinnerOverlay({
     mapKind,
     draft,
     provinces,
+    stats,
+    lobbyId,
 }: WinnerOverlayProps) {
     const [phase, setPhase] = useState<"conquest" | "result">("conquest");
     const hasMap = Boolean(mapKind && provinces && provinces.length > 0);
@@ -62,6 +67,8 @@ export function WinnerOverlay({
                     className="pointer-events-none absolute inset-0"
                     style={{ background: "radial-gradient(80% 80% at 50% 45%, transparent 40%, rgba(0,0,0,0.6) 100%)" }}
                 />
+                <EpicParticles color={accentColor} />
+                <SideBeams color={accentColor} />
                 <div className="absolute inset-x-0 bottom-[16%] px-6 text-center">
                     <p className="cinematic-title text-2xl font-light uppercase tracking-[0.35em] text-white sm:text-3xl">
                         {winnerLabel ?? (youWon ? "You" : "The winner")}
@@ -80,6 +87,8 @@ export function WinnerOverlay({
             youWon={youWon}
             accentColor={accentColor}
             onReplay={onReplay}
+            stats={stats}
+            lobbyId={lobbyId}
             background={backdrop}
         />
     );

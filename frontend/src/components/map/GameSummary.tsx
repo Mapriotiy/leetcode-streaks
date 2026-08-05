@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Copy, Download, Share2, X } from "lucide-react";
-import { generateShareCard, type ShareCardData } from "../../utils/shareCard";
+import { Share2, X } from "lucide-react";
+import type { ShareCardData } from "../../utils/shareCard";
+import { ShareCardModal } from "./winner/ShareCardModal";
 
 export type WinnerInfo = {
     winner_user_id: number | null;
@@ -30,9 +31,6 @@ type GameSummaryProps = {
 
 export function GameSummary({ open, winner, rows, totalCount, currentUserId, lobbyId, onClose }: GameSummaryProps) {
     const [shareOpen, setShareOpen] = useState(false);
-    const [cardUrl, setCardUrl] = useState<string | null>(null);
-    const [generating, setGenerating] = useState(false);
-    const [copied, setCopied] = useState(false);
 
     if (!open) return null;
 
@@ -40,34 +38,14 @@ export function GameSummary({ open, winner, rows, totalCount, currentUserId, lob
     const ranked = [...rows].sort((a, b) => b.points - a.points);
     const top = ranked[0];
 
-    const handleShare = async () => {
-        setGenerating(true);
-        try {
-            const data: ShareCardData = {
-                title: youWon ? "VICTORY" : "DEFEAT",
-                name: winner?.label ?? top?.label ?? "MapCode",
-                accentColor: top?.color ?? "#ffa116",
-                points: top?.points ?? 0,
-                provinces: top?.count ?? 0,
-            };
-            setCardUrl(await generateShareCard(data));
-            setShareOpen(true);
-        } finally {
-            setGenerating(false);
-        }
+    const shareData: ShareCardData = {
+        title: youWon ? "VICTORY" : "DEFEAT",
+        name: winner?.label ?? top?.label ?? "MapCode",
+        accentColor: top?.color ?? "#ffa116",
+        points: top?.points ?? 0,
+        provinces: top?.count ?? 0,
     };
-
     const replayUrl = `${window.location.origin}${window.location.pathname}?replay=${lobbyId}`;
-
-    const handleCopy = async () => {
-        try {
-            await navigator.clipboard.writeText(replayUrl);
-            setCopied(true);
-            window.setTimeout(() => setCopied(false), 2000);
-        } catch {
-            /* ignore */
-        }
-    };
 
     return (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
@@ -131,12 +109,11 @@ export function GameSummary({ open, winner, rows, totalCount, currentUserId, lob
 
                 <button
                     type="button"
-                    onClick={() => void handleShare()}
-                    disabled={generating}
-                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md border border-[#00d9ff]/50 bg-[#00d9ff]/10 px-4 py-2.5 text-sm font-semibold text-[#7fe8ff] transition hover:bg-[#00d9ff]/20 disabled:opacity-60"
+                    onClick={() => setShareOpen(true)}
+                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md border border-[#00d9ff]/50 bg-[#00d9ff]/10 px-4 py-2.5 text-sm font-semibold text-[#7fe8ff] transition hover:bg-[#00d9ff]/20"
                 >
                     <Share2 size={16} />
-                    {generating ? "Making your card…" : "Share victory card"}
+                    Share victory card
                 </button>
 
                 <button
@@ -148,37 +125,8 @@ export function GameSummary({ open, winner, rows, totalCount, currentUserId, lob
                 </button>
             </div>
 
-            {shareOpen && cardUrl ? (
-                <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-                    <div className="w-full max-w-sm overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#202020] shadow-2xl">
-                        <img src={cardUrl} alt="Share card" className="block w-full" />
-                        <div className="flex flex-col gap-2 p-4">
-                            <a
-                                href={cardUrl}
-                                download="mapcode-share.png"
-                                className="inline-flex items-center justify-center gap-2 rounded-md bg-[#ffa116] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#ffb84d]"
-                            >
-                                <Download size={16} />
-                                Download image
-                            </a>
-                            <button
-                                type="button"
-                                onClick={() => void handleCopy()}
-                                className="inline-flex items-center justify-center gap-2 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-4 py-2.5 text-sm font-semibold text-[#d7d7d7] transition hover:border-[#00d9ff]/60 hover:text-[#7fe8ff]"
-                            >
-                                <Copy size={16} />
-                                {copied ? "Replay link copied!" : "Copy replay link"}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setShareOpen(false)}
-                                className="text-sm text-[#8a8a8a] transition hover:text-white"
-                            >
-                                Close
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            {shareOpen ? (
+                <ShareCardModal data={shareData} replayUrl={replayUrl} onClose={() => setShareOpen(false)} />
             ) : null}
         </div>
     );

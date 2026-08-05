@@ -6,6 +6,7 @@ export type WinVariantProps = {
     accentColor?: string;
     onReplay?: () => void;
     stats?: { provinces: number; points: number } | null;
+    lobbyId?: number;
     /** Optional map backdrop rendered behind the overlay. */
     background?: ReactNode;
 };

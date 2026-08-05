@@ -856,6 +856,11 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                         mapKind={mapSelection.kind}
                         draft={mapSelection.kind === 'generated' ? mapSelection.draft : null}
                         provinces={displayedProvincesData.map((p) => ({ province_id: p.province_id }))}
+                        stats={{
+                            provinces: scoreRows[0]?.count ?? 0,
+                            points: scoreRows[0]?.points ?? 0,
+                        }}
+                        lobbyId={lobbyId}
                     />
                 ) : null}
 
