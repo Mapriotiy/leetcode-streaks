@@ -647,40 +647,34 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
 
                     {factions.length > 0 && (
                         <div className="mt-3 border-t border-[#2a2a2a] pt-2.5">
-                            <p className="text-xs font-medium text-[#8a8a8a]">Teams</p>
-                            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                            <p className="text-xs font-medium text-[#8a8a8a]">
+                                Teams · {players.length} players
+                            </p>
+                            <div className="mt-2 flex flex-wrap items-start gap-2">
                                 {factions.map((faction) => {
                                     const members = players.filter((p) => p.faction_id === faction.id);
                                     return (
                                         <div
                                             key={faction.id}
-                                            className="rounded-md border px-2 py-1.5"
+                                            className="inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1"
                                             style={{
                                                 borderColor: faction.color + '44',
                                                 backgroundColor: faction.color + '0d',
                                             }}
                                         >
-                                            <p
-                                                className="truncate text-xs font-semibold"
-                                                style={{ color: faction.color }}
-                                            >
+                                            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: faction.color }} />
+                                            <span className="shrink-0 text-xs font-semibold" style={{ color: faction.color }}>
                                                 {faction.name}
-                                            </p>
-                                            <div className="mt-1 flex flex-col gap-0.5">
-                                                {members.length === 0 ? (
-                                                    <span className="text-[11px] text-[#666]">—</span>
-                                                ) : (
-                                                    members.map((member) => (
-                                                        <span
-                                                            key={member.user_id}
-                                                            className="truncate text-[11px] text-[#d7d7d7]"
-                                                        >
-                                                            {member.leetcode_username ?? `Player #${member.user_id}`}
-                                                            {member.user_id === currentUserId ? ' (you)' : ''}
-                                                        </span>
-                                                    ))
-                                                )}
-                                            </div>
+                                            </span>
+                                            <span className="truncate text-xs text-[#d7d7d7]">
+                                                {members.length === 0
+                                                    ? '—'
+                                                    : members
+                                                          .map((member) =>
+                                                              member.leetcode_username ?? `#${member.user_id}`,
+                                                          )
+                                                          .join(', ')}
+                                            </span>
                                         </div>
                                     );
                                 })}
