@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { ChevronRight, Flame, Gamepad2, Link2, Shield, UserCircle } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ChevronDown, Flame, Gamepad2, Link2, LogOut, Shield, UserCircle } from "lucide-react";
 import { apiRequest } from "../api/client";
 import { dashboardCacheKey, readCache, writeCache } from "../api/localCache";
 import { ActivityCalendar } from "../components/dashboard/ActivityCalendar";
@@ -91,6 +91,18 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
     const [showLobbyModal, setShowLobbyModal] = useState(false);
     const [showLinkModal, setShowLinkModal] = useState(false);
     const [showOnboarding, setShowOnboarding] = useState(() => !isOnboarded());
+    const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+    const profileMenuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const onClick = (event: MouseEvent) => {
+            if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+                setProfileMenuOpen(false);
+            }
+        };
+        document.addEventListener("click", onClick);
+        return () => document.removeEventListener("click", onClick);
+    }, []);
     const isLeetcodeLinked = user.leetcode_verified_at != null;
     const currentStreakState = dashboardData?.current_streak_state ?? "broken";
     const isCurrentStreakLit = currentStreakState === "lit";
@@ -169,45 +181,67 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                                 </div>
                             ) : null}
 
-                            <button
-                                type="button"
-                                onClick={onOpenProfile}
-                                title="View profile"
-                                className="group flex min-w-0 items-center gap-2.5 rounded-md border border-[#4a4a4a] bg-[#333333] px-2.5 py-1.5 text-left transition hover:bg-[#3d3d3d] focus:outline-none focus:ring-2 focus:ring-[#ffa116]/30"
-                            >
-                                <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full border border-[#4a4a4a] bg-[#262626] text-[#b3b3b3] transition group-hover:text-[#d7d7d7]">
-                                    {(dashboardData?.avatar_url ?? user.avatar_url) ? (
-                                        <img
-                                            src={dashboardData?.avatar_url ?? user.avatar_url ?? ""}
-                                            alt=""
-                                            className="h-full w-full object-cover"
-                                        />
-                                    ) : (
-                                        <UserCircle size={22} strokeWidth={1.8} />
-                                    )}
-                                </span>
-
-                                <span className="hidden min-w-0 max-w-[10rem] leading-tight sm:block">
-                                    <span className="block text-[11px] font-medium uppercase tracking-wide text-[#8a8a8a]">
-                                        Profile
-                                    </span>
-                                    <span className="block truncate text-sm font-semibold text-[#eff1f6]">
-                                        {headerName}
-                                    </span>
-                                </span>
-                                <ChevronRight
-                                    size={16}
-                                    className="hidden shrink-0 text-[#8a8a8a] transition group-hover:translate-x-0.5 group-hover:text-[#d7d7d7] sm:block"
-                                />
-                            </button>
-
+                            <div className="relative" ref={profileMenuRef}>
                                 <button
                                     type="button"
-                                    onClick={onLogout}
-                                    className="rounded-md border border-[#4a4a4a] bg-[#333333] px-3 py-1.5 text-sm font-medium text-[#d7d7d7] transition hover:bg-[#3d3d3d]"
+                                    onClick={() => setProfileMenuOpen((value) => !value)}
+                                    className="group flex min-w-0 items-center gap-2.5 rounded-md border border-[#4a4a4a] bg-[#333333] px-2.5 py-1.5 text-left transition hover:bg-[#3d3d3d] focus:outline-none focus:ring-2 focus:ring-[#ffa116]/30"
                                 >
-                                    Logout
+                                    <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full border border-[#4a4a4a] bg-[#262626] text-[#b3b3b3] transition group-hover:text-[#d7d7d7]">
+                                        {(dashboardData?.avatar_url ?? user.avatar_url) ? (
+                                            <img
+                                                src={dashboardData?.avatar_url ?? user.avatar_url ?? ""}
+                                                alt=""
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <UserCircle size={22} strokeWidth={1.8} />
+                                        )}
+                                    </span>
+
+                                    <span className="hidden min-w-0 max-w-[10rem] leading-tight sm:block">
+                                        <span className="block text-[11px] font-medium uppercase tracking-wide text-[#8a8a8a]">
+                                            Profile
+                                        </span>
+                                        <span className="block truncate text-sm font-semibold text-[#eff1f6]">
+                                            {headerName}
+                                        </span>
+                                    </span>
+                                    <ChevronDown
+                                        size={16}
+                                        className={`hidden shrink-0 text-[#8a8a8a] transition sm:block ${
+                                            profileMenuOpen ? "rotate-180" : ""
+                                        }`}
+                                    />
                                 </button>
+
+                                {profileMenuOpen ? (
+                                    <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#1e1f22] py-1 shadow-2xl shadow-black/40">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setProfileMenuOpen(false);
+                                                onOpenProfile();
+                                            }}
+                                            className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-[#eff1f6] transition hover:bg-[#2a2a2a]"
+                                        >
+                                            <UserCircle size={15} />
+                                            View profile
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setProfileMenuOpen(false);
+                                                onLogout();
+                                            }}
+                                            className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-300 transition hover:bg-[#2a2a2a]"
+                                        >
+                                            <LogOut size={15} />
+                                            Logout
+                                        </button>
+                                    </div>
+                                ) : null}
+                            </div>
 
                             {user.is_admin && (
                                 <button
