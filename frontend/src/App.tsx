@@ -123,6 +123,14 @@ function MainApp() {
         applyNavState(null);
     }, [applyNavState]);
 
+    const goBack = useCallback(() => {
+        if (navDepthRef.current > 0) {
+            window.history.back();
+        } else {
+            applyNavState(null);
+        }
+    }, [applyNavState]);
+
     useEffect(() => {
         const onPopState = (event: PopStateEvent) => {
             navDepthRef.current = Math.max(0, navDepthRef.current - 1);
@@ -261,7 +269,7 @@ function MainApp() {
                 players={activeLobbyPlayers}
                 factions={activeLobbyFactions}
                 isAdmin={user.is_admin}
-                onBack={() => window.history.back()}
+                onBack={goBack}
                 onLeft={() => {
                     goRoot();
                     setDashboardRefreshKey((key) => key + 1);
@@ -276,7 +284,7 @@ function MainApp() {
                 currentUserId={user.id}
                 currentUserVerified={user.leetcode_verified_at != null}
                 onBack={() => {
-                    window.history.back();
+                    goBack();
                     setDashboardRefreshKey((key) => key + 1);
                 }}
                 onGameStarted={(lobbyId, players, factions) => {
@@ -288,7 +296,7 @@ function MainApp() {
         screenKey = "admin";
         screen = (
             <AdminPage
-                onBack={() => window.history.back()}
+                onBack={goBack}
                 onLogout={() => {
                     localStorage.removeItem("accessToken");
                     clearCache();
@@ -301,7 +309,7 @@ function MainApp() {
         screenKey = "profile";
         screen = (
             <ProfilePage
-                onBack={() => window.history.back()}
+                onBack={goBack}
                 onLogout={() => {
                     localStorage.removeItem("accessToken");
                     clearCache();

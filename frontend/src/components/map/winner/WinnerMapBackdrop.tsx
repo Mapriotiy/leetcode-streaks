@@ -8,16 +8,36 @@ type WinnerMapBackdropProps = {
     draft?: GeneratedMapDraft | null;
     provinces: { province_id: string }[];
     color: string;
+    /** Start with every province already captured. */
+    prefilled?: boolean;
+    /** Called once the conquest animation has reached the last province. */
+    onComplete?: () => void;
+    opacity?: number;
 };
 
-/** The played map dimmed behind the overlay; its provinces light up one by
- *  one in the winner's color, like a live conquest replay. */
-export function WinnerMapBackdrop({ mapKind, draft, provinces, color }: WinnerMapBackdropProps) {
-    const [captured, setCaptured] = useState<Map<string, string>>(new Map());
+/** The played map behind the overlay; its provinces light up one by one in
+ *  the winner's color, like a live conquest replay. */
+export function WinnerMapBackdrop({
+    mapKind,
+    draft,
+    provinces,
+    color,
+    prefilled = false,
+    onComplete,
+    opacity = 0.6,
+}: WinnerMapBackdropProps) {
+    const [captured, setCaptured] = useState<Map<string, string>>(() => {
+        if (!prefilled) return new Map();
+        return new Map(provinces.map((p) => [p.province_id, color]));
+    });
 
     useEffect(() => {
+        if (prefilled) return;
         setCaptured(new Map());
-        if (provinces.length === 0) return;
+        if (provinces.length === 0) {
+            onComplete?.();
+            return;
+        }
         let index = 0;
         const interval = window.setInterval(() => {
             index += 1;
@@ -27,14 +47,17 @@ export function WinnerMapBackdrop({ mapKind, draft, provinces, color }: WinnerMa
                 if (provinceId) next.set(provinceId, color);
                 return next;
             });
-            if (index >= provinces.length) window.clearInterval(interval);
+            if (index >= provinces.length) {
+                window.clearInterval(interval);
+                onComplete?.();
+            }
         }, 90);
         return () => window.clearInterval(interval);
-    }, [provinces, color]);
+    }, [provinces, color, prefilled, onComplete]);
 
     return (
         <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
-            <div className="w-full max-w-[1200px] opacity-40 blur-[1px]">
+            <div className="w-full max-w-[1200px] blur-[1px]" style={{ opacity }}>
                 {mapKind === "generated" && draft ? (
                     <GeneratedMapRenderer
                         draft={draft}

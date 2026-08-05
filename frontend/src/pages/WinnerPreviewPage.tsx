@@ -27,6 +27,7 @@ export function WinnerPreviewPage() {
                 youWon={youWon}
                 accentColor={youWon ? "#ffa116" : "#ff2d55"}
                 stats={{ provinces: 18, points: 6400 }}
+                onReplay={() => {}}
             />
 
             <div className="fixed bottom-4 left-1/2 z-[100] flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-[#1a1b1e]/90 px-3 py-2 shadow-2xl backdrop-blur">
