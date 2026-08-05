@@ -11,7 +11,8 @@ type AuthPageProps = {
     onClearError?: () => void;
 };
 
-const FACTION_COLORS = ["#00c2ff", "#ff4d6d", "#ffb020", "#27d980"];
+const FACTION_COLORS = ["#00c2ff", "#ffb020", "#27d980"];
+const ENEMY_COLOR = "#ff2d55";
 
 function HeroMap() {
     const [captured, setCaptured] = useState<Map<string, string>>(new Map());
@@ -23,7 +24,9 @@ function HeroMap() {
             setCaptured((prev) => {
                 const next = new Map(prev);
                 const id = provinces[index % provinces.length];
-                next.set(id, FACTION_COLORS[Math.floor(index / 2) % FACTION_COLORS.length]);
+                // Every 4th captured province belongs to the enemy.
+                const isEnemy = Math.floor(index / 2) % 4 === 3;
+                next.set(id, isEnemy ? ENEMY_COLOR : FACTION_COLORS[Math.floor(index / 2) % FACTION_COLORS.length]);
                 return next;
             });
             index += 1;
