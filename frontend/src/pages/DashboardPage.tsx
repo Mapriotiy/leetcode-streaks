@@ -155,21 +155,14 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
         <main className="min-h-screen bg-transparent p-4 text-white sm:p-6">
                 <header className="sticky top-0 z-20 -mx-4 -mt-4 mb-6 border-b border-[#2a2a2a] bg-[#1a1a1a]/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:-mt-6 sm:px-6">
                     <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                        <div className="flex items-center gap-2.5">
-                            <span className="grid h-9 w-9 place-items-center overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#262626]">
-                                <Logo />
-                            </span>
-                            <span className="text-lg font-bold tracking-tight text-[#eff1f6]">
-                                MapCode
-                            </span>
-                        </div>
+                        <Logo className="text-[1.05rem] sm:text-[1.16rem]" />
 
                         <div className="flex items-center gap-3">
                             {isLeetcodeLinked ? (
                                 <div className="hidden items-center gap-1.5 sm:flex">
                                     <span
                                         className={`text-xs ${
-                                            isCurrentStreakLit ? "text-[#ffa116]" : "text-[#8a8a8a]"
+                                            isCurrentStreakLit ? "text-[#d96424]" : "text-[#8a8a8a]"
                                         }`}
                                     >
                                         {currentStreakHint}
@@ -186,7 +179,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                                 <button
                                     type="button"
                                     onClick={() => setProfileMenuOpen((value) => !value)}
-                                    className="group flex min-w-0 items-center gap-2.5 rounded-md border border-[#4a4a4a] bg-[#333333] px-2.5 py-1.5 text-left transition hover:bg-[#3d3d3d] focus:outline-none focus:ring-2 focus:ring-[#ffa116]/30"
+                                    className="group flex min-w-0 items-center gap-2.5 rounded-md border border-[#4a4a4a] bg-[#333333] px-2.5 py-1.5 text-left transition hover:bg-[#3d3d3d] focus:outline-none focus:ring-2 focus:ring-[#d96424]/30"
                                 >
                                     <span className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full border border-[#4a4a4a] bg-[#262626] text-[#b3b3b3] transition group-hover:text-[#d7d7d7]">
                                         {(dashboardData?.avatar_url ?? user.avatar_url) ? (
@@ -249,7 +242,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                                     type="button"
                                     onClick={onOpenAdmin}
                                     title="Admin panel"
-                                    className="grid h-10 w-10 place-items-center rounded-md border border-[#4a4a4a] bg-[#333333] text-[#d7d7d7] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                                    className="grid h-10 w-10 place-items-center rounded-md border border-[#4a4a4a] bg-[#333333] text-[#d7d7d7] transition hover:border-[#d96424]/60 hover:text-[#d96424]"
                                 >
                                     <Shield size={18} />
                                 </button>
@@ -271,7 +264,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                             <button
                                 type="button"
                                 onClick={() => setShowLinkModal(true)}
-                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-[#ffa116] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#ffb84d]"
+                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-[#d96424] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#e07940]"
                             >
                                 <Link2 size={16} />
                                 Link LeetCode
@@ -290,13 +283,13 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                     <DashboardSkeleton />
                 ) : (
                 <section className="mt-6 grid gap-4 sm:grid-cols-3">
-                        <article className="flex flex-col rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20 transition hover:border-[#ffa116]/40 hover:shadow-[0_0_35px_-8px_rgba(255,161,22,0.28)]">
+                        <article className="flex flex-col rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20 transition hover:border-[#d96424]/40 hover:shadow-[0_0_35px_-8px_rgba(217,100,36,0.28)]">
                             <div className="flex items-start justify-between gap-3">
                                 <div>
                                     <p className="text-sm font-medium text-[#a3a3a3]">Lobby</p>
                                     <p className="mt-1 text-xs text-[#8a8a8a]">Create or rejoin games</p>
                                 </div>
-                                <span className="rounded-full bg-[#333333] px-2.5 py-1 text-xs font-semibold text-[#ffa116]">
+                                <span className="rounded-full bg-[#333333] px-2.5 py-1 text-xs font-semibold text-[#d96424]">
                                     <AnimatedNumber value={dashboardData?.lobbies.length ?? 0} />
                                 </span>
                             </div>
@@ -312,7 +305,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                                                 key={lobby.id}
                                                 type="button"
                                                 onClick={() => onOpenLobby(lobby.id, isActive ? lobby.players : undefined, lobby.factions)}
-                                                className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-left text-sm transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                                                className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-left text-sm transition hover:border-[#d96424]/60 hover:text-[#d96424]"
                                             >
                                                 <span className="block truncate font-medium text-[#eff1f6]">
                                                     {lobby.name}
@@ -325,7 +318,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                                                         {", "}
                                                         {LANGUAGE_LABELS[lobby.programming_language] ?? lobby.programming_language}
                                                     </span>
-                                                    <span className={isActive ? "text-[#ffa116]" : "text-[#a3a3a3]"}>
+                                                    <span className={isActive ? "text-[#d96424]" : "text-[#a3a3a3]"}>
                                                         {isActive ? "Open map" : "Waiting"}
                                                     </span>
                                                 </span>
@@ -340,7 +333,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                                     <button
                                         type="button"
                                         onClick={() => setShowLobbyModal(true)}
-                                        className="mt-4 rounded-md bg-[#ffa116] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#ffb84d]"
+                                        className="mt-4 rounded-md bg-[#d96424] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#e07940]"
                                     >
                                         <Gamepad2 size={16} className="inline-block mr-2" />
                                         Create Lobby
@@ -349,7 +342,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                                     <button
                                         type="button"
                                         onClick={() => setShowLinkModal(true)}
-                                        className="mt-4 rounded-md bg-[#ffa116] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#ffb84d]"
+                                        className="mt-4 rounded-md bg-[#d96424] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#e07940]"
                                     >
                                         <Link2 size={16} className="inline-block mr-2" />
                                         Link LeetCode to play
@@ -363,7 +356,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                             activeDaysCount={dashboardData?.active_days_count ?? 0}
                         />
 
-                        <article className="flex flex-col rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20 transition hover:border-[#ffa116]/40 hover:shadow-[0_0_35px_-8px_rgba(255,161,22,0.28)]">
+                        <article className="flex flex-col rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20 transition hover:border-[#d96424]/40 hover:shadow-[0_0_35px_-8px_rgba(217,100,36,0.28)]">
                             <div className="flex items-start justify-between gap-4">
                                 <div>
                                     <p className="text-sm font-medium text-[#a3a3a3]">
@@ -374,7 +367,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                                     </p>
                                 </div>
 
-                                <span className="rounded-full bg-[#333333] px-2.5 py-1 text-xs font-semibold text-[#ffa116]">
+                                <span className="rounded-full bg-[#333333] px-2.5 py-1 text-xs font-semibold text-[#d96424]">
                                     <AnimatedNumber value={dashboardData?.today_submissions.length ?? 0} />
                                 </span>
                             </div>
@@ -401,7 +394,7 @@ export function DashboardPage({ user, refreshKey, onLogout, onOpenLobby, onLinkC
                                             href={submission.url}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="block rounded-md border px-3 py-2 text-sm text-[#eff1f6] transition hover:border-[#ffa116]/60 hover:text-[#ffa116]"
+                                            className="block rounded-md border px-3 py-2 text-sm text-[#eff1f6] transition hover:border-[#d96424]/60 hover:text-[#d96424]"
                                             style={{
                                                 borderColor: submission.difficulty
                                                     ? DIFFICULTY_COLORS[submission.difficulty] ?? "#3a3a3a"
