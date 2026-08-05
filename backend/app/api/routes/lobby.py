@@ -9,7 +9,7 @@ from typing import Any
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Query
-from starlette.responses import StreamingResponse
+from starlette.responses import Response, StreamingResponse
 from jwt.exceptions import InvalidTokenError
 from sqlalchemy.orm import Session
 
@@ -52,6 +52,7 @@ from app.services.lobby_settings import (
     utcnow,
 )
 from app.services.leetcode_sync import finish_lobby_sync, maybe_enter_lobby_sync
+from app.services.og_card import OgCardData, render_og_card
 from app.services.lobby_settings import team_by_user
 from app.services.powerups import (
     consume_powerup,
@@ -720,6 +721,41 @@ def lobby_replay(lobby_id: int, db: Session = Depends(get_db)):
         "players": players_out,
         "factions": lobby_factions(lobby) if lobby.faction_mode else [],
     }
+
+
+@router.get("/{lobby_id}/og.png")
+def lobby_og_image(lobby_id: int, db: Session = Depends(get_db)):
+    """1200x630 PNG for social link previews (finished lobbies only)."""
+    lobby = db.get(Lobby, lobby_id)
+    if not lobby:
+        raise HTTPException(404, "Lobby not found")
+    if lobby.status != "finished":
+        raise HTTPException(403, "Image is available once the game ends")
+
+    players = ordered_players(lobby.id, db)
+    state = get_mode(lobby.game_mode).get_state(lobby, players, db)
+    score = state.get("score") or []
+    top = None
+    for entry in score:
+        if top is None or entry.total_points > top.total_points:
+            top = entry
+    winner = state.get("winner") or {}
+    label = winner.get("label")
+
+    png = render_og_card(
+        OgCardData(
+            title="VICTORY" if label else "MATCH COMPLETE",
+            name=label or (top.label if top else "MapCode"),
+            accent=top.color if top else "#ffa116",
+            points=top.total_points if top else 0,
+            provinces=top.provinces if top else 0,
+        )
+    )
+    return Response(
+        content=png,
+        media_type="image/png",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
 
 
 def _sse_payload(event: str, data: dict) -> str:
