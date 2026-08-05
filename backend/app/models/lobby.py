@@ -23,8 +23,8 @@ class Lobby(Base):
     faction_mode: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     faction_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     win_condition: Mapped[dict] = mapped_column(JSON, nullable=False, default={
-        "type": "territory_control",
-        "threshold": 0.5,
+        "type": "points",
+        "threshold": 5000,
         "duration_hours": 0,
     })
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)

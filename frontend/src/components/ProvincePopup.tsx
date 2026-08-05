@@ -124,7 +124,10 @@ export default function ProvincePopup({
                             🛡 Fortified
                             {fortifiedUntil && (
                                 <span className="tabular-nums text-[#ffd08a]">
-                                    · {formatDuration(new Date(fortifiedUntil).getTime() - now)} left
+                                    ·{" "}
+                                    {new Date(fortifiedUntil).getFullYear() >= 9999
+                                        ? "∞"
+                                        : `${formatDuration(new Date(fortifiedUntil).getTime() - now)} left`}
                                 </span>
                             )}
                         </span>

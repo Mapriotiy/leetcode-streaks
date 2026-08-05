@@ -209,6 +209,9 @@ def create_lobby(
 
     faction_count = min(max(payload.faction_count, 2), 4) if payload.faction_mode else 0
     win_condition = dict(payload.win_condition or {})
+    if not win_condition.get("type"):
+        win_condition.setdefault("type", "points")
+        win_condition.setdefault("threshold", 5000)
     programming_language = payload.programming_language if payload.programming_language in ALLOWED_PROGRAMMING_LANGUAGES else "python3"
     win_condition["programming_language"] = programming_language
     if payload.faction_mode:

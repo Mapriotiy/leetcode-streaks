@@ -6,7 +6,8 @@ Rules:
   power-up, once per region.
 - reroll: replace an unowned province's problem with another of the same
   difficulty (topic may change).
-- fortify: shield your own province from recapture for FORTIFY_DURATION_HOURS.
+- fortify: shield your own province from recapture (permanent by default,
+  configurable via fortify_duration_hours).
 - siege: on an unowned province, replace the problem with an easier one of
   the same region topic (one difficulty step down); the province stays a
   cheap, beatable-by-any-solve target.
@@ -21,6 +22,7 @@ from sqlalchemy.orm import Session
 from app.models.leetcode_problem import LeetCodeProblem
 from app.models.lobby_map_province import LobbyMapProvince
 from app.models.lobby_player import LobbyPlayer
+from app.core.config import settings
 from app.services.map_config import REGION_TOPICS
 from app.services.problem_catalog import get_problems_by_tags
 from app.services.user_solved import get_solved_slugs_with_timestamps
@@ -29,7 +31,9 @@ logger = logging.getLogger(__name__)
 
 POWERUP_TYPES = ("reroll", "fortify", "siege")
 MAX_POWERUPS_HELD = 2
-FORTIFY_DURATION_HOURS = 6
+
+# Sentinel so a permanent shield still passes the is_fortified future check.
+_FORTIFY_FOREVER = datetime(9999, 12, 31, 23, 59, 59)
 
 _DIFFICULTY_RANK = {"Hard": 2, "Medium": 1, "Easy": 0}
 _LOWER_DIFFICULTY = {"Hard": "Medium", "Medium": "Easy", "Easy": "Easy"}
@@ -110,7 +114,11 @@ def is_fortified(province: LobbyMapProvince) -> bool:
 
 
 def fortify_province(province: LobbyMapProvince) -> None:
-    province.fortified_until = _naive_utc(_utcnow()) + timedelta(hours=FORTIFY_DURATION_HOURS)
+    hours = settings.fortify_duration_hours
+    if hours is None or hours <= 0:
+        province.fortified_until = _FORTIFY_FOREVER
+    else:
+        province.fortified_until = _naive_utc(_utcnow()) + timedelta(hours=hours)
 
 
 def _solved_slugs(user_id: int, db: Session) -> set[str]:

@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     leetcode_verify_max_attempts: int = 10
     leetcode_verify_problem_slug: str = "two-sum"
 
+    # Fortify shield duration in hours; None/0 = permanent (no expiry).
+    fortify_duration_hours: float | None = None
+
     @property
     def effective_google_redirect_uri(self) -> str:
         if self.google_redirect_uri:

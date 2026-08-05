@@ -11,7 +11,7 @@ const SECTIONS = [
     },
     {
         title: "Power-ups",
-        body: "Completing a region grants a random power-up (you hold up to 2). Reroll swaps a free province's problem, Fortify shields your province from recapture for 6 hours, Siege downgrades a free province's problem.",
+        body: "Completing a region grants a random power-up (you hold up to 2). Reroll swaps a free province's problem, Fortify shields your province from recapture, Siege downgrades a free province's problem.",
     },
     {
         title: "Winning",

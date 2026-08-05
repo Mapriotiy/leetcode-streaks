@@ -74,6 +74,30 @@ def test_territory_below_threshold_is_no_win():
     assert _evaluate_winner(lobby, provinces, {1: 1, 2: 2}) is None
 
 
+def test_points_win():
+    lobby = make_lobby(win_condition={"type": "points", "threshold": 1000})
+    provinces = [
+        make_province(1, captured_by=1),
+        make_province(2, captured_by=1),
+        make_province(3, captured_by=1),
+        make_province(4, captured_by=2),
+    ]
+    difficulty = {f"slug-{i}": "Hard" for i in range(1, 5)}
+
+    result = _evaluate_winner(lobby, provinces, {1: 1, 2: 2}, difficulty)
+    assert result is not None
+    assert result.winner_user_id == 1
+    assert result.reason == "total_points"
+
+
+def test_points_below_threshold_is_no_win():
+    lobby = make_lobby(win_condition={"type": "points", "threshold": 5000})
+    provinces = [make_province(1, captured_by=1), make_province(2, captured_by=2)]
+    difficulty = {f"slug-{i}": "Hard" for i in range(1, 3)}
+
+    assert _evaluate_winner(lobby, provinces, {1: 1, 2: 2}, difficulty) is None
+
+
 def test_faction_win_reports_faction_not_user():
     lobby = make_lobby(faction_mode=True, win_condition={"type": "territory_control", "threshold": 0.5})
     # Users 1 and 2 are faction 1 and together own half the map.

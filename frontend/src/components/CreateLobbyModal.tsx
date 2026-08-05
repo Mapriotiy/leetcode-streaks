@@ -88,7 +88,7 @@ export function CreateLobbyModal({ username, friends, onClose, onCreated }: Crea
                     // Bingo's win condition is implicit: first line, else majority.
                     win_condition: gameMode === 'bingo'
                         ? {}
-                        : { type: 'territory_control', threshold: 0.5, duration_hours: 0 },
+                        : { type: 'points', threshold: 5000, duration_hours: 0 },
                 }),
             });
 

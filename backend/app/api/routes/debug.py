@@ -122,7 +122,14 @@ def _maybe_finish_lobby(lobby: Lobby, db: Session) -> None:
         return
     players = ordered_players(lobby.id, db)
     teams = team_by_user(lobby, players)
-    winner = _evaluate_winner(lobby, provinces, teams)
+    slugs = {p.problem_title_slug for p in provinces}
+    problems = db.query(LeetCodeProblem).filter(LeetCodeProblem.title_slug.in_(slugs)).all() if slugs else []
+    winner = _evaluate_winner(
+        lobby,
+        provinces,
+        teams,
+        difficulty_by_slug={p.title_slug: p.difficulty for p in problems if p.difficulty},
+    )
     if winner is not None:
         finish_lobby(lobby, winner, players, db)
         db.commit()

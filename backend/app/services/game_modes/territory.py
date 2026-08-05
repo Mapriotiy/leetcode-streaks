@@ -52,6 +52,8 @@ from app.services.user_solved import (
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_POINTS_WIN_THRESHOLD = 5000
+
 
 class TerritoryMode(GameMode):
     slugs = ("free_for_all", "team_battle")
@@ -126,7 +128,16 @@ class TerritoryMode(GameMode):
                 db,
             )
 
-            winner = _evaluate_winner(lobby, provinces, teams)
+            winner = _evaluate_winner(
+                lobby,
+                provinces,
+                teams,
+                difficulty_by_slug={
+                    slug: prob.difficulty
+                    for slug, prob in problems.items()
+                    if prob.difficulty
+                },
+            )
             if winner is not None:
                 finish_lobby(lobby, winner, players, db)
                 db.commit()
@@ -501,6 +512,7 @@ def _evaluate_winner(
     lobby: Lobby,
     provinces: list[LobbyMapProvince],
     teams: dict[int, int],
+    difficulty_by_slug: dict[str, str] | None = None,
 ) -> WinnerResult | None:
     total = len(provinces)
     if total == 0:
@@ -518,6 +530,22 @@ def _evaluate_winner(
         if best and best[0][1] >= needed:
             return _winner_result(lobby, best[0][0], "region_domination")
         return None
+
+    if wc_type == "points":
+        try:
+            threshold = float(win_condition.get("threshold") or DEFAULT_POINTS_WIN_THRESHOLD)
+        except (TypeError, ValueError):
+            threshold = DEFAULT_POINTS_WIN_THRESHOLD
+        scores = compute_team_scores(provinces, teams, difficulty_by_slug or {})
+        qualified = [
+            (team, score.total_points)
+            for team, score in scores.items()
+            if score.total_points >= threshold
+        ]
+        if not qualified:
+            return None
+        team = max(qualified, key=lambda item: (item[1], -item[0]))[0]
+        return _winner_result(lobby, team, "total_points")
 
     # territory_control (default): own at least `threshold` of all provinces.
     try:
