@@ -334,7 +334,7 @@ function MetricItem({
 }
 
 type NavState = {
-    screen: "lobby" | "game" | "profile";
+    screen: "lobby" | "game" | "profile" | "lobbies";
     lobbyId: number;
     players?: LobbyPlayer[];
     factions?: Faction[];
@@ -345,7 +345,7 @@ export function MainPage() {
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [screen, setScreen] = useState<"dashboard" | "lobby" | "game" | "profile">("dashboard");
+    const [screen, setScreen] = useState<"dashboard" | "lobby" | "game" | "profile" | "lobbies">("dashboard");
     const [activeLobbyId, setActiveLobbyId] = useState<number | null>(null);
     const [activePlayers, setActivePlayers] = useState<LobbyPlayer[]>([]);
     const [activeFactions, setActiveFactions] = useState<Faction[]>([]);
@@ -373,16 +373,32 @@ export function MainPage() {
             .finally(() => setLoading(false));
     }, []);
 
-    useEffect(() => {
+    const loadDashboard = useCallback(async () => {
         if (!user) return;
-        apiRequest<DashboardData>("/dashboard/")
-            .then(setDashboardData)
-            .catch((e) => setError(e instanceof Error ? e.message : "Failed to load dashboard"));
+        try {
+            setDashboardData(await apiRequest<DashboardData>("/dashboard/"));
+            setError(null);
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "Failed to load dashboard");
+        }
     }, [user]);
+
+    // Refresh whenever the dashboard becomes visible (mount, back navigation)
+    // so lobbies that were deleted/created while away are reflected.
+    useEffect(() => {
+        if (screen === "dashboard") {
+            void loadDashboard();
+        }
+    }, [screen, loadDashboard]);
 
     const applyNavState = useCallback((state: NavState | null) => {
         if (state && state.screen === "profile") {
             setScreen("profile");
+            setActiveLobbyId(null);
+            setActivePlayers([]);
+            setActiveFactions([]);
+        } else if (state && state.screen === "lobbies") {
+            setScreen("lobbies");
             setActiveLobbyId(null);
             setActivePlayers([]);
             setActiveFactions([]);
@@ -443,6 +459,10 @@ export function MainPage() {
         },
         [pushNav],
     );
+
+    const openLobbies = useCallback(() => {
+        pushNav({ screen: "lobbies", lobbyId: 0 });
+    }, [pushNav]);
 
     const openProfile = useCallback(() => {
         setProfileMenuOpen(false);
@@ -538,10 +558,46 @@ export function MainPage() {
         );
     }
 
+    const lobbies = dashboardData?.lobbies ?? [];
+    const friends = dashboardData?.friends ?? [];
+
     let content: ReactNode;
 
     if (screen === "profile") {
         content = <ProfilePage onBack={goDashboard} onLogout={handleLogout} />;
+    } else if (screen === "lobbies") {
+        content = (
+            <main className="page-enter min-h-screen bg-[#14110f] text-[#f4e7d8]">
+                <div className="mx-auto max-w-7xl px-7 py-4">
+                    <div className="mb-4 flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={goDashboard}
+                            className="grid h-9 w-9 place-items-center rounded-lg border border-[#3f332d] bg-[#24201c] text-[#d9c5ad] transition hover:border-[#7d4d32]"
+                            aria-label="Back"
+                        >
+                            <ChevronRight size={16} className="rotate-180" />
+                        </button>
+                        <div>
+                            <h1 className="text-xl font-black">All lobbies</h1>
+                            <p className="mt-0.5 text-sm text-[#a8917d]">{lobbies.length} total</p>
+                        </div>
+                    </div>
+
+                    {lobbies.length > 0 ? (
+                        <div className="grid gap-3 md:grid-cols-2">
+                            {lobbies.map((lobby, index) => (
+                                <GameCard key={lobby.id} lobby={lobby} index={index} onOpen={openLobby} />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="rounded-md border border-dashed border-[#3f332d] bg-[#1b1512]/88 p-8 text-center text-sm text-[#a8917d]">
+                            No lobbies yet.
+                        </div>
+                    )}
+                </div>
+            </main>
+        );
     } else if (screen === "game" && activeLobbyId != null) {
         content = (
             <LobbyGamePage
@@ -568,9 +624,6 @@ export function MainPage() {
             />
         );
     } else {
-
-    const lobbies = dashboardData?.lobbies ?? [];
-    const friends = dashboardData?.friends ?? [];
     const metrics = [
         { label: "Active days", value: String(dashboardData?.active_days_count ?? 0), icon: Swords, color: "#f1c58e" },
         { label: "Territories captured", value: String(dashboardData?.stats?.total_captures ?? 0), icon: Crown, color: "#d87a38" },
@@ -587,7 +640,15 @@ export function MainPage() {
 
                     <nav className="hidden items-center gap-2 lg:flex">
                         {navItems.map((item) => (
-                            <NavItem key={item.label} item={item} />
+                            <button
+                                key={item.label}
+                                type="button"
+                                onClick={() => {
+                                    if (item.label === "Lobbies") openLobbies();
+                                }}
+                            >
+                                <NavItem item={item} />
+                            </button>
                         ))}
                     </nav>
 
@@ -748,11 +809,22 @@ export function MainPage() {
                         </div>
 
                         {lobbies.length > 0 ? (
-                            <div className="grid gap-3 md:grid-cols-2">
-                                {lobbies.map((lobby, index) => (
-                                    <GameCard key={lobby.id} lobby={lobby} index={index} onOpen={openLobby} />
-                                ))}
-                            </div>
+                            <>
+                                <div className="grid gap-3 md:grid-cols-2">
+                                    {lobbies.slice(0, 2).map((lobby, index) => (
+                                        <GameCard key={lobby.id} lobby={lobby} index={index} onOpen={openLobby} />
+                                    ))}
+                                </div>
+                                {lobbies.length > 2 ? (
+                                    <button
+                                        type="button"
+                                        onClick={openLobbies}
+                                        className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-[#3f332d] bg-[#1b1512] text-sm font-black text-[#e6a15d] transition hover:border-[#7d4d32]"
+                                    >
+                                        Show all lobbies ({lobbies.length})
+                                    </button>
+                                ) : null}
+                            </>
                         ) : (
                             <div className="rounded-md border border-dashed border-[#3f332d] bg-[#1b1512]/88 p-6 text-center text-sm text-[#a8917d]">
                                 No games yet. Start your first expedition.
