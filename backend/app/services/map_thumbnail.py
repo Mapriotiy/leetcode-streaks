@@ -28,7 +28,7 @@ PUBLIC_DIR = Path(__file__).resolve().parents[3] / "frontend" / "public"
 MAP_W, MAP_H = 1321, 900
 
 # Free-for-all fallback player palette (mirrors the frontend FACTION_COLORS).
-FACTION_PALETTE = ["#00c2ff", "#ff4d6d", "#ffb020", "#27d980", "#9b7cff", "#4f9cff", "#ff7a59", "#a3e635"]
+FACTION_PALETTE = ["#2f80ed", "#eb5757", "#f2994a", "#27ae60", "#9b51e0", "#c7429b", "#c86f3c", "#00b5ad"]
 
 _CMD = re.compile(r"([MmLlCcQqZz])")
 _NUM = re.compile(r"[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?")
@@ -300,9 +300,9 @@ def _render_draft(
                 stroke_alpha = 205
                 stroke_width = max(2, round(scale * 2.8))
             else:
-                fill_rgb = _blend(region_rgb, (36, 40, 39), 0.7)
-                stroke_rgb = _blend(region_rgb, (48, 51, 50), 0.82)
-                fill_alpha = 35
+                fill_rgb = _blend(region_rgb, (36, 40, 39), 0.4)
+                stroke_rgb = _blend(region_rgb, (48, 51, 50), 0.7)
+                fill_alpha = 178
                 stroke_alpha = 185
                 stroke_width = max(1, round(scale * 1.2))
             for pts in _transform(_sample_path(d), viewbox, box_w, box_h):

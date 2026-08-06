@@ -41,11 +41,11 @@ from sqlalchemy import func, or_
 
 router = APIRouter()
 
-FACTION_COLORS = {1: "#00c2ff", 2: "#ff4d6d", 3: "#ffb020", 4: "#27d980"}
+FACTION_COLORS = {1: "#2f80ed", 2: "#eb5757", 3: "#f2994a", 4: "#27ae60"}
 FACTION_NAMES = {1: "Alpha", 2: "Bravo", 3: "Charlie", 4: "Delta"}
 ALLOWED_FACTION_COLORS = {
-    "#00c2ff", "#ff4d6d", "#ffb020", "#27d980",
-    "#9b7cff", "#4f9cff", "#ff7a59", "#a3e635",
+    "#2f80ed", "#eb5757", "#f2994a", "#27ae60",
+    "#9b51e0", "#c7429b", "#c86f3c", "#00b5ad",
 }
 
 

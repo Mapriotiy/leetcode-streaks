@@ -42,13 +42,13 @@ REGION_NAMES: dict[str, str] = {
 }
 
 REGION_COLORS: dict[str, str] = {
-    "isle1": "#00d9ff",
-    "isle2": "#7c4dff",
-    "isle3": "#a3005e",
-    "region1": "#2bff88",
-    "region2": "#2979ff",
-    "region3": "#ff9100",
-    "region4": "#ff2d95",
+    "isle1": "#2fb55f",
+    "isle2": "#2f80ed",
+    "isle3": "#c7429b",
+    "region1": "#7ac142",
+    "region2": "#5b6cf0",
+    "region3": "#f2994a",
+    "region4": "#eb5757",
 }
 
 PROVINCE_NAMES: dict[str, str] = {

@@ -37,7 +37,7 @@ export function EventLogPanel({ events, currentUserId, className = '' }: EventLo
                 ) : (
                     events.map((event) => {
                         const isPlayer = event.actor_user_id === currentUserId;
-                        const accent = isPlayer ? '#00e5ff' : '#ff2d55';
+                        const accent = isPlayer ? '#76b7a5' : '#b86a6f';
                         const isSteal = event.event_type === 'recapture';
 
                         return (

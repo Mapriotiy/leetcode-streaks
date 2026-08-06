@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DIFFICULTY_COLORS } from '../mapRegions';
+import { mapColors } from '../features/lobby-map/mapColors';
 import { firstCaptureBonus, flagPoints } from '../scoring';
 
 function formatDuration(ms: number): string {
@@ -53,15 +54,32 @@ export default function ProvincePopup({
     onClose,
 }: ProvincePopupProps) {
     const [now, setNow] = useState(() => Date.now());
+    const popupRef = useRef<HTMLDivElement | null>(null);
+
     useEffect(() => {
         if (!fortifiedUntil) return;
         const id = setInterval(() => setNow(Date.now()), 1000);
         return () => clearInterval(id);
     }, [fortifiedUntil]);
 
+    useEffect(() => {
+        if (!provinceId) return;
+
+        const handlePointerDown = (event: PointerEvent) => {
+            const popup = popupRef.current;
+            if (!popup || popup.contains(event.target as Node)) return;
+            const target = event.target as Element | null;
+            if (target && target.closest && target.closest('button, input, select, textarea, a, [role="button"]')) return;
+            onClose();
+        };
+
+        document.addEventListener('pointerdown', handlePointerDown);
+        return () => document.removeEventListener('pointerdown', handlePointerDown);
+    }, [onClose, provinceId]);
+
     if (!provinceId || !pos) return null;
 
-    const accent = owner === 'player' ? '#00e5ff' : owner === 'enemy' ? '#ff2d55' : '#666';
+    const accent = owner === 'player' ? mapColors.player : owner === 'enemy' ? mapColors.enemy : mapColors.neutral;
 
     const statusText =
         owner === 'player'
@@ -82,9 +100,10 @@ export default function ProvincePopup({
     const flipBelow = pos.y < 170;
 
     return (
-        <div className="fixed inset-0 z-50" onClick={onClose}>
+        <div className="pointer-events-none fixed inset-0 z-50">
             <div
-                className="absolute bg-neutral-900 border rounded-lg p-3 shadow-2xl w-56"
+                ref={popupRef}
+                className="pointer-events-auto absolute bg-neutral-900 border rounded-lg p-3 shadow-2xl w-56"
                 style={{
                     left: clampedX,
                     top: flipBelow ? pos.y + 10 : pos.y - 14,
@@ -92,11 +111,12 @@ export default function ProvincePopup({
                     borderColor: accent + '4d',
                 }}
                 onClick={(e) => e.stopPropagation()}
+                onWheel={(e) => e.preventDefault()}
             >
                 {owner === 'player' && earnedPoints > 0 ? (
                     <span
                         key={provinceId}
-                        className="point-pop pointer-events-none absolute -top-4 right-4 text-lg font-extrabold text-[#2bff88]"
+                        className="point-pop pointer-events-none absolute -top-4 right-4 text-lg font-extrabold text-[#7f9a6e]"
                     >
                         +{earnedPoints}
                     </span>
@@ -167,8 +187,8 @@ export default function ProvincePopup({
                         className="mt-2 rounded-md border px-3 py-1.5 text-center text-xs font-medium"
                         style={{
                             borderColor:
-                                (firstCaptureOwner === 'player' ? '#00e5ff' : '#ff2d55') + '4d',
-                            color: firstCaptureOwner === 'player' ? '#00e5ff' : '#ff2d55',
+                                (firstCaptureOwner === 'player' ? '#76b7a5' : '#b86a6f') + '4d',
+                            color: firstCaptureOwner === 'player' ? '#76b7a5' : '#b86a6f',
                         }}
                     >
                         First capture +{firstCaptureBonus(problem?.difficulty)}

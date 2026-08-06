@@ -7,6 +7,7 @@ import { MapChooserModal } from '../features/lobby-map/MapChooserModal';
 import { MAP_SIZE_CONFIG } from '../features/lobby-map/assets';
 import { readLobbyMapSelection, writeLobbyMapSelection } from '../features/lobby-map/storage';
 import { normalizeLobbyMapSelection, saveLobbyMapSelection } from '../features/lobby-map/api';
+import { mapColors } from '../features/lobby-map/mapColors';
 import type { LobbyMapSelection, LobbyMapTopic } from '../features/lobby-map/types';
 import { TOPICS } from '../mapRegions';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -56,24 +57,15 @@ type LobbyPageProps = {
     onGameStarted: (lobbyId: number, players: LobbyPlayer[], factions: Faction[]) => void;
 };
 
-const FACTION_COLORS = ['#00c2ff', '#ff4d6d', '#ffb020', '#27d980'];
+const FACTION_COLORS = mapColors.factions;
 const FACTION_NAMES = ['Alpha', 'Bravo', 'Charlie', 'Delta'];
-const FACTION_PALETTE = [
-    { name: 'Cyan', color: '#00c2ff' },
-    { name: 'Rose', color: '#ff4d6d' },
-    { name: 'Amber', color: '#ffb020' },
-    { name: 'Mint', color: '#27d980' },
-    { name: 'Violet', color: '#9b7cff' },
-    { name: 'Sky', color: '#4f9cff' },
-    { name: 'Coral', color: '#ff7a59' },
-    { name: 'Lime', color: '#a3e635' },
-];
+const FACTION_PALETTE = mapColors.factionPalette;
 
 function defaultFactions(count: number): Faction[] {
     return Array.from({ length: count }, (_, index) => ({
         id: index + 1,
         name: FACTION_NAMES[index] ?? `Faction ${index + 1}`,
-        color: FACTION_COLORS[index] ?? '#888888',
+        color: FACTION_COLORS[index] ?? mapColors.unknownOwner,
     }));
 }
 
@@ -594,7 +586,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                         <ul className="mt-3 grid gap-2">
                             {lobby.players.map((player) => {
                                 const fid = player.faction_id;
-                                const color = fid ? FACTION_COLORS[fid - 1] ?? '#aaa' : '#aaa';
+                                const color = fid ? FACTION_COLORS[fid - 1] ?? mapColors.unknownOwner : mapColors.unknownOwner;
                                 return (
                                     <li
                                         key={player.user_id}

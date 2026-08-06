@@ -1,4 +1,5 @@
 ﻿import type { GeneratedMapDraft } from './types';
+import { mapColors } from './mapColors';
 
 // Canonical draft for the default (cinnamon) map. Keep in sync with
 // backend/app/services/map_config.py::build_default_map_draft().
@@ -18,37 +19,37 @@ export const DEFAULT_MAP_DRAFT: GeneratedMapDraft = {
         {
             "id": "isle1",
             "name": "Trees",
-            "color": "#00d9ff"
+            "color": mapColors.regions.isle1
         },
         {
             "id": "isle2",
             "name": "Binary Search",
-            "color": "#7c4dff"
+            "color": mapColors.regions.isle2
         },
         {
             "id": "isle3",
             "name": "Math",
-            "color": "#a3005e"
+            "color": mapColors.regions.isle3
         },
         {
             "id": "region1",
             "name": "Linked List",
-            "color": "#2bff88"
+            "color": mapColors.regions.region1
         },
         {
             "id": "region2",
             "name": "Two Pointers",
-            "color": "#2979ff"
+            "color": mapColors.regions.region2
         },
         {
             "id": "region3",
             "name": "Arrays & Hashing",
-            "color": "#ff9100"
+            "color": mapColors.regions.region3
         },
         {
             "id": "region4",
             "name": "Stack",
-            "color": "#ff2d95"
+            "color": mapColors.regions.region4
         }
     ],
     "islands": [
@@ -270,7 +271,7 @@ export const DEFAULT_MAP_DRAFT: GeneratedMapDraft = {
             "regionId": "isle1",
             "topicId": "isle1",
             "name": "Trees",
-            "color": "#00d9ff",
+            "color": mapColors.regions.isle1,
             "provinceIds": [
                 "path34",
                 "path36"
@@ -282,7 +283,7 @@ export const DEFAULT_MAP_DRAFT: GeneratedMapDraft = {
             "regionId": "isle2",
             "topicId": "isle2",
             "name": "Binary Search",
-            "color": "#7c4dff",
+            "color": mapColors.regions.isle2,
             "provinceIds": [
                 "path44",
                 "path48",
@@ -295,7 +296,7 @@ export const DEFAULT_MAP_DRAFT: GeneratedMapDraft = {
             "regionId": "isle3",
             "topicId": "isle3",
             "name": "Math",
-            "color": "#a3005e",
+            "color": mapColors.regions.isle3,
             "provinceIds": [
                 "path53"
             ],
@@ -306,7 +307,7 @@ export const DEFAULT_MAP_DRAFT: GeneratedMapDraft = {
             "regionId": "region1",
             "topicId": "region1",
             "name": "Linked List",
-            "color": "#2bff88",
+            "color": mapColors.regions.region1,
             "provinceIds": [
                 "path56",
                 "path57",
@@ -320,7 +321,7 @@ export const DEFAULT_MAP_DRAFT: GeneratedMapDraft = {
             "regionId": "region2",
             "topicId": "region2",
             "name": "Two Pointers",
-            "color": "#2979ff",
+            "color": mapColors.regions.region2,
             "provinceIds": [
                 "path63",
                 "path64",
@@ -336,7 +337,7 @@ export const DEFAULT_MAP_DRAFT: GeneratedMapDraft = {
             "regionId": "region3",
             "topicId": "region3",
             "name": "Arrays & Hashing",
-            "color": "#ff9100",
+            "color": mapColors.regions.region3,
             "provinceIds": [
                 "path72",
                 "path73",
@@ -353,7 +354,7 @@ export const DEFAULT_MAP_DRAFT: GeneratedMapDraft = {
             "regionId": "region4",
             "topicId": "region4",
             "name": "Stack",
-            "color": "#ff2d95",
+            "color": mapColors.regions.region4,
             "provinceIds": [
                 "path83",
                 "path86",

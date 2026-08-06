@@ -15,11 +15,12 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { AnimatedNumber } from '../components/AnimatedNumber';
 import { generatedRegionsAsLegend } from '../features/lobby-map/generator';
 import { DEFAULT_MAP_DRAFT } from '../features/lobby-map/defaultDraft';
+import { mapColors } from '../features/lobby-map/mapColors';
 import { writeLobbyMapSelection } from '../features/lobby-map/storage';
 import { normalizeLobbyMapSelection } from '../features/lobby-map/api';
 import type { LobbyMapSelection } from '../features/lobby-map/types';
 
-const FACTION_COLORS = ['#00c2ff', '#ff4d6d', '#ffb020', '#27d980'];
+const FACTION_COLORS = mapColors.factions;
 
 type ProvinceData = {
     province_id: string;
@@ -197,7 +198,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
             } else if (fid > 0 && fid <= FACTION_COLORS.length) {
                 map.set(p.province_id, FACTION_COLORS[fid - 1]);
             } else {
-                map.set(p.province_id, '#888');
+                map.set(p.province_id, mapColors.unknownOwner);
             }
         }
         return map;
@@ -214,7 +215,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
         const faction = factionById.get(fid);
         if (faction) return faction.color;
         if (fid > 0 && fid <= FACTION_COLORS.length) return FACTION_COLORS[fid - 1];
-        return '#888888';
+        return mapColors.unknownOwner;
     }, [factionByPlayer, factionById]);
 
     // Live captures pushed over SSE are applied on top of the server-derived
@@ -233,11 +234,13 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     useEffect(() => {
         for (const event of events) {
             if (appliedEventIdsRef.current.has(event.id)) continue;
+            if (!event.province_id) continue;
+
             if (
-                (event.event_type === 'capture' ||
-                    event.event_type === 'recapture' ||
-                    event.event_type === 'defense') &&
-                event.province_id
+                event.event_type === 'capture' ||
+                event.event_type === 'recapture' ||
+                event.event_type === 'defense' ||
+                event.event_type === 'debug_capture'
             ) {
                 appliedEventIdsRef.current.add(event.id);
                 const color = ownerColor(event.actor_user_id);
@@ -260,6 +263,16 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                         return next;
                     });
                 }, 1200);
+            }
+
+            if (event.event_type === 'debug_uncapture') {
+                appliedEventIdsRef.current.add(event.id);
+                const provinceId = event.province_id;
+                setLiveCaptures((prev) => {
+                    const next = new Map(prev);
+                    next.delete(provinceId);
+                    return next;
+                });
             }
         }
     }, [events, ownerColor]);
@@ -899,7 +912,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                 </section>
 
                 <div className="mt-3 flex flex-col gap-3 lg:mt-6 lg:flex-row lg:items-stretch lg:gap-6">
-                    <section className="relative min-w-0 flex-1 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16] p-2.5 shadow-xl shadow-black/20 transition hover:border-[#00d9ff]/25 hover:shadow-[0_0_35px_-8px_rgba(0,217,255,0.2)] sm:p-4">
+                    <section className="relative min-w-0 flex-1 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16] p-2.5 shadow-xl shadow-black/20 transition hover:border-[#c86f3c]/30 hover:shadow-[0_0_35px_-8px_rgba(200,111,60,0.24)] sm:p-4">
                         {loading ? (
                             <div className="flex items-center justify-center py-20 text-[#8f8278]">Loading map...</div>
                         ) : (
@@ -953,7 +966,10 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                                                 null
                                             }
                                             finished={gameStatus === 'finished'}
-                                            onChanged={() => void loadMap()}
+                                            onChanged={() => {
+                                                void loadMap();
+                                                setSyncTick((tick) => tick + 1);
+                                            }}
                                         />
                                     )}
                                 </div>

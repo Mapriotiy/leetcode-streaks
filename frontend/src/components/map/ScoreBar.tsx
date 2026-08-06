@@ -26,7 +26,7 @@ export function ScoreBar({
                             className="h-10 w-10 shrink-0 rounded-full border border-[#3a3a3a] object-cover"
                         />
                     ) : (
-                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#00e5ff]/20 text-sm font-bold text-[#00e5ff]">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#76b7a5]/20 text-sm font-bold text-[#76b7a5]">
                             {currentUsername[0].toUpperCase()}
                         </div>
                     )}
@@ -34,7 +34,7 @@ export function ScoreBar({
                         <span className="block text-sm font-medium text-[#eff1f6]">
                             {currentUsername}
                         </span>
-                        <span className="block text-xs font-semibold tabular-nums text-[#00e5ff]">
+                        <span className="block text-xs font-semibold tabular-nums text-[#76b7a5]">
                             {scoreData.player_points.toLocaleString()} pts
                         </span>
                     </div>
@@ -46,7 +46,7 @@ export function ScoreBar({
                             className="h-full transition-all duration-500"
                             style={{
                                 width: `${(scoreData.player_provinces / scoreData.total_provinces) * 100}%`,
-                                backgroundColor: '#00e5ff',
+                                backgroundColor: '#76b7a5',
                             }}
                         />
                     )}
@@ -64,7 +64,7 @@ export function ScoreBar({
                             className="h-full transition-all duration-500"
                             style={{
                                 width: `${(scoreData.friend_provinces / scoreData.total_provinces) * 100}%`,
-                                backgroundColor: '#ff2d55',
+                                backgroundColor: '#b86a6f',
                             }}
                         />
                     )}
@@ -75,7 +75,7 @@ export function ScoreBar({
                         <span className="block text-sm font-medium text-[#eff1f6]">
                             {friendUsername}
                         </span>
-                        <span className="block text-xs font-semibold tabular-nums text-[#ff2d55]">
+                        <span className="block text-xs font-semibold tabular-nums text-[#b86a6f]">
                             {scoreData.friend_points.toLocaleString()} pts
                         </span>
                     </div>
@@ -86,7 +86,7 @@ export function ScoreBar({
                             className="h-10 w-10 shrink-0 rounded-full border border-[#3a3a3a] object-cover"
                         />
                     ) : (
-                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#ff2d55]/20 text-sm font-bold text-[#ff2d55]">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#b86a6f]/20 text-sm font-bold text-[#b86a6f]">
                             {friendUsername[0].toUpperCase()}
                         </div>
                     )}

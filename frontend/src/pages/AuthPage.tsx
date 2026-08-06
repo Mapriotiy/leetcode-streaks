@@ -6,15 +6,16 @@ import { Footer } from "../components/Footer";
 import { Logo } from "../components/Logo";
 import { GeneratedMapRenderer } from "../features/lobby-map/GeneratedMapRenderer";
 import { DEFAULT_MAP_DRAFT } from "../features/lobby-map/defaultDraft";
+import { mapColors } from "../features/lobby-map/mapColors";
 
 type AuthPageProps = {
     initialError?: string | null;
     onClearError?: () => void;
 };
 
-const FACTION_COLORS = ["#e6a15d", "#b86a3c", "#7f9a6e"];
-const ENEMY_COLOR = "#8c6170";
-const FEATURE_ACCENTS = ["#e6a15d", "#b86a3c", "#7f9a6e", "#8c6170"];
+const FACTION_COLORS = mapColors.landing.players;
+const ENEMY_COLOR = mapColors.landing.enemy;
+const FEATURE_ACCENTS = mapColors.landing.accents;
 
 const googleButtonClassName =
     "!border-[#5a4235] !bg-[#211a16]/85 !text-[#f4e7d8] hover:!border-[#e6a15d]/60 hover:!bg-[#2a1f19]";

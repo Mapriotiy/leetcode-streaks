@@ -9,7 +9,7 @@ const SCANLINES = `repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, r
 export function WinV4({
     winnerLabel,
     youWon,
-    accentColor = "#00d9ff",
+    accentColor = "#c86f3c",
     onReplay,
     stats,
     lobbyId,
@@ -52,7 +52,7 @@ export function WinV4({
                 >
                     <span
                         aria-hidden
-                        className="glitch-a absolute inset-0 text-[#ff2d55]"
+                        className="glitch-a absolute inset-0 text-[#b86a6f]"
                         style={{ clipPath: "inset(0 0 86% 0)" }}
                     >
                         {title}
@@ -80,7 +80,7 @@ export function WinV4({
                             style={{ borderColor: accentColor + "55", backgroundColor: "rgba(10,10,12,0.6)" }}
                         >
                             <p className="font-mono text-xs uppercase tracking-widest text-[#8a8a8a]">Provinces</p>
-                            <p className="mt-1 font-mono text-2xl font-bold tabular-nums text-[#7fe8ff]">
+                            <p className="mt-1 font-mono text-2xl font-bold tabular-nums text-[#76b7a5]">
                                 {stats.provinces}
                             </p>
                         </div>

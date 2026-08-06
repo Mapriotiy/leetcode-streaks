@@ -17,7 +17,7 @@ export function LastWeekBanner({ lastWeekResult, currentUserId }: LastWeekBanner
                     You won last week: {lastWeekResult.player_regions} vs {lastWeekResult.friend_regions} regions
                 </span>
             ) : (
-                <span className="text-[#ff2d55]">
+                <span className="text-[#b86a6f]">
                     {lastWeekResult.winner_username} won last week: {lastWeekResult.friend_regions} vs {lastWeekResult.player_regions} regions
                 </span>
             )}

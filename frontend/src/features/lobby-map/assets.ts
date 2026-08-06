@@ -1,4 +1,5 @@
 import type { GeneratedMapPieceSize, GeneratedMapSize } from "./types";
+import { mapColors } from "./mapColors";
 
 export const GENERATED_MAP_VERSION = "island-generator-v2";
 
@@ -147,20 +148,7 @@ export const PIECE_DIMENSIONS = {
     "20": [1254, 1254],
 } satisfies Record<GeneratedMapPieceId, [number, number]>;
 
-export const REGION_FALLBACK_COLORS = [
-    "#ff00d4",
-    "#00d0ff",
-    "#39ff14",
-    "#ff3d00",
-    "#2979ff",
-    "#ff2d95",
-    "#ffe600",
-    "#ff1744",
-    "#b300ff",
-    "#00ffb0",
-    "#ff9100",
-    "#ff7a00",
-] as const;
+export const REGION_FALLBACK_COLORS = mapColors.regionFallbackColors;
 
 export function mapAssetUrl(path: string) {
     return `${import.meta.env.BASE_URL}${path}`;

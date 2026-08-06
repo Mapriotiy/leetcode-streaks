@@ -70,7 +70,7 @@ export function ShareCardModal({ data, replayUrl, onClose }: ShareCardModalProps
                     <button
                         type="button"
                         onClick={() => void handleCopy()}
-                        className="inline-flex items-center justify-center gap-2 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-4 py-2.5 text-sm font-semibold text-[#d7d7d7] transition hover:border-[#00d9ff]/60 hover:text-[#7fe8ff]"
+                        className="inline-flex items-center justify-center gap-2 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-4 py-2.5 text-sm font-semibold text-[#d7d7d7] transition hover:border-[#c86f3c]/60 hover:text-[#d89a4e]"
                     >
                         <Copy size={16} />
                         {copied ? "Replay link copied!" : "Copy replay link"}

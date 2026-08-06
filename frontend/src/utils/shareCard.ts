@@ -1,4 +1,5 @@
 import { mapAssetUrl } from "../features/lobby-map/assets";
+import { mapColors } from "../features/lobby-map/mapColors";
 import type { GeneratedMapDraft, GeneratedMapIsland } from "../features/lobby-map/types";
 
 const imageCache = new Map<string, Promise<HTMLImageElement>>();
@@ -119,8 +120,8 @@ function drawImageCover(
 
 function drawEmptyGeneratedFallback(ctx: CanvasRenderingContext2D, width: number, height: number) {
     const sea = ctx.createLinearGradient(0, 0, width, height);
-    sea.addColorStop(0, "#15191b");
-    sea.addColorStop(1, "#0b0c0d");
+    sea.addColorStop(0, mapColors.sea.from);
+    sea.addColorStop(1, mapColors.sea.to);
     ctx.fillStyle = sea;
     ctx.fillRect(0, 0, width, height);
 }
@@ -157,12 +158,6 @@ function mixHex(base: string, target: string, baseWeight: number) {
         g: a.g * baseWeight + b.g * targetWeight,
         b: a.b * baseWeight + b.b * targetWeight,
     });
-}
-
-function setSvgAttr(tag: string, name: string, value: string) {
-    const attrPattern = new RegExp(`\\s${name}="[^"]*"`);
-    if (attrPattern.test(tag)) return tag.replace(attrPattern, ` ${name}="${value}"`);
-    return tag.replace(/\/?>$/, (ending) => ` ${name}="${value}"${ending}`);
 }
 
 function getSvgAttr(tag: string, name: string) {
@@ -212,7 +207,15 @@ function islandMaskPath(svgText: string, islandW: number, islandH: number) {
     return mask;
 }
 
-function generatedIslandSvg({
+function captureFillColor(color: string) {
+    return mixHex(color, mapColors.capture.fillShade, mapColors.capture.fillWeight);
+}
+
+function captureStrokeColor(color: string) {
+    return mixHex(color, mapColors.capture.strokeShade, mapColors.capture.strokeWeight);
+}
+
+function islandProvincePaths({
     svgText,
     island,
     draft,
@@ -229,31 +232,29 @@ function generatedIslandSvg({
             .map((province) => [province.pathIndex, province]),
     );
     const regionById = new Map(draft.regions.map((region) => [region.regionId, region]));
+    const viewBox = parseSvgViewBox(svgText);
     let pathIndex = 0;
 
-    return svgText
-        .replace(/<svg\b([^>]*)>/, '<svg$1 preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">')
-        .replace(/<path\b[^>]*>/g, (tag) => {
+    return [...svgText.matchAll(/<path\b[^>]*>/g)]
+        .map((match) => {
+            const d = getSvgAttr(match[0], "d");
             const province = provinceByPath.get(pathIndex);
             const provinceId = province?.provinceId ?? `${island.islandId}-${pathIndex}`;
             const region = province ? regionById.get(province.regionId) : null;
             const capturedColor = capturedColors[provinceId] ?? null;
-            const regionColor = region?.color ?? "#8f7458";
-            const fill = capturedColor ? mixHex(capturedColor, "#101112", 0.78) : mixHex(regionColor, "#242827", 0.68);
-            const stroke = capturedColor ? mixHex(capturedColor, "#ffffff", 0.88) : mixHex(regionColor, "#303332", 0.82);
+            const regionColor = region?.color ?? mapColors.regionFallback;
             pathIndex += 1;
 
-            let nextTag = tag;
-            nextTag = setSvgAttr(nextTag, "fill", fill);
-            nextTag = setSvgAttr(nextTag, "fill-opacity", capturedColor ? "0.76" : "0.22");
-            nextTag = setSvgAttr(nextTag, "opacity", capturedColor ? "1" : "0.58");
-            nextTag = setSvgAttr(nextTag, "stroke", stroke);
-            nextTag = setSvgAttr(nextTag, "stroke-opacity", capturedColor ? "1" : "0.64");
-            nextTag = setSvgAttr(nextTag, "stroke-width", capturedColor ? "4.2" : "1.15");
-            nextTag = setSvgAttr(nextTag, "stroke-linejoin", "round");
-            nextTag = setSvgAttr(nextTag, "stroke-linecap", "round");
-            return nextTag;
-        });
+            if (!d) return null;
+            return {
+                path: new Path2D(d),
+                viewBox,
+                capturedColor,
+                fill: capturedColor ? captureFillColor(capturedColor) : mixHex(regionColor, mapColors.province.fillShade, mapColors.province.fillWeight),
+                stroke: capturedColor ? captureStrokeColor(capturedColor) : mixHex(regionColor, mapColors.province.strokeShade, mapColors.province.strokeWeight),
+            };
+        })
+        .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
 }
 
 function parseAspectRatio(value: string) {
@@ -314,13 +315,6 @@ async function drawGeneratedMap(
             loadSvgText(mapAssetUrl(island.svgPath)),
         ]);
         const rawSvg = svgResponse;
-        const overlaySvg = rawSvg
-            ? generatedIslandSvg({ svgText: rawSvg, island, draft, capturedColors })
-            : null;
-        const overlayUrl = overlaySvg
-            ? URL.createObjectURL(new Blob([overlaySvg], { type: "image/svg+xml" }))
-            : null;
-        const overlay = overlayUrl ? await loadImage(overlayUrl) : null;
 
         ctx.save();
         ctx.translate(islandX + islandW / 2, islandY + islandH / 2);
@@ -331,14 +325,49 @@ async function drawGeneratedMap(
             ctx.globalAlpha = 0.82;
             drawImageContain(ctx, back, -islandW / 2, -islandH / 2, islandW, islandH);
             ctx.restore();
-        }
-        if (overlay) {
-            ctx.globalAlpha = 1;
-            drawImageContain(ctx, overlay, -islandW / 2, -islandH / 2, islandW, islandH);
+
+            const paths = islandProvincePaths({ svgText: rawSvg, island, draft, capturedColors });
+            const viewBox = paths[0]?.viewBox ?? parseSvgViewBox(rawSvg);
+            const scaleX = islandW / viewBox.width;
+            const scaleY = islandH / viewBox.height;
+            const strokeScale = Math.max(0.001, (scaleX + scaleY) / 2);
+
+            ctx.save();
+            ctx.scale(scaleX, scaleY);
+            ctx.translate(-viewBox.x - islandW / 2 / scaleX, -viewBox.y - islandH / 2 / scaleY);
+            for (const entry of paths) {
+                ctx.globalAlpha = entry.capturedColor ? 0.76 : mapColors.province.fillAlpha;
+                ctx.fillStyle = entry.fill;
+                ctx.fill(entry.path);
+                ctx.globalAlpha = entry.capturedColor ? 1 : 0.64;
+                ctx.strokeStyle = entry.stroke;
+                ctx.lineWidth = (entry.capturedColor ? 2.2 : 1.15) / strokeScale;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+                ctx.stroke(entry.path);
+            }
+
+            for (const entry of paths) {
+                if (!entry.capturedColor) continue;
+                ctx.save();
+                ctx.globalCompositeOperation = "lighter";
+                ctx.strokeStyle = entry.stroke;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+                ctx.globalAlpha = 0.18;
+                ctx.lineWidth = 3.8 / strokeScale;
+                ctx.shadowColor = entry.stroke;
+                ctx.shadowBlur = 10 / strokeScale;
+                ctx.stroke(entry.path);
+                ctx.globalAlpha = 0.22;
+                ctx.lineWidth = 2.2 / strokeScale;
+                ctx.shadowBlur = 6 / strokeScale;
+                ctx.stroke(entry.path);
+                ctx.restore();
+            }
+            ctx.restore();
         }
         ctx.restore();
-
-        if (overlayUrl) URL.revokeObjectURL(overlayUrl);
     }
 }
 
@@ -445,8 +474,8 @@ export async function generateShareCard(data: ShareCardData): Promise<string> {
     ctx.stroke();
 
     const stats = [
-        { label: "Provinces", value: String(provinceCount), color: "#7fe8ff" },
-        { label: "Points", value: String(data.points), color: "#c86f3c" },
+        { label: "Provinces", value: String(provinceCount), color: mapColors.player },
+        { label: "Points", value: String(data.points), color: mapColors.regions.region5 },
     ];
     const cellW = panelW / stats.length;
     stats.forEach((stat, index) => {
