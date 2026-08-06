@@ -119,7 +119,7 @@ export default function ProvincePopup({
                 </div>
 
                 {fortified && (
-                    <div className="mb-2.5 rounded-md border border-[#c86f3c]/50 bg-[#c86f3c]/10 px-3 py-1.5 text-center text-xs font-semibold text-[#e8b691]">
+                    <div className="mb-2.5 rounded-md border border-[#e6a15d]/50 bg-[#e6a15d]/10 px-3 py-1.5 text-center text-xs font-semibold text-[#e8b691]">
                         <span className="flex items-center justify-center gap-1.5">
                             🛡 Fortified
                             {fortifiedUntil && (
@@ -142,7 +142,7 @@ export default function ProvincePopup({
                         href={problem.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="block rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm text-[#eff1f6] transition hover:border-white/30"
+                        className="block rounded-md border border-[#3f332d] bg-[#1b1512] px-3 py-2 text-sm text-[#f4e7d8] transition hover:border-white/30"
                     >
                         <span className="block truncate font-medium">
                             {problem.title}
@@ -155,7 +155,7 @@ export default function ProvincePopup({
                             >
                                 {problem.difficulty}
                             </span>
-                            <span className="text-[#c86f3c]">
+                            <span className="text-[#e6a15d]">
                                 +{flagPoints(problem.difficulty)}
                             </span>
                         </span>
@@ -179,14 +179,14 @@ export default function ProvincePopup({
                 {owner && (
                     <div className="mt-2 flex items-center justify-between text-xs">
                         <span className="text-gray-400">Fastest</span>
-                        <span className="text-[#eff1f6]">
+                        <span className="text-[#f4e7d8]">
                             {capturedRuntimeMs != null ? `${capturedRuntimeMs} ms` : 'unknown'}
                         </span>
                     </div>
                 )}
 
                 {owner === 'enemy' && (
-                    <p className="mt-1.5 text-center text-[11px] text-[#8a8a8a]">
+                    <p className="mt-1.5 text-center text-[11px] text-[#8f8278]">
                         Solve it faster to steal this province
                     </p>
                 )}
@@ -196,7 +196,7 @@ export default function ProvincePopup({
                         href={submissionUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="mt-2 block rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-center text-xs font-medium text-[#d7d7d7] transition hover:border-white/30 hover:text-white"
+                        className="mt-2 block rounded-md border border-[#3f332d] bg-[#1b1512] px-3 py-2 text-center text-xs font-medium text-[#d9c5ad] transition hover:border-white/30 hover:text-white"
                     >
                         View {capturerLeetcodeUsername ?? 'capturer'}'s solution
                     </a>

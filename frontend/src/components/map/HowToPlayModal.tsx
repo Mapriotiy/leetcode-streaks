@@ -22,13 +22,13 @@ const SECTIONS = [
 export function HowToPlayModal({ onClose }: { onClose: () => void }) {
     return (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-lg border border-[#3a3a3a] bg-[#202020] p-6 shadow-2xl">
+            <div className="w-full max-w-md rounded-lg border border-[#3f332d] bg-[#202020] p-6 shadow-2xl">
                 <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-[#eff1f6]">How to play</h2>
+                    <h2 className="text-lg font-semibold text-[#f4e7d8]">How to play</h2>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="grid h-8 w-8 place-items-center rounded-md border border-[#3a3a3a] text-[#8a8a8a] transition hover:border-white/30 hover:text-white"
+                        className="grid h-8 w-8 place-items-center rounded-md border border-[#3f332d] text-[#8f8278] transition hover:border-white/30 hover:text-white"
                     >
                         <X size={16} />
                     </button>
@@ -36,9 +36,9 @@ export function HowToPlayModal({ onClose }: { onClose: () => void }) {
 
                 <div className="mt-4 space-y-3">
                     {SECTIONS.map((section) => (
-                        <div key={section.title} className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] p-3">
+                        <div key={section.title} className="rounded-md border border-[#3f332d] bg-[#1b1512] p-3">
                             <p className="text-sm font-semibold text-[#e8b691]">{section.title}</p>
-                            <p className="mt-1 text-sm leading-relaxed text-[#b3b3b3]">{section.body}</p>
+                            <p className="mt-1 text-sm leading-relaxed text-[#a8917d]">{section.body}</p>
                         </div>
                     ))}
                 </div>
@@ -46,7 +46,7 @@ export function HowToPlayModal({ onClose }: { onClose: () => void }) {
                 <button
                     type="button"
                     onClick={onClose}
-                    className="mt-5 w-full rounded-md bg-[#c86f3c] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#d9823f]"
+                    className="mt-5 w-full rounded-md bg-[#e6a15d] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#d87a38]"
                 >
                     Got it
                 </button>

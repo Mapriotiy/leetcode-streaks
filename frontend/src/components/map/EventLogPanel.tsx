@@ -19,18 +19,18 @@ export function EventLogPanel({ events, currentUserId, className = '' }: EventLo
 
     return (
         <aside
-            className={`flex flex-col rounded-md border border-[#3a3a3a] bg-[#1f1f1f] ${className}`}
+            className={`flex flex-col rounded-md border border-[#3f332d] bg-[#1b1512] ${className}`}
         >
-            <div className="flex items-center gap-2 border-b border-[#3a3a3a] px-3 py-2.5">
-                <ScrollText size={14} className="text-[#c86f3c]" />
-                <h2 className="text-xs font-semibold uppercase tracking-wide text-[#a3a3a3]">
+            <div className="flex items-center gap-2 border-b border-[#3f332d] px-3 py-2.5">
+                <ScrollText size={14} className="text-[#e6a15d]" />
+                <h2 className="text-xs font-semibold uppercase tracking-wide text-[#a8917d]">
                     Battle log
                 </h2>
             </div>
 
             <div ref={listRef} className="flex-1 space-y-2 overflow-y-auto p-3">
                 {events.length === 0 ? (
-                    <p className="text-xs text-[#8a8a8a]">
+                    <p className="text-xs text-[#8f8278]">
                         No captures yet. Solve a province's problem to plant
                         the first flag.
                     </p>
@@ -49,10 +49,10 @@ export function EventLogPanel({ events, currentUserId, className = '' }: EventLo
                                     backgroundColor: accent + (isSteal ? '14' : '0a'),
                                 }}
                             >
-                                <p className="text-[#eff1f6]">
+                                <p className="text-[#f4e7d8]">
                                     {eventText(event, currentUserId)}
                                 </p>
-                                <p className="mt-1 text-[0.625rem] text-[#8a8a8a]">
+                                <p className="mt-1 text-[0.625rem] text-[#8f8278]">
                                     {relativeTime(event.created_at)}
                                 </p>
                             </div>

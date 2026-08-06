@@ -87,18 +87,18 @@ export function DebugPanel({
                 <button
                     type="button"
                     onClick={() => setOpen(false)}
-                    className="text-[#8a8a8a] transition hover:text-white"
+                    className="text-[#8f8278] transition hover:text-white"
                 >
                     &times;
                 </button>
             </div>
 
             <label className="mt-2.5 block">
-                <span className="text-[#8a8a8a]">Act as player</span>
+                <span className="text-[#8f8278]">Act as player</span>
                 <select
                     value={playerId}
                     onChange={(e) => setPlayerId(Number(e.target.value))}
-                    className="mt-1 w-full rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-2 py-1.5 text-white outline-none focus:border-[#00d9ff]/70"
+                    className="mt-1 w-full rounded-md border border-[#3f332d] bg-[#1b1512] px-2 py-1.5 text-white outline-none focus:border-[#00d9ff]/70"
                 >
                     {players.map((p) => (
                         <option key={p.user_id} value={p.user_id}>
@@ -120,17 +120,17 @@ export function DebugPanel({
                                 [powerup]: 1,
                             })
                         }
-                        className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-2 py-1.5 font-semibold text-[#e8b691] transition hover:border-[#c86f3c]/60 disabled:opacity-50"
+                        className="rounded-md border border-[#3f332d] bg-[#1b1512] px-2 py-1.5 font-semibold text-[#e8b691] transition hover:border-[#e6a15d]/60 disabled:opacity-50"
                     >
                         +{powerup}
                     </button>
                 ))}
             </div>
 
-            <div className="mt-3 border-t border-[#2a2a2a] pt-2.5">
-                <p className="truncate text-[#8a8a8a]">
+            <div className="mt-3 border-t border-[#24201c] pt-2.5">
+                <p className="truncate text-[#8f8278]">
                     Province:{" "}
-                    <span className="text-[#eff1f6]">
+                    <span className="text-[#f4e7d8]">
                         {selectedProvinceName ?? "none selected"}
                     </span>
                 </p>
@@ -163,10 +163,10 @@ export function DebugPanel({
                 </div>
             </div>
 
-            <div className="mt-3 border-t border-[#2a2a2a] pt-2.5">
-                <p className="text-[#8a8a8a]">
+            <div className="mt-3 border-t border-[#24201c] pt-2.5">
+                <p className="text-[#8f8278]">
                     Finish game as{" "}
-                    <span className="text-[#eff1f6]">{playerLabel(players.find((p) => p.user_id === playerId) ?? players[0])}</span>
+                    <span className="text-[#f4e7d8]">{playerLabel(players.find((p) => p.user_id === playerId) ?? players[0])}</span>
                 </p>
                 <div className="mt-1.5 grid grid-cols-3 gap-1">
                     <button
@@ -181,7 +181,7 @@ export function DebugPanel({
                         type="button"
                         disabled={finished || busy}
                         onClick={() => finish(null)}
-                        className="rounded-md border border-[#c86f3c]/50 bg-[#c86f3c]/10 px-2 py-1.5 font-semibold text-[#e8b691] transition hover:bg-[#c86f3c]/20 disabled:opacity-40"
+                        className="rounded-md border border-[#e6a15d]/50 bg-[#e6a15d]/10 px-2 py-1.5 font-semibold text-[#e8b691] transition hover:bg-[#e6a15d]/20 disabled:opacity-40"
                     >
                         Draw
                     </button>

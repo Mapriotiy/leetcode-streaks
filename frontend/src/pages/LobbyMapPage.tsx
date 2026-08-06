@@ -560,15 +560,15 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     );
 
     const winnerAccent = useMemo(() => {
-        if (!winner) return '#c86f3c';
+        if (!winner) return '#e6a15d';
         if (winner.winner_faction_id != null) {
-            return factionById.get(winner.winner_faction_id)?.color ?? '#c86f3c';
+            return factionById.get(winner.winner_faction_id)?.color ?? '#e6a15d';
         }
         if (winner.winner_user_id != null) {
             const fid = factionByPlayer.get(winner.winner_user_id) ?? 0;
-            return factionById.get(fid)?.color ?? FACTION_COLORS[fid - 1] ?? '#c86f3c';
+            return factionById.get(fid)?.color ?? FACTION_COLORS[fid - 1] ?? '#e6a15d';
         }
-        return '#c86f3c';
+        return '#e6a15d';
     }, [winner, factionById, factionByPlayer]);
 
     const youWon =
@@ -616,13 +616,13 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                         <button
                             type="button"
                             onClick={onBack}
-                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
+                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3f332d] bg-[#211a16] text-[#a8917d] transition hover:border-[#e6a15d]/60 hover:text-[#e6a15d]"
                         >
                             <ArrowLeft size={20} />
                         </button>
                         <div>
                             <h1 className="text-2xl font-semibold tracking-tight">Lobby Map</h1>
-                            <p className="mt-1 text-sm text-[#8a8a8a]">Capture provinces by solving problems</p>
+                            <p className="mt-1 text-sm text-[#8f8278]">Capture provinces by solving problems</p>
                         </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -630,7 +630,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                             <button
                                 type="button"
                                 onClick={() => setShowAddPlayer((v) => !v)}
-                                className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#c86f3c]/50 bg-[#c86f3c]/10 px-3 text-sm font-medium text-[#e8b691] transition hover:bg-[#c86f3c]/20"
+                                className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#e6a15d]/50 bg-[#e6a15d]/10 px-3 text-sm font-medium text-[#e8b691] transition hover:bg-[#e6a15d]/20"
                             >
                                 <UserPlus size={16} />
                                 Add player
@@ -642,7 +642,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                             onClick={() => setShowHelp(true)}
                             title="How to play"
                             aria-label="How to play"
-                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
+                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3f332d] bg-[#211a16] text-[#a8917d] transition hover:border-[#e6a15d]/60 hover:text-[#e6a15d]"
                         >
                             <HelpCircle size={18} />
                         </button>
@@ -650,7 +650,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                             type="button"
                             onClick={() => setConfirmLeave(true)}
                             disabled={isLeaving}
-                            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#3a3a3a] bg-[#262626] px-4 text-sm font-medium text-[#d7d7d7] transition hover:border-red-400/60 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:border-[#3a3a3a] disabled:bg-[#262626] disabled:text-[#777]"
+                            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#3f332d] bg-[#211a16] px-4 text-sm font-medium text-[#d9c5ad] transition hover:border-red-400/60 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:border-[#3f332d] disabled:bg-[#211a16] disabled:text-[#777]"
                         >
                             <LogOut size={16} />
                             {isLeaving ? 'Leaving...' : 'Leave Lobby'}
@@ -669,19 +669,19 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                 )}
 
                 {showAddPlayer && (
-                    <section className="mt-4 rounded-lg border border-[#3a3a3a] bg-[#262626] p-4">
+                    <section className="mt-4 rounded-lg border border-[#3f332d] bg-[#211a16] p-4">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-sm font-semibold text-[#d7d7d7]">Add players</h2>
+                            <h2 className="text-sm font-semibold text-[#d9c5ad]">Add players</h2>
                             <button
                                 type="button"
                                 onClick={() => setShowAddPlayer(false)}
-                                className="text-xs text-[#8a8a8a] transition hover:text-[#d7d7d7]"
+                                className="text-xs text-[#8f8278] transition hover:text-[#d9c5ad]"
                             >
                                 Close
                             </button>
                         </div>
                         {slotLabel && (
-                            <p className="mt-1 text-xs text-[#8a8a8a]">Players: {slotLabel}</p>
+                            <p className="mt-1 text-xs text-[#8f8278]">Players: {slotLabel}</p>
                         )}
                         {!hasSlots && (
                             <p className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
@@ -690,16 +690,16 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                         )}
                         {leftPlayers.length > 0 && (
                             <div className="mt-3">
-                                <p className="text-xs font-medium text-[#8a8a8a]">Recently left</p>
+                                <p className="text-xs font-medium text-[#8f8278]">Recently left</p>
                                 <ul className="mt-2 grid gap-2">
                                     {leftPlayers.map((player) => {
                                         const chosenFaction = factionChoiceByUser[player.user_id] ?? defaultFactionId;
                                         return (
                                             <li
                                                 key={player.user_id}
-                                                className="flex items-center gap-3 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm"
+                                                className="flex items-center gap-3 rounded-md border border-[#3f332d] bg-[#1b1512] px-3 py-2 text-sm"
                                             >
-                                                <span className="text-[#b3b3b3]">
+                                                <span className="text-[#a8917d]">
                                                     {player.leetcode_username ?? `User #${player.user_id}`}
                                                 </span>
                                                 {lobbyInfo?.faction_mode && factions.length > 0 && (
@@ -717,7 +717,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                                                                 title={`${faction.name} faction`}
                                                                 className={`h-4 w-4 rounded-full transition ${
                                                                     chosenFaction === faction.id
-                                                                        ? 'ring-2 ring-white/80 ring-offset-1 ring-offset-[#1f1f1f]'
+                                                                        ? 'ring-2 ring-white/80 ring-offset-1 ring-offset-[#1b1512]'
                                                                         : 'opacity-50 hover:opacity-100'
                                                                 }`}
                                                                 style={{ backgroundColor: faction.color }}
@@ -729,7 +729,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                                                     type="button"
                                                     onClick={() => void handleInvitePlayer(player.user_id, chosenFaction)}
                                                     disabled={reinvitingUserId === player.user_id || !hasSlots}
-                                                    className="ml-auto rounded-md border border-[#c86f3c]/50 bg-[#c86f3c]/10 px-3 py-1 text-xs font-medium text-[#e8b691] transition hover:bg-[#c86f3c]/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                                    className="ml-auto rounded-md border border-[#e6a15d]/50 bg-[#e6a15d]/10 px-3 py-1 text-xs font-medium text-[#e8b691] transition hover:bg-[#e6a15d]/20 disabled:cursor-not-allowed disabled:opacity-50"
                                                 >
                                                     {reinvitingUserId === player.user_id ? 'Adding...' : 'Re-invite'}
                                                 </button>
@@ -741,16 +741,16 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                         )}
                         {invitableFriends.length > 0 && (
                             <div className="mt-3">
-                                <p className="text-xs font-medium text-[#8a8a8a]">Friends</p>
+                                <p className="text-xs font-medium text-[#8f8278]">Friends</p>
                                 <ul className="mt-2 grid gap-2">
                                     {invitableFriends.map((f) => {
                                         const chosenFaction = factionChoiceByUser[f.friend.id] ?? defaultFactionId;
                                         return (
                                             <li
                                                 key={f.friendship_id}
-                                                className="flex items-center gap-3 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm"
+                                                className="flex items-center gap-3 rounded-md border border-[#3f332d] bg-[#1b1512] px-3 py-2 text-sm"
                                             >
-                                                <span className="text-[#b3b3b3]">
+                                                <span className="text-[#a8917d]">
                                                     {f.friend.leetcode_username ?? `User #${f.friend.id}`}
                                                 </span>
                                                 {lobbyInfo?.faction_mode && factions.length > 0 && (
@@ -768,7 +768,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                                                                 title={`${faction.name} faction`}
                                                                 className={`h-4 w-4 rounded-full transition ${
                                                                     chosenFaction === faction.id
-                                                                        ? 'ring-2 ring-white/80 ring-offset-1 ring-offset-[#1f1f1f]'
+                                                                        ? 'ring-2 ring-white/80 ring-offset-1 ring-offset-[#1b1512]'
                                                                         : 'opacity-50 hover:opacity-100'
                                                                 }`}
                                                                 style={{ backgroundColor: faction.color }}
@@ -780,7 +780,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                                                     type="button"
                                                     onClick={() => void handleInvitePlayer(f.friend.id, chosenFaction)}
                                                     disabled={reinvitingUserId === f.friend.id || !hasSlots}
-                                                    className="ml-auto rounded-md border border-[#c86f3c]/50 bg-[#c86f3c]/10 px-3 py-1 text-xs font-medium text-[#e8b691] transition hover:bg-[#c86f3c]/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                                    className="ml-auto rounded-md border border-[#e6a15d]/50 bg-[#e6a15d]/10 px-3 py-1 text-xs font-medium text-[#e8b691] transition hover:bg-[#e6a15d]/20 disabled:cursor-not-allowed disabled:opacity-50"
                                                 >
                                                     {reinvitingUserId === f.friend.id ? 'Adding...' : 'Add'}
                                                 </button>
@@ -791,25 +791,25 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                             </div>
                         )}
                         {leftPlayers.length === 0 && invitableFriends.length === 0 && (
-                            <p className="mt-3 text-sm text-[#8a8a8a]">No one to add right now.</p>
+                            <p className="mt-3 text-sm text-[#8f8278]">No one to add right now.</p>
                         )}
                     </section>
                 )}
 
                 {gameStatus === 'finished' && (
-                    <section className="mt-6 rounded-lg border border-[#c86f3c]/40 bg-[#c86f3c]/10 px-4 py-4 text-center shadow-xl shadow-black/20">
-                        <p className="text-xl font-semibold text-[#c86f3c]">
+                    <section className="mt-6 rounded-lg border border-[#e6a15d]/40 bg-[#e6a15d]/10 px-4 py-4 text-center shadow-xl shadow-black/20">
+                        <p className="text-xl font-semibold text-[#e6a15d]">
                             {winner?.label
                                 ? winner.winner_user_id === currentUserId
                                     ? '🏆 You win!'
                                     : `🏆 ${winner.label} wins!`
                                 : "It's a draw"}
                         </p>
-                        <p className="mt-1 text-sm text-[#b3b3b3]">Game over — the map is frozen.</p>
+                        <p className="mt-1 text-sm text-[#a8917d]">Game over — the map is frozen.</p>
                     </section>
                 )}
 
-                <section className="mt-6 rounded-lg border border-[#3a3a3a] bg-[#262626] p-4 shadow-xl shadow-black/20">
+                <section className="mt-6 rounded-lg border border-[#3f332d] bg-[#211a16] p-4 shadow-xl shadow-black/20">
                     <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
                         {scoreRows.map((row) => {
                             return (
@@ -822,13 +822,13 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                                         {row.count}/{totalCount}
                                     </span>
                                     <span
-                                        className="text-xs font-semibold tabular-nums text-[#c86f3c]"
+                                        className="text-xs font-semibold tabular-nums text-[#e6a15d]"
                                         title={row.breakdown}
                                     >
                                         <AnimatedNumber value={row.points} /> pts
                                     </span>
                                     {row.regionControlPoints > 0 && (
-                                        <span className="rounded-full bg-[#c86f3c]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#e8b691]" title={`Holding whole regions: +${row.regionControlPoints}`}>
+                                        <span className="rounded-full bg-[#e6a15d]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#e8b691]" title={`Holding whole regions: +${row.regionControlPoints}`}>
                                             👑
                                         </span>
                                     )}
@@ -867,24 +867,24 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                         const myPoints = myRow?.points ?? 0;
                         const progress = Math.min(100, (leaderPoints / winTarget) * 100);
                         return (
-                            <div className="mt-3 border-t border-[#2a2a2a] pt-2.5">
+                            <div className="mt-3 border-t border-[#24201c] pt-2.5">
                                 <div className="flex items-center justify-between text-xs">
                                     <span className="font-semibold text-[#e8b691]">
                                         🏆 Win at {winTarget} pts
                                     </span>
                                     {leader && (
-                                        <span className="text-[#8a8a8a]">
-                                            {leader.label}: <span className="tabular-nums text-[#c86f3c]">{leaderPoints}</span>
+                                        <span className="text-[#8f8278]">
+                                            {leader.label}: <span className="tabular-nums text-[#e6a15d]">{leaderPoints}</span>
                                         </span>
                                     )}
                                 </div>
                                 <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[#333]">
                                     <div
-                                        className="h-full rounded-full bg-gradient-to-r from-[#c86f3c]/60 to-[#c86f3c] transition-all duration-500"
+                                        className="h-full rounded-full bg-gradient-to-r from-[#e6a15d]/60 to-[#e6a15d] transition-all duration-500"
                                         style={{ width: `${progress}%` }}
                                     />
                                 </div>
-                                <p className="mt-1 text-[11px] text-[#8a8a8a]">
+                                <p className="mt-1 text-[11px] text-[#8f8278]">
                                     {myRow
                                         ? myPoints >= winTarget
                                             ? "You reached the target!"
@@ -897,9 +897,9 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                 </section>
 
                 <div className="mt-6 flex items-stretch gap-6">
-                    <section className="relative min-w-0 flex-1 overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#262626] p-4 shadow-xl shadow-black/20 transition hover:border-[#00d9ff]/25 hover:shadow-[0_0_35px_-8px_rgba(0,217,255,0.2)]">
+                    <section className="relative min-w-0 flex-1 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16] p-4 shadow-xl shadow-black/20 transition hover:border-[#00d9ff]/25 hover:shadow-[0_0_35px_-8px_rgba(0,217,255,0.2)]">
                         {loading ? (
-                            <div className="flex items-center justify-center py-20 text-[#8a8a8a]">Loading map...</div>
+                            <div className="flex items-center justify-center py-20 text-[#8f8278]">Loading map...</div>
                         ) : (
                             <div className="flex items-start justify-center gap-3">
                                 <MapLegend
@@ -919,7 +919,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                                     />
 
                                     {armedPowerup && (
-                                        <div className="pointer-events-none absolute left-1/2 top-3 z-30 w-max max-w-[calc(100%_-_1rem)] -translate-x-1/2 rounded-full border border-[#c86f3c]/50 bg-[#1f1f1f]/95 px-3 py-1.5 text-center text-xs font-medium text-[#e8b691]">
+                                        <div className="pointer-events-none absolute left-1/2 top-3 z-30 w-max max-w-[calc(100%_-_1rem)] -translate-x-1/2 rounded-full border border-[#e6a15d]/50 bg-[#1b1512]/95 px-3 py-1.5 text-center text-xs font-medium text-[#e8b691]">
                                             Select a province to use{" "}
                                             {armedPowerup === 'reroll'
                                                 ? 'Reroll'
@@ -966,8 +966,8 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                         )}
 
                         {factions.length > 0 && (
-                            <div className="mt-4 border-t border-[#2a2a2a] pt-2.5">
-                                <p className="text-xs font-medium text-[#8a8a8a]">
+                            <div className="mt-4 border-t border-[#24201c] pt-2.5">
+                                <p className="text-xs font-medium text-[#8f8278]">
                                     Teams · {players.length} players
                                 </p>
                                 <div className="mt-2 flex flex-wrap items-start gap-2">
@@ -986,7 +986,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                                                 <span className="shrink-0 text-xs font-semibold" style={{ color: faction.color }}>
                                                     {faction.name}
                                                 </span>
-                                                <span className="truncate text-xs text-[#d7d7d7]">
+                                                <span className="truncate text-xs text-[#d9c5ad]">
                                                     {members.length === 0
                                                         ? '—'
                                                         : members

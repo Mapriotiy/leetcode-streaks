@@ -318,7 +318,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
     if (loading) {
         return (
             <main className="min-h-screen bg-transparent p-4 text-white sm:p-6">
-                <div className="mx-auto max-w-2xl pt-20 text-center text-[#8a8a8a]">Loading lobby...</div>
+                <div className="mx-auto max-w-2xl pt-20 text-center text-[#8f8278]">Loading lobby...</div>
             </main>
         );
     }
@@ -326,7 +326,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
     if (!lobby) {
         return (
             <main className="min-h-screen bg-transparent p-4 text-white sm:p-6">
-                <div className="mx-auto max-w-2xl pt-20 text-center text-[#8a8a8a]">Lobby not found</div>
+                <div className="mx-auto max-w-2xl pt-20 text-center text-[#8f8278]">Lobby not found</div>
             </main>
         );
     }
@@ -380,13 +380,13 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                     <button
                         type="button"
                         onClick={onBack}
-                        className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
+                        className="grid h-10 w-10 place-items-center rounded-md border border-[#3f332d] bg-[#211a16] text-[#a8917d] transition hover:border-[#e6a15d]/60 hover:text-[#e6a15d]"
                     >
                         <ArrowLeft size={20} />
                     </button>
                     <div>
                         <h1 className="text-2xl font-semibold tracking-tight">{lobby.name}</h1>
-                        <p className="mt-1 text-sm text-[#8a8a8a]">
+                        <p className="mt-1 text-sm text-[#8f8278]">
                             {MODE_LABELS[lobby.game_mode] ?? lobby.game_mode}
                             {isActive ? ' — Game in progress' : ' — Waiting for players'}
                         </p>
@@ -394,18 +394,18 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                 </header>
 
                 {inviteUrl && (
-                    <section className="mt-6 rounded-lg border border-[#3a3a3a] bg-[#262626] p-4">
-                        <p className="text-xs font-medium text-[#8a8a8a] mb-2">Invite Link</p>
+                    <section className="mt-6 rounded-lg border border-[#3f332d] bg-[#211a16] p-4">
+                        <p className="text-xs font-medium text-[#8f8278] mb-2">Invite Link</p>
                         <div className="flex items-center gap-2">
                             <input
                                 value={inviteUrl}
                                 readOnly
-                                className="min-w-0 flex-1 rounded-md border border-[#3a3a3a] bg-[#1a1a1a] px-3 py-2 text-sm text-white"
+                                className="min-w-0 flex-1 rounded-md border border-[#3f332d] bg-[#1a1a1a] px-3 py-2 text-sm text-white"
                             />
                             <button
                                 type="button"
                                 onClick={handleCopy}
-                                className="rounded-md border border-[#3a3a3a] bg-[#333] px-3 py-2 text-sm text-[#d7d7d7] transition hover:bg-[#3d3d3d]"
+                                className="rounded-md border border-[#3f332d] bg-[#333] px-3 py-2 text-sm text-[#d9c5ad] transition hover:bg-[#2b211c]"
                             >
                                 {copied ? 'Copied!' : <Copy size={16} />}
                             </button>
@@ -413,27 +413,27 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                     </section>
                 )}
 
-                <section className="mt-6 rounded-lg border border-[#3a3a3a] bg-[#262626] p-6">
-                    <h2 className="text-sm font-semibold text-[#d7d7d7]">Settings</h2>
+                <section className="mt-6 rounded-lg border border-[#3f332d] bg-[#211a16] p-6">
+                    <h2 className="text-sm font-semibold text-[#d9c5ad]">Settings</h2>
                     <div className="mt-3 grid gap-3 sm:grid-cols-4">
-                        <div className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm">
-                            <span className="text-[#8a8a8a]">Mode</span>
-                            <p className="text-[#eff1f6]">{MODE_LABELS[lobby.game_mode] ?? lobby.game_mode}</p>
+                        <div className="rounded-md border border-[#3f332d] bg-[#1b1512] px-3 py-2 text-sm">
+                            <span className="text-[#8f8278]">Mode</span>
+                            <p className="text-[#f4e7d8]">{MODE_LABELS[lobby.game_mode] ?? lobby.game_mode}</p>
                         </div>
-                        <div className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm">
-                            <span className="text-[#8a8a8a]">Language</span>
-                            <p className="text-[#eff1f6]">{LANGUAGE_LABELS[lobby.programming_language] ?? lobby.programming_language}</p>
+                        <div className="rounded-md border border-[#3f332d] bg-[#1b1512] px-3 py-2 text-sm">
+                            <span className="text-[#8f8278]">Language</span>
+                            <p className="text-[#f4e7d8]">{LANGUAGE_LABELS[lobby.programming_language] ?? lobby.programming_language}</p>
                         </div>
-                        <div className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm">
-                            <span className="text-[#8a8a8a]">Map</span>
+                        <div className="rounded-md border border-[#3f332d] bg-[#1b1512] px-3 py-2 text-sm">
+                            <span className="text-[#8f8278]">Map</span>
                             <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                <p className="min-w-0 truncate text-[#eff1f6]">{mapLabel}</p>
+                                <p className="min-w-0 truncate text-[#f4e7d8]">{mapLabel}</p>
                                 {isCreator && !isActive ? (
                                     <button
                                         type="button"
                                         onClick={() => setIsMapChooserOpen(true)}
                                         disabled={isSavingMapSelection}
-                                        className="inline-flex h-9 w-full shrink-0 items-center justify-center gap-2 rounded-md border border-white/10 bg-[#262626] px-3 text-xs font-semibold text-[#d7d7d7] transition hover:border-[#c86f3c]/60 hover:text-white disabled:cursor-not-allowed disabled:text-[#777] sm:h-7 sm:w-7 sm:px-0"
+                                        className="inline-flex h-9 w-full shrink-0 items-center justify-center gap-2 rounded-md border border-white/10 bg-[#211a16] px-3 text-xs font-semibold text-[#d9c5ad] transition hover:border-[#e6a15d]/60 hover:text-white disabled:cursor-not-allowed disabled:text-[#777] sm:h-7 sm:w-7 sm:px-0"
                                         aria-label="Choose map"
                                     >
                                         <MapIcon size={14} />
@@ -444,11 +444,11 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                                 ) : null}
                             </div>
                         </div>
-                        <div className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm">
-                            <span className="text-[#8a8a8a]">
+                        <div className="rounded-md border border-[#3f332d] bg-[#1b1512] px-3 py-2 text-sm">
+                            <span className="text-[#8f8278]">
                                 {lobby.faction_mode ? 'Factions' : 'Players'}
                             </span>
-                            <p className="text-[#eff1f6]">
+                            <p className="text-[#f4e7d8]">
                                 {lobby.faction_mode ? lobby.faction_count : `${playerCount}/${lobby.max_players}`}
                             </p>
                         </div>
@@ -460,16 +460,16 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                     ) : null}
                 </section>
 
-                <section className="mt-6 rounded-lg border border-[#3a3a3a] bg-[#262626] p-6">
+                <section className="mt-6 rounded-lg border border-[#3f332d] bg-[#211a16] p-6">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-sm font-semibold text-[#d7d7d7]">
+                        <h2 className="text-sm font-semibold text-[#d9c5ad]">
                             {lobby.faction_mode ? `Players (${playerCount})` : `Players (${playerCount}/${lobby.max_players})`}
                         </h2>
                         {inLobby && !isActive && availableFriends.length > 0 && (
                             <button
                                 type="button"
                                 onClick={() => setShowFriends(!showFriends)}
-                                className="flex items-center gap-1 text-xs text-[#c86f3c] hover:text-[#d9823f]"
+                                className="flex items-center gap-1 text-xs text-[#e6a15d] hover:text-[#d87a38]"
                             >
                                 <Plus size={14} />
                                 Add Friends
@@ -478,17 +478,17 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                     </div>
 
                     {showFriends && availableFriends.length > 0 && (
-                        <div className="mt-3 mb-3 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] divide-y divide-[#3a3a3a]">
+                        <div className="mt-3 mb-3 rounded-md border border-[#3f332d] bg-[#1b1512] divide-y divide-[#3f332d]">
                             {availableFriends.map((f) => (
                                 <button
                                     key={f.friendship_id}
                                     type="button"
                                     onClick={() => handleInviteFriend(f.friend.id)}
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#eff1f6] hover:bg-[#2a2a2a]"
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#f4e7d8] hover:bg-[#24201c]"
                                 >
-                                    <UserPlus size={14} className="text-[#8a8a8a]" />
+                                    <UserPlus size={14} className="text-[#8f8278]" />
                                     {f.friend.leetcode_username ?? `User #${f.friend.id}`}
-                                    <span className="ml-auto text-xs text-[#c86f3c]">Invite</span>
+                                    <span className="ml-auto text-xs text-[#e6a15d]">Invite</span>
                                 </button>
                             ))}
                         </div>
@@ -510,10 +510,10 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                                             void handleAssignFaction(draggingPlayerId, faction.id);
                                             setDraggingPlayerId(null);
                                         }}
-                                        className={`rounded-md border bg-[#1f1f1f] p-3 transition ${
+                                        className={`rounded-md border bg-[#1b1512] p-3 transition ${
                                             draggingPlayerId
-                                                ? 'border-[#c86f3c]/60 bg-[#2a2418]'
-                                                : 'border-[#3a3a3a]'
+                                                ? 'border-[#e6a15d]/60 bg-[#2a2418]'
+                                                : 'border-[#3f332d]'
                                         }`}
                                     >
                                         <div className="mb-2 flex items-center gap-2">
@@ -532,7 +532,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                                                                 void handleUpdateFaction({ ...faction, color: nextColor });
                                                             }}
                                                             aria-label={`${faction.name} color`}
-                                                            className="h-8 w-28 rounded-md border border-[#3a3a3a] bg-[#171717] pl-7 pr-2 text-xs text-[#d7d7d7] outline-none focus:border-[#c86f3c]/70"
+                                                            className="h-8 w-28 rounded-md border border-[#3f332d] bg-[#191410] pl-7 pr-2 text-xs text-[#d9c5ad] outline-none focus:border-[#e6a15d]/70"
                                                         >
                                                             {FACTION_PALETTE.map((option) => (
                                                                 <option key={option.color} value={option.color}>
@@ -545,7 +545,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                                                         value={faction.name}
                                                         onChange={(event) => patchFactionLocally(faction.id, { name: event.target.value })}
                                                         onBlur={(event) => handleUpdateFaction({ ...faction, name: event.currentTarget.value })}
-                                                        className="min-w-0 flex-1 rounded-md border border-[#3a3a3a] bg-[#171717] px-2 py-1.5 text-xs font-medium text-white outline-none focus:border-[#c86f3c]/70"
+                                                        className="min-w-0 flex-1 rounded-md border border-[#3f332d] bg-[#191410] px-2 py-1.5 text-xs font-medium text-white outline-none focus:border-[#e6a15d]/70"
                                                     />
                                                 </>
                                             ) : (
@@ -557,7 +557,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                                                 </>
                                             )}
                                             {savingFactionId === faction.id && (
-                                                <span className="ml-auto text-[11px] text-[#8a8a8a]">Saving</span>
+                                                <span className="ml-auto text-[11px] text-[#8f8278]">Saving</span>
                                             )}
                                         </div>
                                         {members.map((player) => (
@@ -568,16 +568,16 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                                                 onDragEnd={() => setDraggingPlayerId(null)}
                                                 className={`flex items-center gap-2 rounded px-1 py-1 text-sm transition ${
                                                     isCreator && !isActive
-                                                        ? 'cursor-grab hover:bg-[#2a2a2a] active:cursor-grabbing'
+                                                        ? 'cursor-grab hover:bg-[#24201c] active:cursor-grabbing'
                                                         : ''
                                                 }`}
                                             >
                                                 <UserCheck size={14} style={{ color: faction.color }} />
-                                                <span className="text-[#eff1f6]">
+                                                <span className="text-[#f4e7d8]">
                                                     {player.leetcode_username ?? 'Unverified'}
                                                 </span>
                                                 {player.user_id === lobby.creator_id && (
-                                                    <span className="ml-auto text-xs text-[#c86f3c]">Host</span>
+                                                    <span className="ml-auto text-xs text-[#e6a15d]">Host</span>
                                                 )}
                                             </div>
                                         ))}
@@ -598,15 +598,15 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                                 return (
                                     <li
                                         key={player.user_id}
-                                        className="flex items-center gap-3 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] px-3 py-2 text-sm"
+                                        className="flex items-center gap-3 rounded-md border border-[#3f332d] bg-[#1b1512] px-3 py-2 text-sm"
                                     >
                                         <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-                                        <UserCheck size={16} className="text-[#c86f3c]" />
-                                        <span className="text-[#eff1f6]">
+                                        <UserCheck size={16} className="text-[#e6a15d]" />
+                                        <span className="text-[#f4e7d8]">
                                             {player.leetcode_username ?? 'Unverified'}
                                         </span>
                                         {player.user_id === lobby.creator_id && (
-                                            <span className="text-xs text-[#c86f3c] ml-auto">Host</span>
+                                            <span className="text-xs text-[#e6a15d] ml-auto">Host</span>
                                         )}
                                     </li>
                                 );
@@ -619,27 +619,27 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                         </p>
                     )}
                     {(lobby.left_players?.length ?? 0) > 0 && (
-                        <div className="mt-4 rounded-md border border-[#3a3a3a] bg-[#1f1f1f] p-3">
-                            <p className="text-xs font-medium text-[#8a8a8a]">
+                        <div className="mt-4 rounded-md border border-[#3f332d] bg-[#1b1512] p-3">
+                            <p className="text-xs font-medium text-[#8f8278]">
                                 Recently left ({lobby.left_players.length})
                             </p>
                             <ul className="mt-2 grid gap-2">
                                 {lobby.left_players.map((player) => (
                                     <li
                                         key={player.user_id}
-                                        className="flex items-center gap-3 rounded-md border border-[#3a3a3a] bg-[#171717] px-3 py-2 text-sm"
+                                        className="flex items-center gap-3 rounded-md border border-[#3f332d] bg-[#191410] px-3 py-2 text-sm"
                                     >
-                                        <span className="grid h-7 w-7 place-items-center rounded-full border border-[#444] text-xs text-[#8a8a8a]">
+                                        <span className="grid h-7 w-7 place-items-center rounded-full border border-[#444] text-xs text-[#8f8278]">
                                             <UserPlus size={13} />
                                         </span>
-                                        <span className="text-[#b3b3b3]">
+                                        <span className="text-[#a8917d]">
                                             {player.leetcode_username ?? `User #${player.user_id}`}
                                         </span>
                                         <button
                                             type="button"
                                             onClick={() => void handleInviteFriend(player.user_id)}
                                             disabled={reinvitingUserId === player.user_id || isActive}
-                                            className="ml-auto rounded-md border border-[#c86f3c]/50 bg-[#c86f3c]/10 px-3 py-1 text-xs font-medium text-[#e8b691] transition hover:bg-[#c86f3c]/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                            className="ml-auto rounded-md border border-[#e6a15d]/50 bg-[#e6a15d]/10 px-3 py-1 text-xs font-medium text-[#e8b691] transition hover:bg-[#e6a15d]/20 disabled:cursor-not-allowed disabled:opacity-50"
                                         >
                                             {reinvitingUserId === player.user_id ? 'Inviting...' : 'Re-invite'}
                                         </button>
@@ -656,7 +656,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                             type="button"
                             onClick={() => setConfirmLeave(true)}
                             disabled={isLeaving}
-                            className="rounded-md border border-[#3a3a3a] bg-[#262626] px-4 py-2.5 text-sm font-medium text-[#d7d7d7] transition hover:border-red-400/60 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:border-[#3a3a3a] disabled:bg-[#262626] disabled:text-[#777]"
+                            className="rounded-md border border-[#3f332d] bg-[#211a16] px-4 py-2.5 text-sm font-medium text-[#d9c5ad] transition hover:border-red-400/60 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:border-[#3f332d] disabled:bg-[#211a16] disabled:text-[#777]"
                         >
                             <LogOut size={16} className="inline-block mr-2" />
                             {isLeaving ? 'Leaving...' : 'Leave Lobby'}
@@ -678,7 +678,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                             type="button"
                             onClick={handleStart}
                             disabled={isStarting}
-                            className="flex-1 rounded-md bg-[#c86f3c] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#d9823f] disabled:cursor-not-allowed disabled:bg-[#3a3a3a] disabled:text-[#777]"
+                            className="flex-1 rounded-md bg-[#e6a15d] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#d87a38] disabled:cursor-not-allowed disabled:bg-[#3f332d] disabled:text-[#777]"
                         >
                             <Gamepad2 size={16} className="inline-block mr-2" />
                             {isStarting
@@ -687,7 +687,7 @@ export function LobbyPage({ lobbyId, currentUserId, currentUserVerified, onBack,
                         </button>
                     )}
                     {isCreator && !isActive && canStartBlockReason ? (
-                        <p className="mt-3 rounded-md border border-[#3a3a3a] bg-[#262626] px-3 py-2 text-xs text-[#b3b3b3]">
+                        <p className="mt-3 rounded-md border border-[#3f332d] bg-[#211a16] px-3 py-2 text-xs text-[#a8917d]">
                             {canStartBlockReason}
                         </p>
                     ) : null}

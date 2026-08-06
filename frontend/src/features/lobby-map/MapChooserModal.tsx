@@ -28,8 +28,8 @@ function normalizeTopicIds(topics: LobbyMapTopic[], selected: readonly string[])
 function catalogCardClass(active: boolean) {
     return `flex w-full items-center gap-3 rounded-md border px-3 py-3 text-left transition ${
         active
-            ? "border-[#c86f3c] bg-[#2a2418]"
-            : "border-white/10 bg-[#242424] hover:border-[#c86f3c]/60"
+            ? "border-[#e6a15d] bg-[#2a2418]"
+            : "border-white/10 bg-[#242424] hover:border-[#e6a15d]/60"
     }`;
 }
 
@@ -215,7 +215,7 @@ export function MapChooserModal({
     return (
         <div className="fixed inset-0 z-50 bg-black/70 p-2 text-white sm:p-4" onMouseDown={onClose}>
             <div
-                className="mx-auto flex h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#202020] shadow-2xl sm:h-[92vh]"
+                className="mx-auto flex h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-lg border border-[#3f332d] bg-[#202020] shadow-2xl sm:h-[92vh]"
                 onMouseDown={(event) => event.stopPropagation()}
             >
                 <header className="flex items-center justify-between border-b border-white/10 px-3 py-2 sm:px-4 sm:py-3">
@@ -226,7 +226,7 @@ export function MapChooserModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="grid h-9 w-9 place-items-center rounded-md border border-white/10 bg-[#2a2a2a] text-[#bdbdbd] transition hover:border-[#c86f3c]/60 hover:text-white"
+                        className="grid h-9 w-9 place-items-center rounded-md border border-white/10 bg-[#24201c] text-[#bdbdbd] transition hover:border-[#e6a15d]/60 hover:text-white"
                     >
                         <X size={18} />
                     </button>
@@ -242,8 +242,8 @@ export function MapChooserModal({
                                     onClick={() => setTab(nextTab)}
                                     className={`h-9 rounded-md border text-sm font-medium ${
                                         tab === nextTab
-                                            ? "border-[#c86f3c] bg-[#c86f3c] text-[#171717]"
-                                            : "border-white/10 bg-[#262626] text-[#d7d7d7] hover:border-[#c86f3c]/60"
+                                            ? "border-[#e6a15d] bg-[#e6a15d] text-[#191410]"
+                                            : "border-white/10 bg-[#211a16] text-[#d9c5ad] hover:border-[#e6a15d]/60"
                                     }`}
                                 >
                                     {nextTab === "catalog" ? "Catalog" : "Custom"}
@@ -258,14 +258,14 @@ export function MapChooserModal({
                                     onClick={() => setCatalogPreview({ kind: "default" })}
                                     className={catalogCardClass(catalogPreview.kind === "default")}
                                 >
-                                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-[#c86f3c]/15 text-[#c86f3c]">
+                                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-[#e6a15d]/15 text-[#e6a15d]">
                                         <MapIcon size={18} />
                                     </span>
                                     <span className="min-w-0 flex-1">
                                         <span className="block text-sm font-semibold text-white">Default Map</span>
                                         <span className="mt-0.5 block text-xs text-[#9a9a9a]">Current production layout</span>
                                     </span>
-                                    {isDefaultCurrent ? <Check size={16} className="shrink-0 text-[#c86f3c]" /> : null}
+                                    {isDefaultCurrent ? <Check size={16} className="shrink-0 text-[#e6a15d]" /> : null}
                                 </button>
 
                                 {presets.length === 0 ? (
@@ -282,7 +282,7 @@ export function MapChooserModal({
                                                     catalogPreview.kind === "preset" && catalogPreview.preset.id === preset.id,
                                                 )}
                                             >
-                                                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white/5 text-[#c86f3c]">
+                                                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white/5 text-[#e6a15d]">
                                                     <Bookmark size={16} />
                                                 </span>
                                                 <span className="min-w-0 flex-1">
@@ -291,13 +291,13 @@ export function MapChooserModal({
                                                         {MAP_SIZE_CONFIG[preset.draft.size].label} · {preset.draft.provinceCount} provinces
                                                     </span>
                                                 </span>
-                                                {isPresetCurrent(preset) ? <Check size={16} className="shrink-0 text-[#c86f3c]" /> : null}
+                                                {isPresetCurrent(preset) ? <Check size={16} className="shrink-0 text-[#e6a15d]" /> : null}
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={() => removePreset(preset)}
                                                 aria-label={`Delete preset ${preset.name}`}
-                                                className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-white/10 bg-[#242424] text-[#8a8a8a] transition hover:text-red-400"
+                                                className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-white/10 bg-[#242424] text-[#8f8278] transition hover:text-red-400"
                                             >
                                                 <Trash2 size={14} />
                                             </button>
@@ -323,8 +323,8 @@ export function MapChooserModal({
                                                     }}
                                                     className={`flex items-center justify-between rounded-md border px-3 py-2 text-left text-sm ${
                                                         active
-                                                            ? "border-[#c86f3c] bg-[#c86f3c]/12 text-white"
-                                                            : "border-white/10 bg-[#262626] text-[#d7d7d7] hover:border-[#c86f3c]/60"
+                                                            ? "border-[#e6a15d] bg-[#e6a15d]/12 text-white"
+                                                            : "border-white/10 bg-[#211a16] text-[#d9c5ad] hover:border-[#e6a15d]/60"
                                                     }`}
                                                 >
                                                     <span>{config.label}</span>
@@ -353,7 +353,7 @@ export function MapChooserModal({
                                                 >
                                                     <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: topic.color }} />
                                                     <span className="min-w-0 flex-1">{topic.name}</span>
-                                                    {checked ? <Check size={15} className="text-[#c86f3c]" /> : null}
+                                                    {checked ? <Check size={15} className="text-[#e6a15d]" /> : null}
                                                 </button>
                                             );
                                         })}
@@ -377,7 +377,7 @@ export function MapChooserModal({
                                             <button
                                                 type="button"
                                                 onClick={() => editPresetInCustom(catalogPreview.preset)}
-                                                className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-white/10 bg-[#2a2a2a] px-2 text-xs text-[#d7d7d7] transition hover:border-[#c86f3c]/60 sm:gap-2 sm:px-3 sm:text-sm"
+                                                className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-white/10 bg-[#24201c] px-2 text-xs text-[#d9c5ad] transition hover:border-[#e6a15d]/60 sm:gap-2 sm:px-3 sm:text-sm"
                                             >
                                                 <Pencil size={15} />
                                                 <span className="hidden sm:inline">Customize</span>
@@ -387,7 +387,7 @@ export function MapChooserModal({
                                             type="button"
                                             onClick={chooseCatalogPreview}
                                             disabled={isApplying}
-                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-[#c86f3c] bg-[#c86f3c] px-2 text-xs font-semibold text-[#171717] disabled:cursor-not-allowed disabled:border-[#5f4a25] disabled:bg-[#5f4a25] disabled:text-[#a0a0a0] sm:gap-2 sm:px-3 sm:text-sm"
+                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-[#e6a15d] bg-[#e6a15d] px-2 text-xs font-semibold text-[#191410] disabled:cursor-not-allowed disabled:border-[#5f4a25] disabled:bg-[#5f4a25] disabled:text-[#a0a0a0] sm:gap-2 sm:px-3 sm:text-sm"
                                         >
                                             <Check size={15} />
                                             {isApplying ? "Saving..." : "Use This Map"}
@@ -424,7 +424,7 @@ export function MapChooserModal({
                                             type="button"
                                             onClick={applyTopicsOnly}
                                             disabled={isGenerating || selectedTopics.length === 0}
-                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-white/10 bg-[#2a2a2a] px-2 text-xs text-[#d7d7d7] transition hover:border-[#c86f3c]/60 disabled:cursor-not-allowed disabled:text-[#777] sm:gap-2 sm:px-3 sm:text-sm"
+                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-white/10 bg-[#24201c] px-2 text-xs text-[#d9c5ad] transition hover:border-[#e6a15d]/60 disabled:cursor-not-allowed disabled:text-[#777] sm:gap-2 sm:px-3 sm:text-sm"
                                         >
                                             <RotateCcw size={15} />
                                             <span className="hidden sm:inline">Apply Topics</span>
@@ -434,7 +434,7 @@ export function MapChooserModal({
                                             type="button"
                                             onClick={() => generateNextDraft()}
                                             disabled={isGenerating || selectedTopics.length === 0}
-                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-white/10 bg-[#2a2a2a] px-2 text-xs text-[#d7d7d7] transition hover:border-[#c86f3c]/60 disabled:cursor-not-allowed disabled:text-[#777] sm:gap-2 sm:px-3 sm:text-sm"
+                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-white/10 bg-[#24201c] px-2 text-xs text-[#d9c5ad] transition hover:border-[#e6a15d]/60 disabled:cursor-not-allowed disabled:text-[#777] sm:gap-2 sm:px-3 sm:text-sm"
                                         >
                                             <Shuffle size={15} />
                                             {isGenerating ? "Generating..." : "Reroll"}
@@ -443,7 +443,7 @@ export function MapChooserModal({
                                             type="button"
                                             onClick={saveCurrentAsPreset}
                                             disabled={!draft || isGenerating || isSavingPreset}
-                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-white/10 bg-[#2a2a2a] px-2 text-xs text-[#d7d7d7] transition hover:border-[#c86f3c]/60 disabled:cursor-not-allowed disabled:text-[#777] sm:gap-2 sm:px-3 sm:text-sm"
+                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-white/10 bg-[#24201c] px-2 text-xs text-[#d9c5ad] transition hover:border-[#e6a15d]/60 disabled:cursor-not-allowed disabled:text-[#777] sm:gap-2 sm:px-3 sm:text-sm"
                                         >
                                             <Bookmark size={15} />
                                             <span className="hidden sm:inline">{isSavingPreset ? "Saving..." : "Save preset"}</span>
@@ -453,7 +453,7 @@ export function MapChooserModal({
                                             type="button"
                                             onClick={chooseGenerated}
                                             disabled={!draft || isGenerating || isApplying}
-                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-[#c86f3c] bg-[#c86f3c] px-2 text-xs font-semibold text-[#171717] disabled:cursor-not-allowed disabled:border-[#5f4a25] disabled:bg-[#5f4a25] disabled:text-[#a0a0a0] sm:gap-2 sm:px-3 sm:text-sm"
+                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-[#e6a15d] bg-[#e6a15d] px-2 text-xs font-semibold text-[#191410] disabled:cursor-not-allowed disabled:border-[#5f4a25] disabled:bg-[#5f4a25] disabled:text-[#a0a0a0] sm:gap-2 sm:px-3 sm:text-sm"
                                         >
                                             <Check size={15} />
                                             {isApplying ? "Saving..." : "Use Map"}
@@ -476,7 +476,7 @@ export function MapChooserModal({
                                         type="button"
                                         onClick={() => generateNextDraft()}
                                         disabled={isGenerating || selectedTopics.length === 0}
-                                        className="flex min-h-[17.5rem] flex-1 items-center justify-center rounded-lg border border-dashed border-white/15 bg-[#191919] text-sm font-medium text-[#bdbdbd] transition hover:border-[#c86f3c]/60 hover:text-white disabled:cursor-not-allowed disabled:text-[#777] md:min-h-[26.25rem]"
+                                        className="flex min-h-[17.5rem] flex-1 items-center justify-center rounded-lg border border-dashed border-white/15 bg-[#191919] text-sm font-medium text-[#bdbdbd] transition hover:border-[#e6a15d]/60 hover:text-white disabled:cursor-not-allowed disabled:text-[#777] md:min-h-[26.25rem]"
                                     >
                                         {isGenerating ? "Generating..." : "Generate Map"}
                                     </button>
