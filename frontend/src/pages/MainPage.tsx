@@ -517,7 +517,7 @@ export function MainPage() {
         { label: "Active days", value: String(dashboardData?.active_days_count ?? 0), icon: Swords, color: "#f1c58e" },
         { label: "Territories captured", value: String(dashboardData?.stats?.total_captures ?? 0), icon: Crown, color: "#d87a38" },
         { label: "Games played", value: String(dashboardData?.stats?.games_played ?? 0), icon: Gamepad2, color: "#e6a15d" },
-        { label: "Win rate", value: `${Math.round((dashboardData?.stats?.win_rate ?? 0) * 100)}%`, icon: Target, color: "#b86a3a" },
+        { label: "Win rate", value: `${Math.round(dashboardData?.stats?.win_rate ?? 0)}%`, icon: Target, color: "#b86a3a" },
     ];
     const isDashboardLoading = !dashboardData && !error;
 
