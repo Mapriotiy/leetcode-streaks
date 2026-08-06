@@ -266,7 +266,8 @@ def _render_draft(
         img = Image.alpha_composite(img, layer)
 
         # Provinces: region tint, overridden by capture (faction) color.
-        fill_layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        # Drawn in island-box coordinates, then pasted at the island's offset.
+        fill_layer = Image.new("RGBA", (box_w, box_h), (0, 0, 0, 0))
         fd = ImageDraw.Draw(fill_layer)
         for index, d in enumerate(path_ds):
             province = province_by_path.get(index)
@@ -278,7 +279,9 @@ def _render_draft(
             for pts in _transform(_sample_path(d), viewbox, box_w, box_h):
                 fd.polygon(pts, fill=rgb + (118,))
                 fd.line(pts + [pts[0]], fill=rgb + (235,), width=max(1, round(scale * 2)))
-        img = Image.alpha_composite(img, fill_layer)
+        layer2 = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        layer2.paste(fill_layer, (left, top), mask)
+        img = Image.alpha_composite(img, layer2)
 
     return img
 
