@@ -347,8 +347,8 @@ export function MapChooserModal({
                                                     onClick={() => toggleTopic(topic.id)}
                                                     className={`flex min-w-[150px] items-center gap-2 rounded-md border px-3 py-2 text-left text-sm transition md:w-full md:min-w-0 ${
                                                         checked
-                                                            ? "border-white/20 bg-[#2d2d2d] text-white"
-                                                            : "border-white/10 bg-[#24201c] text-[#8f8278] hover:border-white/20"
+                                                            ? "border-[#e6a15d]/50 bg-[#2b211c] text-white"
+                                                            : "border-white/10 bg-[#24201c] text-[#8f8278] hover:border-[#e6a15d]/40"
                                                     }`}
                                                 >
                                                     <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: topic.color }} />
