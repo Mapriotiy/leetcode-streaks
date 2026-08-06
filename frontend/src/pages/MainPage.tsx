@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
     Activity,
     Check,
+    ChevronDown,
     ChevronRight,
     Copy,
     Crown,
@@ -14,6 +15,7 @@ import {
     Swords,
     Target,
     Trophy,
+    UserCircle,
     UserPlus,
     Users,
 } from "lucide-react";
@@ -21,6 +23,7 @@ import { Logo } from "../components/Logo";
 import { apiRequest } from "../api/client";
 import { LobbyPage } from "./LobbyPage";
 import { LobbyGamePage } from "./LobbyGamePage";
+import { ProfilePage } from "./ProfilePage";
 import type { DashboardData, DashboardLobby, Faction, LobbyPlayer } from "../types/dashboard";
 
 const MAP_BG = `${import.meta.env.BASE_URL}maps/leet_background.webp`;
@@ -307,7 +310,7 @@ function MetricItem({
 }
 
 type NavState = {
-    screen: "lobby" | "game";
+    screen: "lobby" | "game" | "profile";
     lobbyId: number;
     players?: LobbyPlayer[];
     factions?: Faction[];
@@ -318,7 +321,7 @@ export function MainPage() {
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [screen, setScreen] = useState<"dashboard" | "lobby" | "game">("dashboard");
+    const [screen, setScreen] = useState<"dashboard" | "lobby" | "game" | "profile">("dashboard");
     const [activeLobbyId, setActiveLobbyId] = useState<number | null>(null);
     const [activePlayers, setActivePlayers] = useState<LobbyPlayer[]>([]);
     const [activeFactions, setActiveFactions] = useState<Faction[]>([]);
@@ -326,6 +329,18 @@ export function MainPage() {
     const [isCreatingInvite, setIsCreatingInvite] = useState(false);
     const [copyMessage, setCopyMessage] = useState<string | null>(null);
     const navDepthRef = useRef(0);
+    const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+    const profileMenuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const onClick = (event: MouseEvent) => {
+            if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+                setProfileMenuOpen(false);
+            }
+        };
+        document.addEventListener("click", onClick);
+        return () => document.removeEventListener("click", onClick);
+    }, []);
 
     useEffect(() => {
         apiRequest<User>("/auth/me")
@@ -342,7 +357,12 @@ export function MainPage() {
     }, [user]);
 
     const applyNavState = useCallback((state: NavState | null) => {
-        if (state && (state.screen === "lobby" || state.screen === "game")) {
+        if (state && state.screen === "profile") {
+            setScreen("profile");
+            setActiveLobbyId(null);
+            setActivePlayers([]);
+            setActiveFactions([]);
+        } else if (state && (state.screen === "lobby" || state.screen === "game")) {
             setScreen(state.screen);
             setActiveLobbyId(state.lobbyId);
             setActivePlayers(state.players ?? []);
@@ -399,6 +419,11 @@ export function MainPage() {
         },
         [pushNav],
     );
+
+    const openProfile = useCallback(() => {
+        setProfileMenuOpen(false);
+        pushNav({ screen: "profile", lobbyId: 0 });
+    }, [pushNav]);
 
     const handleLogout = useCallback(() => {
         localStorage.removeItem("accessToken");
@@ -484,7 +509,9 @@ export function MainPage() {
 
     let content: ReactNode;
 
-    if (screen === "game" && activeLobbyId != null) {
+    if (screen === "profile") {
+        content = <ProfilePage onBack={goDashboard} onLogout={handleLogout} />;
+    } else if (screen === "game" && activeLobbyId != null) {
         content = (
             <LobbyGamePage
                 lobbyId={activeLobbyId}
@@ -534,24 +561,52 @@ export function MainPage() {
                     </nav>
 
                     <div className="flex items-center gap-3">
-                        <button
-                            type="button"
-                            className="flex h-10 items-center gap-3 rounded-lg border border-[#3f332d] bg-[#24201c] px-3 text-sm font-bold text-[#f4e7d8] shadow-lg shadow-black/20"
-                        >
-                            <span className="relative h-7 w-7 rounded-full bg-[linear-gradient(135deg,#7b5b46,#d1a77f)]">
-                                <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full border border-[#24201c] bg-[#79a85e]" />
-                            </span>
-                            {user.leetcode_username ?? user.display_name ?? "Player"}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleLogout}
-                            className="grid h-10 w-10 place-items-center rounded-lg border border-[#3f332d] bg-[#24201c] text-[#d9c5ad]"
-                            aria-label="Log out"
-                            title="Log out"
-                        >
-                            <LogOut size={18} />
-                        </button>
+                        <div className="relative" ref={profileMenuRef}>
+                            <button
+                                type="button"
+                                onClick={() => setProfileMenuOpen((value) => !value)}
+                                className="group flex h-10 items-center gap-2.5 rounded-lg border border-[#3f332d] bg-[#24201c] px-3 text-sm font-bold text-[#f4e7d8] shadow-lg shadow-black/20 transition hover:border-[#7d4d32]"
+                            >
+                                <span className="grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-full border border-[#4c3a31] bg-[#33241b] text-[#d9c5ad]">
+                                    {user.avatar_url ? (
+                                        <img src={user.avatar_url} alt="" className="h-full w-full object-cover" />
+                                    ) : (
+                                        <UserCircle size={18} />
+                                    )}
+                                </span>
+                                <span className="hidden max-w-[10rem] truncate sm:block">
+                                    {user.leetcode_username ?? user.display_name ?? "Player"}
+                                </span>
+                                <ChevronDown
+                                    size={15}
+                                    className={`shrink-0 text-[#756354] transition ${profileMenuOpen ? "rotate-180" : ""}`}
+                                />
+                            </button>
+
+                            {profileMenuOpen ? (
+                                <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-lg border border-[#3f332d] bg-[#1e1812] py-1 shadow-2xl shadow-black/50">
+                                    <button
+                                        type="button"
+                                        onClick={openProfile}
+                                        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-[#f4e7d8] transition hover:bg-[#2b211c]"
+                                    >
+                                        <UserCircle size={15} />
+                                        View profile
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setProfileMenuOpen(false);
+                                            handleLogout();
+                                        }}
+                                        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-300 transition hover:bg-[#2b211c]"
+                                    >
+                                        <LogOut size={15} />
+                                        Logout
+                                    </button>
+                                </div>
+                            ) : null}
+                        </div>
                     </div>
                 </div>
             </header>
@@ -759,7 +814,6 @@ export function MainPage() {
     }
 
     const screenKey = screen === "dashboard" ? "dashboard" : `${screen}-${activeLobbyId ?? 0}`;
-
     return (
         <AnimatePresence mode="wait" initial={false}>
             <motion.div
