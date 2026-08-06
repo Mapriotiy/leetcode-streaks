@@ -616,7 +616,16 @@ export function MainPage() {
     useEffect(() => {
         const onPopState = (event: PopStateEvent) => {
             navDepthRef.current = Math.max(0, navDepthRef.current - 1);
-            applyNavState(event.state as NavState | null);
+            const state = event.state as NavState | null;
+            // Back/forward into a lobby or game must not show a stale or
+            // deleted lobby: verify it still exists before restoring.
+            if (state && (state.screen === "lobby" || state.screen === "game")) {
+                apiRequest(`/lobbies/${state.lobbyId}`)
+                    .then(() => applyNavState(state))
+                    .catch(() => applyNavState(null));
+                return;
+            }
+            applyNavState(state);
         };
         window.addEventListener("popstate", onPopState);
         return () => window.removeEventListener("popstate", onPopState);
