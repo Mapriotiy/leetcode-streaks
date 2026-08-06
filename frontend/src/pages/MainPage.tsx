@@ -235,13 +235,13 @@ function GameCard({
             </div>
 
             <div className="mt-2 grid grid-cols-[1fr_7.5rem] gap-3">
-                <div className="relative h-28 overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]">
+                <div className="relative aspect-[1321/900] w-full overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]">
                     <img
                         src={thumbnailUrl}
                         alt=""
                         loading="lazy"
                         decoding="async"
-                        className="h-full w-full object-contain"
+                        className="absolute inset-0 h-full w-full object-cover"
                     />
                 </div>
                 <div className="rounded-md border border-[#3f332d] bg-[#1b1512]/88 p-2 text-xs text-[#a8917d]">
