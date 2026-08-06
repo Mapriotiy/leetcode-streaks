@@ -296,13 +296,13 @@ def _render_draft(
                 base_rgb = _hex_rgb(capture_hex)
                 fill_rgb = _blend(base_rgb, (39, 35, 35), 0.46)
                 stroke_rgb = _blend(base_rgb, (58, 37, 40), 0.72)
-                fill_alpha = 205
+                fill_alpha = 85
                 stroke_alpha = 205
                 stroke_width = max(2, round(scale * 2.8))
             else:
                 fill_rgb = _blend(region_rgb, (36, 40, 39), 0.7)
                 stroke_rgb = _blend(region_rgb, (48, 51, 50), 0.82)
-                fill_alpha = 150
+                fill_alpha = 35
                 stroke_alpha = 185
                 stroke_width = max(1, round(scale * 1.2))
             for pts in _transform(_sample_path(d), viewbox, box_w, box_h):
