@@ -178,14 +178,16 @@ function MetricItem({ metric }: { metric: (typeof metrics)[number] }) {
     const Icon = metric.icon;
 
     return (
-        <div className="flex min-w-0 items-center gap-3 border-r border-[#3f332d] px-4 last:border-r-0">
-            <Icon size={22} style={{ color: metric.color }} />
-            <div>
+        <div className="flex min-w-0 items-center gap-2.5 px-1.5">
+            <Icon size={20} style={{ color: metric.color }} className="shrink-0" />
+            <div className="min-w-0">
                 <div className="flex items-baseline gap-2">
                     <strong className="text-lg text-[#f4e7d8]">{metric.value}</strong>
                     {metric.trend ? <span className="text-xs font-bold text-[#8fa66f]">{metric.trend}</span> : null}
                 </div>
-                <p className="mt-0.5 text-xs text-[#a8917d]">{metric.label}</p>
+                <p className="mt-0.5 truncate text-xs text-[#a8917d]" title={metric.label}>
+                    {metric.label}
+                </p>
             </div>
         </div>
     );
@@ -319,7 +321,7 @@ export function MainPage() {
                             ))}
                         </div>
 
-                        <div className="mt-2 grid h-14 grid-cols-4 rounded-lg border border-[#3f332d] bg-[#1b1512]/88 py-2">
+                        <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-3 rounded-lg border border-[#3f332d] bg-[#1b1512]/88 px-3 py-2.5 md:grid-cols-4">
                             {metrics.map((metric) => (
                                 <MetricItem key={metric.label} metric={metric} />
                             ))}
