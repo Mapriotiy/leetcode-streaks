@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
     Activity,
@@ -293,12 +294,19 @@ function FriendRow({
     onRemove: (friendshipId: number) => void;
 }) {
     const [menuOpen, setMenuOpen] = useState(false);
+    const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+    const rowRef = useRef<HTMLDivElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (!menuOpen) return;
         const onClick = (event: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+            if (
+                menuRef.current &&
+                rowRef.current &&
+                !menuRef.current.contains(event.target as Node) &&
+                !rowRef.current.contains(event.target as Node)
+            ) {
                 setMenuOpen(false);
             }
         };
@@ -306,11 +314,22 @@ function FriendRow({
         return () => document.removeEventListener("click", onClick);
     }, [menuOpen]);
 
+    const toggleMenu = () => {
+        if (!menuOpen && rowRef.current) {
+            const rect = rowRef.current.getBoundingClientRect();
+            setMenuPos({
+                top: rect.bottom + 4,
+                right: Math.max(8, window.innerWidth - rect.right),
+            });
+        }
+        setMenuOpen((value) => !value);
+    };
+
     return (
-        <div className="relative" ref={menuRef}>
+        <div className="relative" ref={rowRef}>
             <button
                 type="button"
-                onClick={() => setMenuOpen((value) => !value)}
+                onClick={toggleMenu}
                 className="flex w-full items-center justify-between gap-3 rounded-md border border-[#3f332d] bg-[#211a16]/88 px-3 py-2 text-left transition hover:border-[#7d4d32]"
             >
                 <span className="flex min-w-0 items-center gap-3">
@@ -332,33 +351,40 @@ function FriendRow({
                 </span>
             </button>
 
-            {menuOpen ? (
-                <div className="absolute right-0 top-full z-50 mt-1 w-48 overflow-hidden rounded-lg border border-[#3f332d] bg-[#1e1812] py-1 shadow-2xl shadow-black/50">
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setMenuOpen(false);
-                            onView(friend);
-                        }}
-                        disabled={!friend.leetcodeUsername}
-                        className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-[#f4e7d8] transition hover:bg-[#2b211c] disabled:cursor-not-allowed disabled:text-[#756354]"
-                    >
-                        <UserCircle size={15} />
-                        View profile
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setMenuOpen(false);
-                            onRemove(friend.friendshipId);
-                        }}
-                        className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-300 transition hover:bg-[#2b211c]"
-                    >
-                        <Trash2 size={15} />
-                        Remove friend
-                    </button>
-                </div>
-            ) : null}
+            {menuOpen && menuPos
+                ? createPortal(
+                      <div
+                          ref={menuRef}
+                          className="fixed z-[100] w-48 overflow-hidden rounded-lg border border-[#3f332d] bg-[#1e1812] py-1 shadow-2xl shadow-black/60"
+                          style={{ top: menuPos.top, right: menuPos.right }}
+                      >
+                          <button
+                              type="button"
+                              onClick={() => {
+                                  setMenuOpen(false);
+                                  onView(friend);
+                              }}
+                              disabled={!friend.leetcodeUsername}
+                              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-[#f4e7d8] transition hover:bg-[#2b211c] disabled:cursor-not-allowed disabled:text-[#756354]"
+                          >
+                              <UserCircle size={15} />
+                              View profile
+                          </button>
+                          <button
+                              type="button"
+                              onClick={() => {
+                                  setMenuOpen(false);
+                                  onRemove(friend.friendshipId);
+                              }}
+                              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-300 transition hover:bg-[#2b211c]"
+                          >
+                              <Trash2 size={15} />
+                              Remove friend
+                          </button>
+                      </div>,
+                      document.body,
+                  )
+                : null}
         </div>
     );
 }
