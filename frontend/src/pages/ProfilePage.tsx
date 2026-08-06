@@ -123,7 +123,7 @@ export function ProfilePage({ onBack, onLogout }: ProfilePageProps) {
                     </p>
                 ) : null}
 
-                <section className="relative mt-6 overflow-hidden rounded-2xl border border-[#3f332d] bg-gradient-to-br from-[#24201c] to-[#1d1d1d] p-6 shadow-2xl shadow-black/30">
+                <section className="relative mt-6 overflow-hidden rounded-2xl border border-[#3f332d] bg-gradient-to-br from-[#24201c] to-[#1b1512] p-6 shadow-2xl shadow-black/30">
                     <div
                         className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full opacity-25"
                         style={{ background: "radial-gradient(circle, #e6a15d 0%, transparent 70%)" }}
@@ -150,7 +150,7 @@ export function ProfilePage({ onBack, onLogout }: ProfilePageProps) {
                                 )}
                                 <StreakPill count={data?.current_streak ?? 0} lit={streakLit} />
                             </div>
-                            <p className="mt-2 text-xs text-[#666]">
+                            <p className="mt-2 text-xs text-[#8f8278]">
                                 {data?.active_days_count ?? 0} active days on the calendar
                             </p>
                         </div>
@@ -173,7 +173,7 @@ export function ProfilePage({ onBack, onLogout }: ProfilePageProps) {
                         <span className="text-lg font-bold tabular-nums text-[#2bff88]">{winRate}%</span>
                     </div>
 
-                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#333]">
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#24201c]">
                         <div
                             className="h-full rounded-full bg-gradient-to-r from-[#27d980] to-[#2bff88] transition-all duration-700"
                             style={{ width: `${Math.min(100, winRate)}%` }}

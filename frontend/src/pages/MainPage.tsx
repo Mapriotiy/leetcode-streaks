@@ -576,10 +576,11 @@ export function MainPage() {
         }
     }, [user]);
 
-    // Refresh whenever the dashboard becomes visible (mount, back navigation)
-    // so lobbies that were deleted/created while away are reflected.
+    // Refresh whenever the dashboard or all-lobbies screen becomes visible
+    // (mount, back navigation) so lobbies that were deleted/created while
+    // away are reflected.
     useEffect(() => {
-        if (screen === "dashboard") {
+        if (screen === "dashboard" || screen === "lobbies") {
             void loadDashboard();
         }
     }, [screen, loadDashboard]);
