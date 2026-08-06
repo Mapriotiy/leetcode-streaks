@@ -13,6 +13,7 @@ import { LobbyPage } from "./pages/LobbyPage";
 import { LobbyGamePage } from "./pages/LobbyGamePage";
 import { AdminPage } from "./pages/AdminPage";
 import { MapTestPage } from "./pages/MapTestPage";
+import { MainPage } from "./pages/MainPage";
 import type { Faction, LobbyPlayer } from "./types/dashboard";
 
 type User = {
@@ -35,11 +36,14 @@ const processedOAuthStates = new Set<string>();
 export default function App() {
     const params = new URLSearchParams(window.location.search);
     const isMapTest = params.get("mapTest") === "1";
+    const isMainPreview = params.get("mainPreview") === "1";
     const replayParam = params.get("replay");
     return (
         <ToastProvider>
             <Background />
-            {isMapTest ? (
+            {isMainPreview ? (
+                <MainPage />
+            ) : isMapTest ? (
                 <MapTestPage />
             ) : replayParam ? (
                 <ReplayPage lobbyId={Number(replayParam)} />

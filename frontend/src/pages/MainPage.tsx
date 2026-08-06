@@ -1,10 +1,14 @@
+import { useCallback, useEffect, useState } from "react";
 import {
     Activity,
+    Check,
     ChevronRight,
+    Copy,
     Crown,
     Flame,
     Gamepad2,
     Home,
+    LogOut,
     Shield,
     Swords,
     Target,
@@ -13,8 +17,31 @@ import {
     Users,
 } from "lucide-react";
 import { Logo } from "../components/Logo";
+import { apiRequest } from "../api/client";
+import { LobbyPage } from "./LobbyPage";
+import { LobbyGamePage } from "./LobbyGamePage";
+import type { DashboardData, DashboardLobby, Faction, LobbyPlayer } from "../types/dashboard";
 
 const MAP_BG = `${import.meta.env.BASE_URL}maps/leet_background.webp`;
+
+type User = {
+    id: number;
+    leetcode_username: string | null;
+    display_name: string | null;
+    avatar_url: string | null;
+    leetcode_verified_at: string | null;
+    is_admin?: boolean;
+};
+
+type CreateLobbyResponse = {
+    lobby: { id: number; players: LobbyPlayer[]; factions: Faction[]; status: string };
+    invite_url: string;
+};
+
+type CreateInviteResponse = {
+    token: string;
+    invite_url: string;
+};
 
 const navItems = [
     { label: "Home", icon: Home, active: true },
@@ -24,44 +51,19 @@ const navItems = [
     { label: "Challenges", icon: Target },
 ];
 
-const games = [
-    {
-        name: "mapriotii's game",
-        team: "Your empire",
-        action: "Continue",
-        players: "2 / 4 players",
-        language: "Python 3",
-        activity: "2h ago",
-        captured: "3 / 12 captured",
-        accent: "#d87a38",
-        tone: "ember",
-    },
-    {
-        name: "bangreedy's game",
-        team: "Team Dragon",
-        action: "Open map",
-        players: "4 / 4 players",
-        language: "Python 3",
-        activity: "30m ago",
-        captured: "5 / 12 captured",
-        accent: "#6f93a1",
-        tone: "ink",
-    },
-];
+const LANGUAGE_LABELS: Record<string, string> = {
+    python3: "Python 3",
+    cpp: "C++",
+    java: "Java",
+    javascript: "JavaScript",
+    typescript: "TypeScript",
+    csharp: "C#",
+    golang: "Go",
+    rust: "Rust",
+};
 
-const friends = [
-    { name: "jambikkk", subtitle: "Longest streak: 7 days", streak: 7, color: "#6f93a1" },
-    { name: "bangreedy", subtitle: "Longest streak: 5 days", streak: 5, color: "#d87a38" },
-    { name: "devkoya", subtitle: "Longest streak: 3 days", streak: 3, color: "#9d6b93" },
-    { name: "syntax_sam", subtitle: "Longest streak: 2 days", streak: 2, color: "#8fa66f" },
-];
-
-const metrics = [
-    { label: "Active days", value: "32", icon: Swords, color: "#f1c58e" },
-    { label: "Territories captured", value: "8", icon: Crown, color: "#d87a38" },
-    { label: "Global rank", value: "#24", icon: Trophy, color: "#e6a15d", trend: "+12" },
-    { label: "Problems solved this week", value: "62", icon: Target, color: "#b86a3a" },
-];
+const LOBBY_ACCENTS = ["#d87a38", "#6f93a1", "#9d6b93", "#8fa66f", "#b86a3a", "#5b8a72"];
+const FRIEND_COLORS = ["#6f93a1", "#d87a38", "#9d6b93", "#8fa66f", "#5b8a72", "#b86a3a"];
 
 function NavItem({ item }: { item: (typeof navItems)[number] }) {
     const Icon = item.icon;
@@ -96,58 +98,74 @@ function MapPreview() {
     );
 }
 
-function GameCard({ game }: { game: (typeof games)[number] }) {
+function GameCard({
+    lobby,
+    index,
+    onOpen,
+}: {
+    lobby: DashboardLobby;
+    index: number;
+    onOpen: (lobby: DashboardLobby) => void;
+}) {
+    const accent = LOBBY_ACCENTS[index % LOBBY_ACCENTS.length];
+    const playerCount = lobby.players.length;
+    const slotLabel = lobby.faction_mode
+        ? `${playerCount} players, ${lobby.faction_count} factions`
+        : `${playerCount} / ${lobby.max_players} players`;
+    const statusLabel = lobby.status === "active" ? "In progress" : lobby.status === "finished" ? "Finished" : "Waiting";
+    const progress = lobby.faction_mode ? 45 : Math.min(100, Math.round((playerCount / Math.max(1, lobby.max_players)) * 100));
+
     return (
         <article className="rounded-lg border border-[#3f332d] bg-[#211a16]/88 p-3 shadow-xl shadow-black/20">
             <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
                     <span
                         className="grid h-11 w-11 shrink-0 place-items-center rounded-md border bg-[#2b211c]"
-                        style={{ borderColor: `${game.accent}80`, color: game.accent }}
+                        style={{ borderColor: `${accent}80`, color: accent }}
                     >
                         <Shield size={22} />
                     </span>
-                    <div>
-                        <h3 className="text-sm font-bold text-[#f4e7d8]">{game.name}</h3>
-                        <p className="mt-1 text-xs text-[#a8917d]">● {game.team}</p>
+                    <div className="min-w-0">
+                        <h3 className="truncate text-sm font-bold text-[#f4e7d8]">{lobby.name}</h3>
+                        <p className="mt-1 text-xs text-[#a8917d]">● {statusLabel}</p>
                     </div>
                 </div>
                 <button
                     type="button"
-                    className="h-9 rounded-md border border-[#4c3a31] px-3 text-xs font-bold text-[#e6a15d] transition hover:border-[#d87a38]"
+                    onClick={() => onOpen(lobby)}
+                    className="h-9 shrink-0 rounded-md border border-[#4c3a31] px-3 text-xs font-bold text-[#e6a15d] transition hover:border-[#d87a38]"
                 >
-                    {game.action}
+                    {lobby.status === "active" ? "Open map" : "Continue"}
                 </button>
             </div>
 
             <div className="mt-2 grid grid-cols-[1fr_7.5rem] gap-3">
                 <MapPreview />
                 <div className="rounded-md border border-[#3f332d] bg-[#1b1512]/88 p-2 text-xs text-[#a8917d]">
-                    <p className="font-semibold text-[#d9c5ad]">{game.players}</p>
-                    <p className="mt-2">🐍 {game.language}</p>
-                    <p className="mt-3">Last activity</p>
-                    <p className="mt-1 font-semibold text-[#d9c5ad]">{game.activity}</p>
+                    <p className="font-semibold text-[#d9c5ad]">{slotLabel}</p>
+                    <p className="mt-2">🐍 {LANGUAGE_LABELS[lobby.programming_language] ?? lobby.programming_language}</p>
+                    <p className="mt-3">Mode</p>
+                    <p className="mt-1 font-semibold text-[#d9c5ad]">
+                        {lobby.game_mode === "team_battle" ? "Factions" : "Free for all"}
+                    </p>
                 </div>
             </div>
 
             <div className="mt-2 flex items-center gap-3 text-xs text-[#a8917d]">
-                <span>Territories</span>
+                <span>Slots</span>
                 <span className="h-1 flex-1 overflow-hidden rounded-full bg-[#3b3029]">
                     <span
                         className="block h-full rounded-full"
-                        style={{
-                            width: game.tone === "ink" ? "42%" : "30%",
-                            backgroundColor: game.accent,
-                        }}
+                        style={{ width: `${progress}%`, backgroundColor: accent }}
                     />
                 </span>
-                <strong className="text-[#e6a15d]">{game.captured}</strong>
+                <strong className="text-[#e6a15d]">{slotLabel.split(" ")[0]}</strong>
             </div>
         </article>
     );
 }
 
-function FriendRow({ friend }: { friend: (typeof friends)[number] }) {
+function FriendRow({ friend }: { friend: { name: string; streak: number; color: string } }) {
     return (
         <button
             type="button"
@@ -162,7 +180,7 @@ function FriendRow({ friend }: { friend: (typeof friends)[number] }) {
                 </span>
                 <span className="min-w-0">
                     <strong className="block truncate text-sm text-[#f4e7d8]">{friend.name}</strong>
-                    <span className="mt-1 block truncate text-xs text-[#a8917d]">{friend.subtitle}</span>
+                    <span className="mt-1 block truncate text-xs text-[#a8917d]">Longest streak: {friend.streak} days</span>
                 </span>
             </span>
             <span className="inline-flex items-center gap-2 text-sm font-black text-[#f1c58e]">
@@ -174,19 +192,24 @@ function FriendRow({ friend }: { friend: (typeof friends)[number] }) {
     );
 }
 
-function MetricItem({ metric }: { metric: (typeof metrics)[number] }) {
-    const Icon = metric.icon;
-
+function MetricItem({
+    icon: Icon,
+    value,
+    label,
+    color,
+}: {
+    icon: typeof Swords;
+    value: string;
+    label: string;
+    color: string;
+}) {
     return (
         <div className="flex min-w-0 items-center gap-2.5 px-1.5">
-            <Icon size={20} style={{ color: metric.color }} className="shrink-0" />
+            <Icon size={20} style={{ color }} className="shrink-0" />
             <div className="min-w-0">
-                <div className="flex items-baseline gap-2">
-                    <strong className="text-lg text-[#f4e7d8]">{metric.value}</strong>
-                    {metric.trend ? <span className="text-xs font-bold text-[#8fa66f]">{metric.trend}</span> : null}
-                </div>
-                <p className="mt-0.5 truncate text-xs text-[#a8917d]" title={metric.label}>
-                    {metric.label}
+                <strong className="block text-lg text-[#f4e7d8]">{value}</strong>
+                <p className="mt-0.5 truncate text-xs text-[#a8917d]" title={label}>
+                    {label}
                 </p>
             </div>
         </div>
@@ -194,6 +217,175 @@ function MetricItem({ metric }: { metric: (typeof metrics)[number] }) {
 }
 
 export function MainPage() {
+    const [user, setUser] = useState<User | null>(null);
+    const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [screen, setScreen] = useState<"dashboard" | "lobby" | "game">("dashboard");
+    const [activeLobbyId, setActiveLobbyId] = useState<number | null>(null);
+    const [activePlayers, setActivePlayers] = useState<LobbyPlayer[]>([]);
+    const [activeFactions, setActiveFactions] = useState<Faction[]>([]);
+    const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+    const [isCreatingInvite, setIsCreatingInvite] = useState(false);
+    const [copyMessage, setCopyMessage] = useState<string | null>(null);
+
+    useEffect(() => {
+        apiRequest<User>("/auth/me")
+            .then(setUser)
+            .catch(() => setUser(null))
+            .finally(() => setLoading(false));
+    }, []);
+
+    useEffect(() => {
+        if (!user) return;
+        apiRequest<DashboardData>("/dashboard/")
+            .then(setDashboardData)
+            .catch((e) => setError(e instanceof Error ? e.message : "Failed to load dashboard"));
+    }, [user]);
+
+    const goDashboard = useCallback(() => {
+        setScreen("dashboard");
+        setActiveLobbyId(null);
+        setActivePlayers([]);
+        setActiveFactions([]);
+    }, []);
+
+    const openLobby = useCallback((lobby: DashboardLobby) => {
+        setActiveLobbyId(lobby.id);
+        setActivePlayers(lobby.players);
+        setActiveFactions(lobby.factions);
+        setScreen(lobby.status === "active" ? "game" : "lobby");
+    }, []);
+
+    const handleGameStarted = useCallback(
+        (lobbyId: number, players: LobbyPlayer[], factions: Faction[]) => {
+            setActiveLobbyId(lobbyId);
+            setActivePlayers(players);
+            setActiveFactions(factions);
+            setScreen("game");
+        },
+        [],
+    );
+
+    const handleLogout = useCallback(() => {
+        localStorage.removeItem("accessToken");
+        setUser(null);
+        setDashboardData(null);
+        setScreen("dashboard");
+        setInviteUrl(null);
+    }, []);
+
+    const createLobby = useCallback(async () => {
+        setError(null);
+        try {
+            const res = await apiRequest<CreateLobbyResponse>("/lobbies/", {
+                method: "POST",
+                body: JSON.stringify({
+                    name: "New Expedition",
+                    game_mode: "free_for_all",
+                    map_size: "medium",
+                    max_players: 2,
+                    programming_language: "python3",
+                }),
+            });
+            setActiveLobbyId(res.lobby.id);
+            setActivePlayers(res.lobby.players);
+            setActiveFactions(res.lobby.factions);
+            setScreen(res.lobby.status === "active" ? "game" : "lobby");
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "Failed to create lobby");
+        }
+    }, []);
+
+    const createInvite = useCallback(async () => {
+        setIsCreatingInvite(true);
+        setError(null);
+        setCopyMessage(null);
+        try {
+            const res = await apiRequest<CreateInviteResponse>("/friends/invites", { method: "POST" });
+            setInviteUrl(res.invite_url);
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "Failed to create invite");
+        } finally {
+            setIsCreatingInvite(false);
+        }
+    }, []);
+
+    const copyInvite = useCallback(async () => {
+        if (!inviteUrl) return;
+        await navigator.clipboard.writeText(inviteUrl);
+        setCopyMessage("Copied");
+        window.setTimeout(() => setCopyMessage(null), 2000);
+    }, [inviteUrl]);
+
+    if (loading) {
+        return (
+            <main className="flex min-h-screen items-center justify-center bg-[#14110f] text-[#a8917d]">
+                Setting the table…
+            </main>
+        );
+    }
+
+    if (!user) {
+        return (
+            <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#14110f] p-6 text-center text-[#f4e7d8]">
+                <Logo className="text-[1.4rem]" />
+                <p className="max-w-md text-sm leading-6 text-[#a8917d]">
+                    Log in to see your campaign table, live lobbies and friend streaks.
+                </p>
+                <button
+                    type="button"
+                    onClick={() => {
+                        const url = new URL(window.location.href);
+                        url.searchParams.delete("mainPreview");
+                        window.location.href = url.toString();
+                    }}
+                    className="rounded-lg bg-[linear-gradient(180deg,#e6a15d,#c76f32)] px-6 py-3 text-sm font-black text-[#1d120c] shadow-lg shadow-[#8a3e22]/25"
+                >
+                    Log in
+                </button>
+            </main>
+        );
+    }
+
+    if (screen === "game" && activeLobbyId != null) {
+        return (
+            <LobbyGamePage
+                lobbyId={activeLobbyId}
+                currentUserId={user.id}
+                players={activePlayers}
+                factions={activeFactions}
+                isAdmin={Boolean(user.is_admin)}
+                onBack={goDashboard}
+                onReplay={() => {
+                    window.location.href = `${window.location.pathname}?replay=${activeLobbyId}`;
+                }}
+                onLeft={goDashboard}
+            />
+        );
+    }
+
+    if (screen === "lobby" && activeLobbyId != null) {
+        return (
+            <LobbyPage
+                lobbyId={activeLobbyId}
+                currentUserId={user.id}
+                currentUserVerified={user.leetcode_verified_at != null}
+                onBack={goDashboard}
+                onGameStarted={handleGameStarted}
+            />
+        );
+    }
+
+    const lobbies = dashboardData?.lobbies ?? [];
+    const friends = dashboardData?.friends ?? [];
+    const metrics = [
+        { label: "Active days", value: String(dashboardData?.active_days_count ?? 0), icon: Swords, color: "#f1c58e" },
+        { label: "Territories captured", value: String(dashboardData?.stats?.total_captures ?? 0), icon: Crown, color: "#d87a38" },
+        { label: "Games played", value: String(dashboardData?.stats?.games_played ?? 0), icon: Gamepad2, color: "#e6a15d" },
+        { label: "Win rate", value: `${Math.round((dashboardData?.stats?.win_rate ?? 0) * 100)}%`, icon: Target, color: "#b86a3a" },
+    ];
+
     return (
         <main className="min-h-screen bg-[#14110f] text-[#f4e7d8]">
             <header className="sticky top-0 z-30 border-b border-[#2b231f] bg-[#11100e]/94 backdrop-blur">
@@ -209,20 +401,28 @@ export function MainPage() {
                     <div className="flex items-center gap-3">
                         <button
                             type="button"
+                            onClick={() => void createLobby()}
+                            className="h-10 rounded-lg bg-[linear-gradient(180deg,#e6a15d,#c76f32)] px-4 text-sm font-black text-[#1d120c] shadow-lg shadow-[#8a3e22]/25"
+                        >
+                            New Expedition
+                        </button>
+                        <button
+                            type="button"
                             className="flex h-10 items-center gap-3 rounded-lg border border-[#3f332d] bg-[#24201c] px-3 text-sm font-bold text-[#f4e7d8] shadow-lg shadow-black/20"
                         >
                             <span className="relative h-7 w-7 rounded-full bg-[linear-gradient(135deg,#7b5b46,#d1a77f)]">
                                 <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full border border-[#24201c] bg-[#79a85e]" />
                             </span>
-                            mapriotii
-                            <ChevronRight size={14} className="rotate-90 text-[#756354]" />
+                            {user.leetcode_username ?? user.display_name ?? "Player"}
                         </button>
                         <button
                             type="button"
+                            onClick={handleLogout}
                             className="grid h-10 w-10 place-items-center rounded-lg border border-[#3f332d] bg-[#24201c] text-[#d9c5ad]"
-                            aria-label="Security"
+                            aria-label="Log out"
+                            title="Log out"
                         >
-                            <Shield size={18} />
+                            <LogOut size={18} />
                         </button>
                     </div>
                 </div>
@@ -260,10 +460,12 @@ export function MainPage() {
                                             <strong className="block text-sm">Daily challenge</strong>
                                             <span className="mt-0.5 block text-xs text-[#a8917d]">Solve today to claim your territory.</span>
                                         </div>
-                                        <span className="text-sm text-[#a8917d]">2 / 4 solved</span>
+                                        <span className="text-sm text-[#a8917d]">
+                                            {dashboardData?.today_submissions.length ?? 0} solved today
+                                        </span>
                                     </div>
                                     <div className="mt-2 h-2 overflow-hidden rounded-full border border-[#3f332d] bg-[#191410]">
-                                        <span className="block h-full w-1/2 rounded-full bg-[linear-gradient(90deg,#d87a38,#e6a15d)]" />
+                                        <span className="block h-full w-full rounded-full bg-[linear-gradient(90deg,#d87a38,#e6a15d)]" />
                                     </div>
                                 </div>
                             </div>
@@ -276,20 +478,22 @@ export function MainPage() {
                         <div className="flex items-center gap-3 border-b border-[#3f332d] pb-3">
                             <Flame size={26} className="text-[#e6a15d]" fill="currentColor" />
                             <div>
-                                <strong className="block text-xl leading-none">2</strong>
-                                <span className="mt-1 block text-xs text-[#a8917d]">day streak</span>
+                                <strong className="block text-xl leading-none">{dashboardData?.current_streak ?? 0}</strong>
+                                <span className="mt-1 block text-xs text-[#a8917d]">
+                                    day streak · {dashboardData?.current_streak_state ?? "broken"}
+                                </span>
                             </div>
                         </div>
                         <div className="flex items-center gap-3 border-b border-[#3f332d] py-3">
                             <Crown size={25} className="text-[#f1c58e]" />
                             <div>
-                                <strong className="block text-xl leading-none">5</strong>
-                                <span className="mt-1 block text-xs text-[#a8917d]">territories conquered this week</span>
+                                <strong className="block text-xl leading-none">{dashboardData?.longest_streak ?? 0}</strong>
+                                <span className="mt-1 block text-xs text-[#a8917d]">longest streak ever</span>
                             </div>
                         </div>
                         <button
                             type="button"
-                            className="mt-3 h-10 w-full rounded-lg bg-[linear-gradient(180deg,#e6a15d,#c76f32)] text-sm font-black text-[#1d120c] shadow-lg shadow-[#8a3e22]/25"
+                            className="mt-3 h-10 w-full rounded-lg border border-[#4c3a31] bg-[#2b211c] text-sm font-black text-[#a8917d]"
                         >
                             Start solving
                         </button>
@@ -306,24 +510,26 @@ export function MainPage() {
                                     <p className="mt-1 text-sm text-[#a8917d]">Your ongoing conquests</p>
                                 </div>
                                 <span className="grid h-6 min-w-6 place-items-center rounded-full bg-[#34271f] px-2 text-xs font-bold text-[#f1c58e]">
-                                    2
+                                    {lobbies.length}
                                 </span>
                             </div>
-                            <button type="button" className="inline-flex items-center gap-2 text-sm text-[#a8917d] hover:text-[#e6a15d]">
-                                View all lobbies
-                                <ChevronRight size={15} />
-                            </button>
                         </div>
 
-                        <div className="grid gap-3 md:grid-cols-2">
-                            {games.map((game) => (
-                                <GameCard key={game.name} game={game} />
-                            ))}
-                        </div>
+                        {lobbies.length > 0 ? (
+                            <div className="grid gap-3 md:grid-cols-2">
+                                {lobbies.map((lobby, index) => (
+                                    <GameCard key={lobby.id} lobby={lobby} index={index} onOpen={openLobby} />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="rounded-md border border-dashed border-[#3f332d] bg-[#1b1512]/88 p-6 text-center text-sm text-[#a8917d]">
+                                No games yet. Start your first expedition.
+                            </div>
+                        )}
 
                         <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-3 rounded-lg border border-[#3f332d] bg-[#1b1512]/88 px-3 py-2.5 md:grid-cols-4">
                             {metrics.map((metric) => (
-                                <MetricItem key={metric.label} metric={metric} />
+                                <MetricItem key={metric.label} icon={metric.icon} value={metric.value} label={metric.label} color={metric.color} />
                             ))}
                         </div>
                     </div>
@@ -338,20 +544,66 @@ export function MainPage() {
                         </div>
 
                         <div className="grid gap-1.5">
-                            {friends.map((friend) => (
-                                <FriendRow key={friend.name} friend={friend} />
-                            ))}
+                            {friends.length > 0 ? (
+                                friends.map((friend, index) => (
+                                    <FriendRow
+                                        key={friend.friendship_id}
+                                        friend={{
+                                            name: friend.friend.leetcode_username ?? `user #${friend.friend.id}`,
+                                            streak: friend.streak.current_count ?? friend.streak.longest_count ?? 0,
+                                            color: FRIEND_COLORS[index % FRIEND_COLORS.length],
+                                        }}
+                                    />
+                                ))
+                            ) : (
+                                <p className="rounded-md border border-dashed border-[#3f332d] bg-[#1b1512]/88 p-4 text-center text-sm text-[#a8917d]">
+                                    No friends yet. Invite someone to your table.
+                                </p>
+                            )}
                         </div>
 
                         <button
                             type="button"
-                            className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-[#3f332d] bg-[#1b1512] text-sm font-black text-[#e6a15d] transition hover:border-[#7d4d32]"
+                            onClick={() => void createInvite()}
+                            disabled={isCreatingInvite}
+                            className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-[#3f332d] bg-[#1b1512] text-sm font-black text-[#e6a15d] transition hover:border-[#7d4d32] disabled:cursor-not-allowed disabled:text-[#756354]"
                         >
                             <UserPlus size={17} />
-                            Invite a friend
+                            {isCreatingInvite ? "Creating…" : "Invite a friend"}
                         </button>
+
+                        {inviteUrl ? (
+                            <div className="mt-3 rounded-md border border-[#3f332d] bg-[#1b1512]/88 p-3">
+                                <p className="text-xs font-semibold text-[#f1c58e]">Invite link</p>
+                                <div className="mt-2 flex items-center gap-2">
+                                    <input
+                                        readOnly
+                                        value={inviteUrl}
+                                        className="min-w-0 flex-1 rounded-md border border-[#3f332d] bg-[#191410] px-2 py-1.5 text-xs text-[#d9c5ad]"
+                                        onFocus={(e) => e.currentTarget.select()}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => void copyInvite()}
+                                        className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-[#4c3a31] text-[#e6a15d] transition hover:border-[#d87a38]"
+                                        aria-label="Copy invite link"
+                                    >
+                                        {copyMessage ? <Check size={15} /> : <Copy size={15} />}
+                                    </button>
+                                </div>
+                                {copyMessage ? (
+                                    <p className="mt-2 text-xs text-[#8fa66f]">{copyMessage}</p>
+                                ) : null}
+                            </div>
+                        ) : null}
                     </aside>
                 </section>
+
+                {error ? (
+                    <p className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+                        {error}
+                    </p>
+                ) : null}
             </div>
         </main>
     );
