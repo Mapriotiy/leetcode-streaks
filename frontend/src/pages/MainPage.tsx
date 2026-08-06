@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -162,21 +162,124 @@ function DashboardBodySkeleton() {
     );
 }
 
-function NavItem({ item }: { item: (typeof navItems)[number] }) {
-    const Icon = item.icon;
-
+function NavItem({
+    label,
+    icon: Icon,
+    active,
+    onClick,
+}: {
+    label: string;
+    icon: typeof Home;
+    active: boolean;
+    onClick?: () => void;
+}) {
     return (
         <button
             type="button"
+            onClick={onClick}
             className={`inline-flex h-10 items-center gap-2 border-b-2 px-3 text-sm font-semibold transition ${
-                item.active
+                active
                     ? "border-[#d87a38] text-[#e6a15d]"
                     : "border-transparent text-[#8f8278] hover:text-[#f1dfc8]"
             }`}
         >
             <Icon size={16} />
-            {item.label}
+            {label}
         </button>
+    );
+}
+
+function MainHeader({
+    user,
+    activeNav,
+    onHome,
+    onOpenLobbies,
+    onOpenProfile,
+    onLogout,
+    profileMenuOpen,
+    setProfileMenuOpen,
+    profileMenuRef,
+}: {
+    user: User;
+    activeNav: string;
+    onHome: () => void;
+    onOpenLobbies: () => void;
+    onOpenProfile: () => void;
+    onLogout: () => void;
+    profileMenuOpen: boolean;
+    setProfileMenuOpen: (value: boolean) => void;
+    profileMenuRef: RefObject<HTMLDivElement | null>;
+}) {
+    return (
+        <header className="sticky top-0 z-30 border-b border-[#2b231f] bg-[#11100e]/94 backdrop-blur">
+            <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-7">
+                <Logo className="text-[1.1rem]" />
+
+                <nav className="hidden items-center gap-2 lg:flex">
+                    {navItems.map((item) => (
+                        <NavItem
+                            key={item.label}
+                            label={item.label}
+                            icon={item.icon}
+                            active={activeNav === item.label}
+                            onClick={
+                                item.label === "Home"
+                                    ? onHome
+                                    : item.label === "Lobbies"
+                                      ? onOpenLobbies
+                                      : undefined
+                            }
+                        />
+                    ))}
+                </nav>
+
+                <div className="flex items-center gap-3">
+                    <div className="relative" ref={profileMenuRef}>
+                        <button
+                            type="button"
+                            onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+                            className="group flex h-10 items-center gap-2.5 rounded-lg border border-[#3f332d] bg-[#24201c] px-3 text-sm font-bold text-[#f4e7d8] shadow-lg shadow-black/20 transition hover:border-[#7d4d32]"
+                        >
+                            <span className="grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-full border border-[#4c3a31] bg-[#33241b] text-[#d9c5ad]">
+                                {user.avatar_url ? (
+                                    <img src={user.avatar_url} alt="" className="h-full w-full object-cover" />
+                                ) : (
+                                    <UserCircle size={18} />
+                                )}
+                            </span>
+                            <span className="hidden max-w-[10rem] truncate sm:block">
+                                {user.leetcode_username ?? user.display_name ?? "Player"}
+                            </span>
+                            <ChevronDown
+                                size={15}
+                                className={`shrink-0 text-[#756354] transition ${profileMenuOpen ? "rotate-180" : ""}`}
+                            />
+                        </button>
+
+                        {profileMenuOpen ? (
+                            <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-lg border border-[#3f332d] bg-[#1e1812] py-1 shadow-2xl shadow-black/50">
+                                <button
+                                    type="button"
+                                    onClick={onOpenProfile}
+                                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-[#f4e7d8] transition hover:bg-[#2b211c]"
+                                >
+                                    <UserCircle size={15} />
+                                    View profile
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={onLogout}
+                                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-300 transition hover:bg-[#2b211c]"
+                                >
+                                    <LogOut size={15} />
+                                    Logout
+                                </button>
+                            </div>
+                        ) : null}
+                    </div>
+                </div>
+            </div>
+        </header>
     );
 }
 
@@ -804,75 +907,6 @@ export function MainPage() {
 
     content = (
         <main className="min-h-screen bg-[#14110f] text-[#f4e7d8]">
-            <header className="sticky top-0 z-30 border-b border-[#2b231f] bg-[#11100e]/94 backdrop-blur">
-                <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-7">
-                    <Logo className="text-[1.1rem]" />
-
-                    <nav className="hidden items-center gap-2 lg:flex">
-                        {navItems.map((item) => (
-                            <button
-                                key={item.label}
-                                type="button"
-                                onClick={() => {
-                                    if (item.label === "Lobbies") openLobbies();
-                                }}
-                            >
-                                <NavItem item={item} />
-                            </button>
-                        ))}
-                    </nav>
-
-                    <div className="flex items-center gap-3">
-                        <div className="relative" ref={profileMenuRef}>
-                            <button
-                                type="button"
-                                onClick={() => setProfileMenuOpen((value) => !value)}
-                                className="group flex h-10 items-center gap-2.5 rounded-lg border border-[#3f332d] bg-[#24201c] px-3 text-sm font-bold text-[#f4e7d8] shadow-lg shadow-black/20 transition hover:border-[#7d4d32]"
-                            >
-                                <span className="grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-full border border-[#4c3a31] bg-[#33241b] text-[#d9c5ad]">
-                                    {user.avatar_url ? (
-                                        <img src={user.avatar_url} alt="" className="h-full w-full object-cover" />
-                                    ) : (
-                                        <UserCircle size={18} />
-                                    )}
-                                </span>
-                                <span className="hidden max-w-[10rem] truncate sm:block">
-                                    {user.leetcode_username ?? user.display_name ?? "Player"}
-                                </span>
-                                <ChevronDown
-                                    size={15}
-                                    className={`shrink-0 text-[#756354] transition ${profileMenuOpen ? "rotate-180" : ""}`}
-                                />
-                            </button>
-
-                            {profileMenuOpen ? (
-                                <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-lg border border-[#3f332d] bg-[#1e1812] py-1 shadow-2xl shadow-black/50">
-                                    <button
-                                        type="button"
-                                        onClick={openProfile}
-                                        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-[#f4e7d8] transition hover:bg-[#2b211c]"
-                                    >
-                                        <UserCircle size={15} />
-                                        View profile
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setProfileMenuOpen(false);
-                                            handleLogout();
-                                        }}
-                                        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-red-300 transition hover:bg-[#2b211c]"
-                                    >
-                                        <LogOut size={15} />
-                                        Logout
-                                    </button>
-                                </div>
-                            ) : null}
-                        </div>
-                    </div>
-                </div>
-            </header>
-
             <div className="mx-auto max-w-7xl px-7 py-3">
                 <AnimatePresence mode="wait" initial={false}>
                     {isDashboardLoading ? (
@@ -1092,17 +1126,32 @@ export function MainPage() {
     }
 
     const screenKey = screen === "dashboard" ? "dashboard" : `${screen}-${activeLobbyId ?? 0}`;
+    const activeNav = screen === "dashboard" || screen === "profile" || screen === "friendProfile" ? "Home" : "Lobbies";
+
     return (
-        <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-                key={screenKey}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
-            >
-                {content}
-            </motion.div>
-        </AnimatePresence>
+        <div className="min-h-screen bg-[#14110f] text-[#f4e7d8]">
+            <MainHeader
+                user={user}
+                activeNav={activeNav}
+                onHome={goDashboard}
+                onOpenLobbies={openLobbies}
+                onOpenProfile={openProfile}
+                onLogout={handleLogout}
+                profileMenuOpen={profileMenuOpen}
+                setProfileMenuOpen={setProfileMenuOpen}
+                profileMenuRef={profileMenuRef}
+            />
+            <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                    key={screenKey}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                >
+                    {content}
+                </motion.div>
+            </AnimatePresence>
+        </div>
     );
 }
