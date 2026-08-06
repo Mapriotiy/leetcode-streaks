@@ -4,7 +4,7 @@ import type { ActivityCalendarDay } from "../../types/dashboard";
 
 function getHeatmapCellClass(count: number) {
     if (count <= 0) {
-        return "bg-[#333333]";
+        return "bg-[#24201c]";
     }
 
     if (count === 1) {
@@ -19,7 +19,7 @@ function getHeatmapCellClass(count: number) {
         return "bg-[#a86138]";
     }
 
-    return "bg-[#c86f3c]";
+    return "bg-[#e6a15d]";
 }
 
 function formatMonthLabel(monthDate: Date) {
@@ -99,13 +99,13 @@ export function ActivityCalendar({ activityCalendar, activeDaysCount }: Activity
         selectedCalendarMonth.getMonth() === currentMonthStart.getMonth();
 
     return (
-        <article className="rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-xl shadow-black/20">
+        <article className="rounded-lg border border-[#3f332d] bg-[#211a16] p-6 shadow-xl shadow-black/20">
             <div className="flex items-start justify-between gap-4">
                 <div>
-                    <p className="text-sm font-medium text-[#a3a3a3]">
+                    <p className="text-sm font-medium text-[#a8917d]">
                         Activity
                     </p>
-                    <p className="mt-1 text-xs text-[#8a8a8a]">
+                    <p className="mt-1 text-xs text-[#8f8278]">
                         {activeDaysCount} active days
                     </p>
                 </div>
@@ -116,7 +116,7 @@ export function ActivityCalendar({ activityCalendar, activeDaysCount }: Activity
                         onClick={() =>
                             setSelectedCalendarMonth((month) => addMonths(month, -1))
                         }
-                        className="grid h-7 w-7 place-items-center rounded-md border border-[#3a3a3a] bg-[#333333] text-[#b3b3b3] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
+                        className="grid h-7 w-7 place-items-center rounded-md border border-[#3f332d] bg-[#24201c] text-[#a8917d] transition hover:border-[#e6a15d]/60 hover:text-[#e6a15d]"
                         aria-label="Previous month"
                     >
                         <ChevronLeft size={16} />
@@ -128,7 +128,7 @@ export function ActivityCalendar({ activityCalendar, activeDaysCount }: Activity
                             setSelectedCalendarMonth((month) => addMonths(month, 1))
                         }
                         disabled={isCurrentCalendarMonth}
-                        className="grid h-7 w-7 place-items-center rounded-md border border-[#3a3a3a] bg-[#333333] text-[#b3b3b3] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[#3a3a3a] disabled:hover:text-[#b3b3b3]"
+                        className="grid h-7 w-7 place-items-center rounded-md border border-[#3f332d] bg-[#24201c] text-[#a8917d] transition hover:border-[#e6a15d]/60 hover:text-[#e6a15d] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[#3f332d] disabled:hover:text-[#a8917d]"
                         aria-label="Next month"
                     >
                         <ChevronRight size={16} />
@@ -137,7 +137,7 @@ export function ActivityCalendar({ activityCalendar, activeDaysCount }: Activity
             </div>
 
             <div className="mt-4 overflow-x-auto pb-1">
-                <p className="mb-3 text-center text-xs font-medium text-[#a3a3a3]">
+                <p className="mb-3 text-center text-xs font-medium text-[#a8917d]">
                     {formatMonthLabel(selectedCalendarMonth)}
                 </p>
 
@@ -161,7 +161,7 @@ export function ActivityCalendar({ activityCalendar, activeDaysCount }: Activity
                 </div>
             </div>
 
-            <div className="mt-4 flex items-center justify-end gap-1 text-[11px] text-[#8a8a8a]">
+            <div className="mt-4 flex items-center justify-end gap-1 text-[11px] text-[#8f8278]">
                 <span className="mr-1">Less</span>
                 {[0, 1, 3, 6, 7].map((count) => (
                     <span
