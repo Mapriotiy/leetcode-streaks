@@ -216,6 +216,21 @@ body {
     animation: cinematic-in 0.9s cubic-bezier(0.2, 0.9, 0.2, 1) both;
 }
 
+@keyframes page-enter {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.page-enter {
+    animation: page-enter 0.35s ease both;
+}
+
 @keyframes light-sweep {
     0% {
         transform: translateX(-130%) skewX(-18deg);

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
     Activity,
     Check,
@@ -65,6 +66,95 @@ const LANGUAGE_LABELS: Record<string, string> = {
 const LOBBY_ACCENTS = ["#d87a38", "#6f93a1", "#9d6b93", "#8fa66f", "#b86a3a", "#5b8a72"];
 const FRIEND_COLORS = ["#6f93a1", "#d87a38", "#9d6b93", "#8fa66f", "#5b8a72", "#b86a3a"];
 
+function SkeletonBlock({ className = "" }: { className?: string }) {
+    return (
+        <div
+            className={`animate-pulse rounded-md bg-[linear-gradient(90deg,#211a16,#342820,#211a16)] bg-[length:220%_100%] ${className}`}
+        />
+    );
+}
+
+function MainPageSkeleton() {
+    return (
+        <motion.main
+            className="min-h-screen bg-[#14110f] text-[#f4e7d8]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+        >
+            <header className="sticky top-0 z-30 border-b border-[#2b231f] bg-[#11100e]/94 backdrop-blur">
+                <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-7">
+                    <Logo className="text-[1.1rem]" />
+                    <div className="hidden items-center gap-2 lg:flex">
+                        <SkeletonBlock className="h-6 w-20" />
+                        <SkeletonBlock className="h-6 w-24" />
+                        <SkeletonBlock className="h-6 w-20" />
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <SkeletonBlock className="h-10 w-32" />
+                        <SkeletonBlock className="h-10 w-36" />
+                        <SkeletonBlock className="h-10 w-10" />
+                    </div>
+                </div>
+            </header>
+
+            <div className="mx-auto max-w-7xl px-7 py-3">
+                <DashboardBodySkeleton />
+            </div>
+        </motion.main>
+    );
+}
+
+function DashboardBodySkeleton() {
+    return (
+        <motion.div
+            key="dashboard-skeleton"
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+        >
+            <section className="grid min-h-[9.5rem] grid-cols-[13rem_minmax(0,1fr)_14rem] gap-5 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-2xl shadow-black/30">
+                <SkeletonBlock className="h-full min-h-[8rem]" />
+                <div className="grid grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)] gap-5">
+                    <div className="flex flex-col justify-center px-1">
+                        <SkeletonBlock className="h-7 w-56" />
+                        <SkeletonBlock className="mt-3 h-4 w-72" />
+                        <SkeletonBlock className="mt-5 h-12 w-full" />
+                        <SkeletonBlock className="mt-3 h-2 w-full" />
+                    </div>
+                    <SkeletonBlock className="h-full min-h-[8rem]" />
+                </div>
+                <div className="rounded-lg border border-[#3f332d] bg-[#1c1613]/86 p-3">
+                    <SkeletonBlock className="h-10 w-full" />
+                    <SkeletonBlock className="mt-3 h-10 w-full" />
+                    <SkeletonBlock className="mt-3 h-10 w-full" />
+                </div>
+            </section>
+
+            <section className="mt-3 grid grid-cols-[minmax(0,1fr)_23.5rem] gap-3">
+                <div className="rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-xl shadow-black/25">
+                    <SkeletonBlock className="h-8 w-52" />
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                        <SkeletonBlock className="h-52" />
+                        <SkeletonBlock className="h-52" />
+                    </div>
+                    <SkeletonBlock className="mt-2 h-[4.5rem]" />
+                </div>
+
+                <aside className="rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-xl shadow-black/25">
+                    <SkeletonBlock className="h-8 w-44" />
+                    <SkeletonBlock className="mt-3 h-12 w-full" />
+                    <SkeletonBlock className="mt-2 h-12 w-full" />
+                    <SkeletonBlock className="mt-2 h-12 w-full" />
+                    <SkeletonBlock className="mt-2 h-10 w-full" />
+                </aside>
+            </section>
+        </motion.div>
+    );
+}
+
 function NavItem({ item }: { item: (typeof navItems)[number] }) {
     const Icon = item.icon;
 
@@ -127,7 +217,7 @@ function GameCard({
                     </span>
                     <div className="min-w-0">
                         <h3 className="truncate text-sm font-bold text-[#f4e7d8]">{lobby.name}</h3>
-                        <p className="mt-1 text-xs text-[#a8917d]">● {statusLabel}</p>
+                        <p className="mt-1 text-xs text-[#a8917d]">Status: {statusLabel}</p>
                     </div>
                 </div>
                 <button
@@ -143,7 +233,7 @@ function GameCard({
                 <MapPreview />
                 <div className="rounded-md border border-[#3f332d] bg-[#1b1512]/88 p-2 text-xs text-[#a8917d]">
                     <p className="font-semibold text-[#d9c5ad]">{slotLabel}</p>
-                    <p className="mt-2">🐍 {LANGUAGE_LABELS[lobby.programming_language] ?? lobby.programming_language}</p>
+                    <p className="mt-2">Language: {LANGUAGE_LABELS[lobby.programming_language] ?? lobby.programming_language}</p>
                     <p className="mt-3">Mode</p>
                     <p className="mt-1 font-semibold text-[#d9c5ad]">
                         {lobby.game_mode === "team_battle" ? "Factions" : "Free for all"}
@@ -216,6 +306,13 @@ function MetricItem({
     );
 }
 
+type NavState = {
+    screen: "lobby" | "game";
+    lobbyId: number;
+    players?: LobbyPlayer[];
+    factions?: Faction[];
+};
+
 export function MainPage() {
     const [user, setUser] = useState<User | null>(null);
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
@@ -228,6 +325,7 @@ export function MainPage() {
     const [inviteUrl, setInviteUrl] = useState<string | null>(null);
     const [isCreatingInvite, setIsCreatingInvite] = useState(false);
     const [copyMessage, setCopyMessage] = useState<string | null>(null);
+    const navDepthRef = useRef(0);
 
     useEffect(() => {
         apiRequest<User>("/auth/me")
@@ -243,28 +341,63 @@ export function MainPage() {
             .catch((e) => setError(e instanceof Error ? e.message : "Failed to load dashboard"));
     }, [user]);
 
-    const goDashboard = useCallback(() => {
-        setScreen("dashboard");
-        setActiveLobbyId(null);
-        setActivePlayers([]);
-        setActiveFactions([]);
+    const applyNavState = useCallback((state: NavState | null) => {
+        if (state && (state.screen === "lobby" || state.screen === "game")) {
+            setScreen(state.screen);
+            setActiveLobbyId(state.lobbyId);
+            setActivePlayers(state.players ?? []);
+            setActiveFactions(state.factions ?? []);
+        } else {
+            setScreen("dashboard");
+            setActiveLobbyId(null);
+            setActivePlayers([]);
+            setActiveFactions([]);
+        }
     }, []);
 
-    const openLobby = useCallback((lobby: DashboardLobby) => {
-        setActiveLobbyId(lobby.id);
-        setActivePlayers(lobby.players);
-        setActiveFactions(lobby.factions);
-        setScreen(lobby.status === "active" ? "game" : "lobby");
-    }, []);
+    const pushNav = useCallback(
+        (state: NavState) => {
+            navDepthRef.current += 1;
+            window.history.pushState(state, "");
+            applyNavState(state);
+        },
+        [applyNavState],
+    );
+
+    useEffect(() => {
+        const onPopState = (event: PopStateEvent) => {
+            navDepthRef.current = Math.max(0, navDepthRef.current - 1);
+            applyNavState(event.state as NavState | null);
+        };
+        window.addEventListener("popstate", onPopState);
+        return () => window.removeEventListener("popstate", onPopState);
+    }, [applyNavState]);
+
+    const goDashboard = useCallback(() => {
+        if (navDepthRef.current > 0) {
+            window.history.back();
+        } else {
+            applyNavState(null);
+        }
+    }, [applyNavState]);
+
+    const openLobby = useCallback(
+        (lobby: DashboardLobby) => {
+            pushNav({
+                screen: lobby.status === "active" ? "game" : "lobby",
+                lobbyId: lobby.id,
+                players: lobby.players,
+                factions: lobby.factions,
+            });
+        },
+        [pushNav],
+    );
 
     const handleGameStarted = useCallback(
         (lobbyId: number, players: LobbyPlayer[], factions: Faction[]) => {
-            setActiveLobbyId(lobbyId);
-            setActivePlayers(players);
-            setActiveFactions(factions);
-            setScreen("game");
+            pushNav({ screen: "game", lobbyId, players, factions });
         },
-        [],
+        [pushNav],
     );
 
     const handleLogout = useCallback(() => {
@@ -291,11 +424,16 @@ export function MainPage() {
             setActiveLobbyId(res.lobby.id);
             setActivePlayers(res.lobby.players);
             setActiveFactions(res.lobby.factions);
-            setScreen(res.lobby.status === "active" ? "game" : "lobby");
+            pushNav({
+                screen: res.lobby.status === "active" ? "game" : "lobby",
+                lobbyId: res.lobby.id,
+                players: res.lobby.players,
+                factions: res.lobby.factions,
+            });
         } catch (e) {
             setError(e instanceof Error ? e.message : "Failed to create lobby");
         }
-    }, []);
+    }, [pushNav]);
 
     const createInvite = useCallback(async () => {
         setIsCreatingInvite(true);
@@ -319,11 +457,7 @@ export function MainPage() {
     }, [inviteUrl]);
 
     if (loading) {
-        return (
-            <main className="flex min-h-screen items-center justify-center bg-[#14110f] text-[#a8917d]">
-                Setting the table…
-            </main>
-        );
+        return <MainPageSkeleton />;
     }
 
     if (!user) {
@@ -348,8 +482,10 @@ export function MainPage() {
         );
     }
 
+    let content: ReactNode;
+
     if (screen === "game" && activeLobbyId != null) {
-        return (
+        content = (
             <LobbyGamePage
                 lobbyId={activeLobbyId}
                 currentUserId={user.id}
@@ -363,10 +499,8 @@ export function MainPage() {
                 onLeft={goDashboard}
             />
         );
-    }
-
-    if (screen === "lobby" && activeLobbyId != null) {
-        return (
+    } else if (screen === "lobby" && activeLobbyId != null) {
+        content = (
             <LobbyPage
                 lobbyId={activeLobbyId}
                 currentUserId={user.id}
@@ -375,7 +509,7 @@ export function MainPage() {
                 onGameStarted={handleGameStarted}
             />
         );
-    }
+    } else {
 
     const lobbies = dashboardData?.lobbies ?? [];
     const friends = dashboardData?.friends ?? [];
@@ -385,8 +519,9 @@ export function MainPage() {
         { label: "Games played", value: String(dashboardData?.stats?.games_played ?? 0), icon: Gamepad2, color: "#e6a15d" },
         { label: "Win rate", value: `${Math.round((dashboardData?.stats?.win_rate ?? 0) * 100)}%`, icon: Target, color: "#b86a3a" },
     ];
+    const isDashboardLoading = !dashboardData && !error;
 
-    return (
+    content = (
         <main className="min-h-screen bg-[#14110f] text-[#f4e7d8]">
             <header className="sticky top-0 z-30 border-b border-[#2b231f] bg-[#11100e]/94 backdrop-blur">
                 <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-7">
@@ -429,6 +564,17 @@ export function MainPage() {
             </header>
 
             <div className="mx-auto max-w-7xl px-7 py-3">
+                <AnimatePresence mode="wait" initial={false}>
+                    {isDashboardLoading ? (
+                        <DashboardBodySkeleton />
+                    ) : (
+                        <motion.div
+                            key="dashboard-content"
+                            initial={{ opacity: 0, y: 14 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.22, ease: "easeOut" }}
+                        >
                 <section className="grid min-h-[9.5rem] grid-cols-[13rem_minmax(0,1fr)_14rem] gap-5 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-2xl shadow-black/30">
                     <div
                         className="relative overflow-hidden rounded-md border border-[#3f332d] bg-[#17120f]"
@@ -480,7 +626,7 @@ export function MainPage() {
                             <div>
                                 <strong className="block text-xl leading-none">{dashboardData?.current_streak ?? 0}</strong>
                                 <span className="mt-1 block text-xs text-[#a8917d]">
-                                    day streak · {dashboardData?.current_streak_state ?? "broken"}
+                                    day streak - {dashboardData?.current_streak_state ?? "broken"}
                                 </span>
                             </div>
                         </div>
@@ -569,7 +715,7 @@ export function MainPage() {
                             className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-[#3f332d] bg-[#1b1512] text-sm font-black text-[#e6a15d] transition hover:border-[#7d4d32] disabled:cursor-not-allowed disabled:text-[#756354]"
                         >
                             <UserPlus size={17} />
-                            {isCreatingInvite ? "Creating…" : "Invite a friend"}
+                            {isCreatingInvite ? "Creating..." : "Invite a friend"}
                         </button>
 
                         {inviteUrl ? (
@@ -604,7 +750,27 @@ export function MainPage() {
                         {error}
                     </p>
                 ) : null}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </main>
+    );
+    }
+
+    const screenKey = screen === "dashboard" ? "dashboard" : `${screen}-${activeLobbyId ?? 0}`;
+
+    return (
+        <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+                key={screenKey}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+                {content}
+            </motion.div>
+        </AnimatePresence>
     );
 }
