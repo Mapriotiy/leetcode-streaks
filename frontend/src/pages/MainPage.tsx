@@ -1,20 +1,28 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
     Activity,
+    Binary,
+    Braces,
     Check,
     ChevronDown,
     ChevronRight,
+    Coffee,
+    Cog,
     Code2,
     Copy,
     Crown,
+    FileCode,
     Flame,
     Gamepad2,
+    Hash,
     Home,
     LogOut,
+    Rocket,
     Shield,
     Swords,
     Target,
+    Terminal,
     Trophy,
     UserCircle,
     UserPlus,
@@ -68,6 +76,31 @@ const LANGUAGE_LABELS: Record<string, string> = {
     golang: "Go",
     rust: "Rust",
 };
+
+const LANGUAGE_ICONS: Record<string, { icon: typeof Code2; color: string }> = {
+    python3: { icon: Terminal, color: "#7fa0b8" },
+    cpp: { icon: Binary, color: "#8fa66f" },
+    java: { icon: Coffee, color: "#d8a05a" },
+    javascript: { icon: Braces, color: "#e0c14e" },
+    typescript: { icon: FileCode, color: "#7fa0b8" },
+    csharp: { icon: Hash, color: "#b08ab4" },
+    golang: { icon: Rocket, color: "#6fc2b0" },
+    rust: { icon: Cog, color: "#cf8a52" },
+};
+
+function maskStyle(path: string): CSSProperties {
+    const url = `url("${mapAssetUrl(path)}")`;
+    return {
+        maskImage: url,
+        maskRepeat: "no-repeat",
+        maskPosition: "center",
+        maskSize: "100% 100%",
+        WebkitMaskImage: url,
+        WebkitMaskRepeat: "no-repeat",
+        WebkitMaskPosition: "center",
+        WebkitMaskSize: "100% 100%",
+    };
+}
 
 const LOBBY_ACCENTS = ["#d87a38", "#6f93a1", "#9d6b93", "#8fa66f", "#b86a3a", "#5b8a72"];
 const FRIEND_COLORS = ["#6f93a1", "#d87a38", "#9d6b93", "#8fa66f", "#5b8a72", "#b86a3a"];
@@ -226,6 +259,7 @@ function MapPreview({ draft }: { draft?: GeneratedMapDraft }) {
                             aspectRatio: island.aspectRatio,
                             transform: `rotate(${island.rotation}deg)`,
                             transformOrigin: "center",
+                            ...(island.svgPath ? maskStyle(island.svgPath) : null),
                         }}
                     />
                 ))}
@@ -280,7 +314,11 @@ function GameCard({
                 <div className="rounded-md border border-[#3f332d] bg-[#1b1512]/88 p-2 text-xs text-[#a8917d]">
                     <p className="font-semibold text-[#d9c5ad]">{slotLabel}</p>
                     <p className="mt-2 flex items-center gap-1.5">
-                        <Code2 size={13} className="shrink-0" />
+                        {(() => {
+                            const lang = LANGUAGE_ICONS[lobby.programming_language];
+                            const LangIcon = lang?.icon ?? Code2;
+                            return <LangIcon size={13} className="shrink-0" style={{ color: lang?.color }} />;
+                        })()}
                         <span className="truncate">{LANGUAGE_LABELS[lobby.programming_language] ?? lobby.programming_language}</span>
                     </p>
                     <p className="mt-3">Mode</p>

@@ -138,6 +138,7 @@ def _trim_map_preview(selection: dict) -> dict:
             {
                 "islandId": island.get("islandId"),
                 "backPath": island.get("backPath"),
+                "svgPath": island.get("svgPath"),
                 "left": island.get("left"),
                 "top": island.get("top"),
                 "width": island.get("width"),
