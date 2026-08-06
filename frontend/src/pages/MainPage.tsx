@@ -449,7 +449,7 @@ export function MainPage() {
     const createLobby = useCallback(async () => {
         setError(null);
         try {
-            const res = await apiRequest<CreateLobbyResponse>("/lobbies/", {
+            const res = await apiRequest<CreateLobbyResponse>("/lobbies", {
                 method: "POST",
                 body: JSON.stringify({
                     name: "New Expedition",
