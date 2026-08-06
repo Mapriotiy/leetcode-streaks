@@ -24,8 +24,11 @@ from app.models.lobby_player import LobbyPlayer
 
 PUBLIC_DIR = Path(__file__).resolve().parents[3] / "frontend" / "public"
 
-# Default map canvas (matches the renderer's aspect ratio).
+# Default canvas (matches the renderer's aspect ratio).
 MAP_W, MAP_H = 1321, 900
+
+# Free-for-all fallback player palette (mirrors the frontend FACTION_COLORS).
+FACTION_PALETTE = ["#00c2ff", "#ff4d6d", "#ffb020", "#27d980", "#9b7cff", "#4f9cff", "#ff7a59", "#a3e635"]
 
 _CMD = re.compile(r"([MmLlCcQqZz])")
 _NUM = re.compile(r"[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?")
@@ -193,6 +196,11 @@ def _hex_rgb(value: str) -> tuple[int, int, int]:
     return (int(value[0:2], 16), int(value[2:4], 16), int(value[4:6], 16))
 
 
+def _blend(color: tuple[int, int, int], base: tuple[int, int, int], weight: float) -> tuple[int, int, int]:
+    """weight of `color` toward `base` (matches the frontend's mixHex)."""
+    return tuple(round(c * weight + b * (1 - weight)) for c, b in zip(color, base))
+
+
 def _transform(polygons, viewbox, box_w: int, box_h: int) -> list[list[tuple[int, int]]]:
     vx, vy, vw, vh = viewbox
     out = []
@@ -266,7 +274,7 @@ def _render_draft(
         img = Image.alpha_composite(img, layer)
 
         # Provinces: region tint, overridden by capture (faction) color.
-        # Drawn in island-box coordinates, then pasted at the island's offset.
+        # Matches the frontend renderer's darkened fills/strokes.
         fill_layer = Image.new("RGBA", (box_w, box_h), (0, 0, 0, 0))
         fd = ImageDraw.Draw(fill_layer)
         for index, d in enumerate(path_ds):
@@ -274,11 +282,24 @@ def _render_draft(
             if not province:
                 continue
             province_id = str(province.get("provinceId") or "")
-            color = capture_color_by_province.get(province_id) or regions.get(str(province.get("regionId") or "")) or "#8f7458"
-            rgb = _hex_rgb(color)
+            region_rgb = _hex_rgb(regions.get(str(province.get("regionId") or "")) or "#8f7458")
+            capture_hex = capture_color_by_province.get(province_id)
+            if capture_hex:
+                base_rgb = _hex_rgb(capture_hex)
+                fill_rgb = _blend(base_rgb, (39, 35, 35), 0.46)
+                stroke_rgb = _blend(base_rgb, (58, 37, 40), 0.72)
+                fill_alpha = 205
+                stroke_alpha = 205
+                stroke_width = max(2, round(scale * 2.8))
+            else:
+                fill_rgb = _blend(region_rgb, (36, 40, 39), 0.7)
+                stroke_rgb = _blend(region_rgb, (48, 51, 50), 0.82)
+                fill_alpha = 150
+                stroke_alpha = 185
+                stroke_width = max(1, round(scale * 1.2))
             for pts in _transform(_sample_path(d), viewbox, box_w, box_h):
-                fd.polygon(pts, fill=rgb + (118,))
-                fd.line(pts + [pts[0]], fill=rgb + (235,), width=max(1, round(scale * 2)))
+                fd.polygon(pts, fill=fill_rgb + (fill_alpha,))
+                fd.line(pts + [pts[0]], fill=stroke_rgb + (stroke_alpha,), width=stroke_width)
         layer2 = Image.new("RGBA", (width, height), (0, 0, 0, 0))
         layer2.paste(fill_layer, (left, top), mask)
         img = Image.alpha_composite(img, layer2)
@@ -315,6 +336,18 @@ def render_lobby_map_thumbnail(
             for faction in lobby_factions(lobby)
             if faction.get("color")
         }
+
+        def capture_color(faction_id: int | None) -> str | None:
+            if faction_id is None:
+                return None
+            if faction_id in faction_color:
+                return str(faction_color[faction_id])
+            # Free-for-all: players get faction_id = seat number; match the
+            # frontend's FACTION_COLORS fallback palette.
+            if 1 <= faction_id <= len(FACTION_PALETTE):
+                return FACTION_PALETTE[faction_id - 1]
+            return None
+
         faction_by_user = {p.user_id: p.faction_id for p in players if p.faction_id}
 
         captures: dict[str, str] = {}
@@ -326,9 +359,9 @@ def render_lobby_map_thumbnail(
         for province_id, owner_id in rows:
             if not owner_id:
                 continue
-            color = faction_color.get(faction_by_user.get(owner_id))
+            color = capture_color(faction_by_user.get(owner_id))
             if color:
-                captures[province_id] = str(color)
+                captures[province_id] = color
 
         img = _render_draft(draft, captures, width)
         buf = io.BytesIO()
