@@ -26,11 +26,11 @@ function StreakPill({ count, lit }: { count: number; lit: boolean }) {
         <span
             className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-semibold ${
                 lit
-                    ? "border-[#c86f3c]/50 bg-[#c86f3c]/10 text-[#e8b691]"
-                    : "border-[#3a3a3a] bg-[#1f1f1f] text-[#8a8a8a]"
+                    ? "border-[#e6a15d]/50 bg-[#e6a15d]/10 text-[#e8b691]"
+                    : "border-[#3f332d] bg-[#1b1512] text-[#8f8278]"
             }`}
         >
-            <Flame size={15} className={lit ? "text-[#c86f3c]" : "text-[#555]"} />
+            <Flame size={15} className={lit ? "text-[#e6a15d]" : "text-[#555]"} />
             {count} day{count === 1 ? "" : "s"}
         </span>
     );
@@ -48,20 +48,20 @@ function StatTile({
     accent?: string;
 }) {
     return (
-        <div className="flex items-center gap-3 rounded-xl border border-[#3a3a3a] bg-[#262626] px-4 py-3.5 shadow-xl shadow-black/20">
+        <div className="flex items-center gap-3 rounded-xl border border-[#3f332d] bg-[#211a16] px-4 py-3.5 shadow-xl shadow-black/20">
             <span
                 className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border"
                 style={{
-                    borderColor: (accent ?? "#3a3a3a") + "55",
+                    borderColor: (accent ?? "#3f332d") + "55",
                     backgroundColor: (accent ?? "#333") + "1f",
-                    color: accent ?? "#b3b3b3",
+                    color: accent ?? "#a8917d",
                 }}
             >
                 {icon}
             </span>
             <div className="min-w-0">
-                <p className="text-xs text-[#8a8a8a]">{label}</p>
-                <p className="text-lg font-bold tabular-nums leading-tight" style={{ color: accent ?? "#eff1f6" }}>
+                <p className="text-xs text-[#8f8278]">{label}</p>
+                <p className="text-lg font-bold tabular-nums leading-tight" style={{ color: accent ?? "#f4e7d8" }}>
                     {value}
                 </p>
             </div>
@@ -98,19 +98,19 @@ export function ProfilePage({ onBack, onLogout }: ProfilePageProps) {
                         <button
                             type="button"
                             onClick={onBack}
-                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
+                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3f332d] bg-[#211a16] text-[#a8917d] transition hover:border-[#e6a15d]/60 hover:text-[#e6a15d]"
                         >
                             <ArrowLeft size={20} />
                         </button>
                         <div>
                             <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
-                            <p className="mt-1 text-sm text-[#8a8a8a]">Your progress at a glance</p>
+                            <p className="mt-1 text-sm text-[#8f8278]">Your progress at a glance</p>
                         </div>
                     </div>
                     <button
                         type="button"
                         onClick={onLogout}
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#3a3a3a] bg-[#262626] px-4 text-sm font-medium text-[#d7d7d7] transition hover:border-red-400/60 hover:bg-red-500/10 hover:text-red-200"
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#3f332d] bg-[#211a16] px-4 text-sm font-medium text-[#d9c5ad] transition hover:border-red-400/60 hover:bg-red-500/10 hover:text-red-200"
                     >
                         <LogOut size={16} />
                         Logout
@@ -123,13 +123,13 @@ export function ProfilePage({ onBack, onLogout }: ProfilePageProps) {
                     </p>
                 ) : null}
 
-                <section className="relative mt-6 overflow-hidden rounded-2xl border border-[#3a3a3a] bg-gradient-to-br from-[#2a2a2a] to-[#1d1d1d] p-6 shadow-2xl shadow-black/30">
+                <section className="relative mt-6 overflow-hidden rounded-2xl border border-[#3f332d] bg-gradient-to-br from-[#24201c] to-[#1d1d1d] p-6 shadow-2xl shadow-black/30">
                     <div
                         className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full opacity-25"
-                        style={{ background: "radial-gradient(circle, #c86f3c 0%, transparent 70%)" }}
+                        style={{ background: "radial-gradient(circle, #e6a15d 0%, transparent 70%)" }}
                     />
                     <div className="relative flex flex-col items-center gap-4 sm:flex-row">
-                        <span className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-[#c86f3c]/40 bg-[#333333] text-[#b3b3b3] shadow-lg">
+                        <span className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-[#e6a15d]/40 bg-[#24201c] text-[#a8917d] shadow-lg">
                             {data?.avatar_url ? (
                                 <img src={data.avatar_url} alt="" className="h-full w-full object-cover" />
                             ) : (
@@ -137,16 +137,16 @@ export function ProfilePage({ onBack, onLogout }: ProfilePageProps) {
                             )}
                         </span>
                         <div className="min-w-0 flex-1 text-center sm:text-left">
-                            <p className="truncate text-2xl font-bold text-[#eff1f6]">
+                            <p className="truncate text-2xl font-bold text-[#f4e7d8]">
                                 {data?.display_name ?? "—"}
                             </p>
                             <div className="mt-1.5 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
                                 {data?.leetcode_username ? (
-                                    <span className="rounded-full border border-[#c86f3c]/40 bg-[#c86f3c]/10 px-2.5 py-0.5 text-sm font-semibold text-[#e8b691]">
+                                    <span className="rounded-full border border-[#e6a15d]/40 bg-[#e6a15d]/10 px-2.5 py-0.5 text-sm font-semibold text-[#e8b691]">
                                         @{data.leetcode_username}
                                     </span>
                                 ) : (
-                                    <span className="text-sm text-[#8a8a8a]">LeetCode account not linked</span>
+                                    <span className="text-sm text-[#8f8278]">LeetCode account not linked</span>
                                 )}
                                 <StreakPill count={data?.current_streak ?? 0} lit={streakLit} />
                             </div>
@@ -164,11 +164,11 @@ export function ProfilePage({ onBack, onLogout }: ProfilePageProps) {
                     <StatTile icon={<Gamepad2 size={18} />} label="Games played" value={stats?.games_played ?? 0} />
                 </section>
 
-                <section className="mt-4 rounded-2xl border border-[#3a3a3a] bg-[#262626] p-5 shadow-xl shadow-black/20">
+                <section className="mt-4 rounded-2xl border border-[#3f332d] bg-[#211a16] p-5 shadow-xl shadow-black/20">
                     <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
                             <Crown size={18} className="text-[#2bff88]" />
-                            <h2 className="text-sm font-semibold text-[#eff1f6]">Match record</h2>
+                            <h2 className="text-sm font-semibold text-[#f4e7d8]">Match record</h2>
                         </div>
                         <span className="text-lg font-bold tabular-nums text-[#2bff88]">{winRate}%</span>
                     </div>
@@ -181,14 +181,14 @@ export function ProfilePage({ onBack, onLogout }: ProfilePageProps) {
                     </div>
 
                     <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
-                        <div className="flex items-center gap-2 text-[#b3b3b3]">
-                            <Gamepad2 size={15} className="text-[#8a8a8a]" />
+                        <div className="flex items-center gap-2 text-[#a8917d]">
+                            <Gamepad2 size={15} className="text-[#8f8278]" />
                             <span>
                                 {stats?.games_played ?? 0} games ·{" "}
                                 <span className="font-semibold text-[#7ef7bb]">{stats?.games_won ?? 0} wins</span>
                             </span>
                         </div>
-                        <div className="flex items-center gap-2 text-[#b3b3b3]">
+                        <div className="flex items-center gap-2 text-[#a8917d]">
                             <MapPin size={15} className="text-[#7fe8ff]" />
                             <span>
                                 <span className="font-semibold text-[#7fe8ff]">{stats?.total_captures ?? 0}</span>{" "}
