@@ -5,6 +5,7 @@ import {
     Check,
     ChevronDown,
     ChevronRight,
+    Code2,
     Copy,
     Crown,
     Flame,
@@ -24,6 +25,8 @@ import { apiRequest } from "../api/client";
 import { LobbyPage } from "./LobbyPage";
 import { LobbyGamePage } from "./LobbyGamePage";
 import { ProfilePage } from "./ProfilePage";
+import { mapAssetUrl } from "../features/lobby-map/assets";
+import type { GeneratedMapDraft } from "../features/lobby-map/types";
 import type { DashboardData, DashboardLobby, Faction, LobbyPlayer } from "../types/dashboard";
 
 const MAP_BG = `${import.meta.env.BASE_URL}maps/leet_background.webp`;
@@ -176,16 +179,56 @@ function NavItem({ item }: { item: (typeof navItems)[number] }) {
     );
 }
 
-function MapPreview() {
+function MapPreview({ draft }: { draft?: GeneratedMapDraft }) {
+    const hasDraft = Boolean(draft && draft.seaBaseSrc && Array.isArray(draft.islands) && draft.islands.length > 0);
+
+    if (!hasDraft || !draft) {
+        return (
+            <div
+                className="relative h-full min-h-[5rem] overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]"
+                style={{
+                    backgroundImage: `linear-gradient(rgba(20, 15, 12, 0.12), rgba(20, 15, 12, 0.22)), url(${MAP_BG})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                }}
+            >
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(20,15,12,0.28),transparent_30%,transparent_70%,rgba(20,15,12,0.32))]" />
+            </div>
+        );
+    }
+
+    // Lightweight thumbnail: render only the sea base + island art images
+    // (lazy, cached). The province SVG layer is skipped — plenty for a card
+    // preview and avoids fetching N island SVGs per lobby.
     return (
-        <div
-            className="relative h-full min-h-[5rem] overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]"
-            style={{
-                backgroundImage: `linear-gradient(rgba(20, 15, 12, 0.12), rgba(20, 15, 12, 0.22)), url(${MAP_BG})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-            }}
-        >
+        <div className="relative h-full min-h-[5rem] overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]">
+            <img
+                src={mapAssetUrl(draft.seaBaseSrc)}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="absolute inset-0 h-full w-full object-fill"
+            />
+            {draft.islands
+                .filter((island) => island.backPath !== draft.seaBaseSrc)
+                .map((island) => (
+                    <img
+                        key={island.islandId}
+                        src={mapAssetUrl(island.backPath)}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="absolute"
+                        style={{
+                            left: `${island.left}%`,
+                            top: `${island.top}%`,
+                            width: `${island.width}%`,
+                            aspectRatio: island.aspectRatio,
+                            transform: `rotate(${island.rotation}deg)`,
+                            transformOrigin: "center",
+                        }}
+                    />
+                ))}
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(20,15,12,0.28),transparent_30%,transparent_70%,rgba(20,15,12,0.32))]" />
         </div>
     );
@@ -233,10 +276,13 @@ function GameCard({
             </div>
 
             <div className="mt-2 grid grid-cols-[1fr_7.5rem] gap-3">
-                <MapPreview />
+                <MapPreview draft={lobby.map_selection?.draft} />
                 <div className="rounded-md border border-[#3f332d] bg-[#1b1512]/88 p-2 text-xs text-[#a8917d]">
                     <p className="font-semibold text-[#d9c5ad]">{slotLabel}</p>
-                    <p className="mt-2">Language: {LANGUAGE_LABELS[lobby.programming_language] ?? lobby.programming_language}</p>
+                    <p className="mt-2 flex items-center gap-1.5">
+                        <Code2 size={13} className="shrink-0" />
+                        <span className="truncate">{LANGUAGE_LABELS[lobby.programming_language] ?? lobby.programming_language}</span>
+                    </p>
                     <p className="mt-3">Mode</p>
                     <p className="mt-1 font-semibold text-[#d9c5ad]">
                         {lobby.game_mode === "team_battle" ? "Factions" : "Free for all"}

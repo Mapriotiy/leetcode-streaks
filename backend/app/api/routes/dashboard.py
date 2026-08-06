@@ -10,9 +10,11 @@ from app.models.friendship import Friendship
 from app.models.leetcode_problem import LeetCodeProblem
 from app.models.lobby import Lobby
 from app.models.lobby_event import LobbyEvent
+from app.models.lobby_map import LobbyMap
 from app.models.lobby_player import LobbyPlayer
 from app.models.user import User
 from app.models.user_solved import UserSolved
+from app.services.map_config import build_default_map_draft
 from app.schemas.dashboard import (
     DashboardFactionResponse,
     DashboardLobbyPlayerResponse,
@@ -103,6 +105,52 @@ def build_activity_calendar(
     ]
 
 
+def _normalize_map_selection(value: object) -> dict:
+    default = {"kind": "generated", "draft": build_default_map_draft()}
+    if not isinstance(value, dict):
+        return default
+    if value.get("kind") != "generated":
+        return default
+    draft = value.get("draft")
+    if not isinstance(draft, dict):
+        return default
+    return {"kind": "generated", "draft": draft}
+
+
+def _lobby_map_selection(lobby: Lobby, db: Session) -> dict:
+    if lobby.status in {"active", "finished"}:
+        lmap = db.query(LobbyMap).filter_by(lobby_id=lobby.id).first()
+        if lmap:
+            return _trim_map_preview(_normalize_map_selection(lmap.map_config))
+    return _trim_map_preview(_normalize_map_selection(lobby.map_config))
+
+
+def _trim_map_preview(selection: dict) -> dict:
+    """Keep only the thumbnail data (sea base + island art positions) so the
+    dashboard payload stays small; full drafts come from the lobby endpoints."""
+    draft = selection.get("draft")
+    if not isinstance(draft, dict):
+        return selection
+    selection = dict(selection)
+    selection["draft"] = {
+        "seaBaseSrc": draft.get("seaBaseSrc"),
+        "islands": [
+            {
+                "islandId": island.get("islandId"),
+                "backPath": island.get("backPath"),
+                "left": island.get("left"),
+                "top": island.get("top"),
+                "width": island.get("width"),
+                "aspectRatio": island.get("aspectRatio"),
+                "rotation": island.get("rotation"),
+            }
+            for island in (draft.get("islands") or [])
+            if isinstance(island, dict)
+        ],
+    }
+    return selection
+
+
 def build_user_lobbies(current_user: User, db: Session) -> list[DashboardLobbyResponse]:
     memberships = (
         db.query(LobbyPlayer, Lobby)
@@ -152,6 +200,7 @@ def build_user_lobbies(current_user: User, db: Session) -> list[DashboardLobbyRe
                     )
                     for player, user in player_rows
                 ],
+                map_selection=_lobby_map_selection(lobby, db),
             )
         )
     return responses
