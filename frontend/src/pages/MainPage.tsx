@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
     Activity,
@@ -20,12 +20,11 @@ import {
     Users,
 } from "lucide-react";
 import { Logo } from "../components/Logo";
-import { apiRequest } from "../api/client";
+import { API_URL, apiRequest } from "../api/client";
 import { LobbyPage } from "./LobbyPage";
 import { LobbyGamePage } from "./LobbyGamePage";
 import { ProfilePage } from "./ProfilePage";
 import { LanguageIcon } from "../components/LanguageIcon";
-import { GeneratedMapRenderer } from "../features/lobby-map/GeneratedMapRenderer";
 import type { DashboardData, DashboardLobby, Faction, LobbyPlayer } from "../types/dashboard";
 
 const MAP_BG = `${import.meta.env.BASE_URL}maps/leet_background.webp`;
@@ -209,21 +208,7 @@ function GameCard({
         : `${playerCount} / ${lobby.max_players} players`;
     const statusLabel = lobby.status === "active" ? "In progress" : lobby.status === "finished" ? "Finished" : "Waiting";
     const progress = lobby.faction_mode ? 45 : Math.min(100, Math.round((playerCount / Math.max(1, lobby.max_players)) * 100));
-    const draft = lobby.map_selection?.kind === "generated" ? lobby.map_selection.draft : null;
-
-    const captured = useMemo(() => {
-        const map = new Map<string, string>();
-        const factionColor = new Map(lobby.factions.map((f) => [f.id, f.color]));
-        const factionIdByUser = new Map(
-            lobby.players.filter((p) => p.faction_id != null).map((p) => [p.user_id, p.faction_id as number]),
-        );
-        for (const [provinceId, ownerId] of Object.entries(lobby.captures ?? {})) {
-            const fid = factionIdByUser.get(ownerId);
-            const color = fid != null ? factionColor.get(fid) : undefined;
-            if (color) map.set(provinceId, color);
-        }
-        return map;
-    }, [lobby]);
+    const thumbnailUrl = `${API_URL}/lobbies/${lobby.id}/thumbnail.png?w=320`;
 
     return (
         <article className="rounded-lg border border-[#3f332d] bg-[#211a16]/88 p-3 shadow-xl shadow-black/20">
@@ -250,20 +235,15 @@ function GameCard({
             </div>
 
             <div className="mt-2 grid grid-cols-[1fr_7.5rem] gap-3">
-                {draft ? (
-                    <div className="relative h-28 overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]">
-                        <GeneratedMapRenderer
-                            draft={draft}
-                            captured={captured}
-                            zoomable={false}
-                            showBack
-                            fitHeight
-                            onSelect={() => {}}
-                        />
-                    </div>
-                ) : (
-                    <MapPreview />
-                )}
+                <div className="relative h-28 overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]">
+                    <img
+                        src={thumbnailUrl}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-cover"
+                    />
+                </div>
                 <div className="rounded-md border border-[#3f332d] bg-[#1b1512]/88 p-2 text-xs text-[#a8917d]">
                     <p className="font-semibold text-[#d9c5ad]">{slotLabel}</p>
                     <p className="mt-2 flex items-center gap-1.5">

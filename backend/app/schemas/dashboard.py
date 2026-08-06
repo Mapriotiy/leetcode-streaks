@@ -1,4 +1,4 @@
-from typing import Any, Literal, Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -47,8 +47,6 @@ class DashboardLobbyResponse(BaseModel):
     programming_language: str = "python3"
     creator_id: int
     players: list[DashboardLobbyPlayerResponse] = Field(default_factory=list)
-    map_selection: Optional[dict[str, Any]] = None
-    captures: dict[str, int] = Field(default_factory=dict)
 
 
 class PlayerStatsResponse(BaseModel):

@@ -53,6 +53,7 @@ from app.services.lobby_settings import (
     utcnow,
 )
 from app.services.leetcode_sync import finish_lobby_sync, maybe_enter_lobby_sync
+from app.services.map_thumbnail import render_lobby_map_thumbnail
 from app.services.og_card import OgCardData, render_og_card
 from app.services.lobby_settings import team_by_user
 from app.services.powerups import (
@@ -779,6 +780,30 @@ def lobby_og_image(lobby_id: int, db: Session = Depends(get_db)):
         content=png,
         media_type="image/png",
         headers={"Cache-Control": "public, max-age=3600"},
+    )
+
+
+@router.get("/{lobby_id}/thumbnail.png")
+def lobby_map_thumbnail(
+    lobby_id: int,
+    w: int = Query(320, ge=64, le=1600),
+    q: int = Query(82, ge=30, le=100),
+    fmt: str = Query("png", pattern="^(png|webp)$"),
+    db: Session = Depends(get_db),
+):
+    """Current map state as an image (sea + islands + regions + captures).
+
+    Rendered server-side from the DB and local assets — no LeetCode calls, no
+    lobby sync. Used for lightweight dashboard thumbnails.
+    """
+    png = render_lobby_map_thumbnail(lobby_id, width=w, quality=q, fmt=fmt, db=db)
+    if png is None:
+        raise HTTPException(404, "Lobby map not found")
+    media = "image/webp" if fmt == "webp" else "image/png"
+    return Response(
+        content=png,
+        media_type=media,
+        headers={"Cache-Control": "public, max-age=60, must-revalidate"},
     )
 
 

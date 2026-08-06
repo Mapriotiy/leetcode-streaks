@@ -1,5 +1,3 @@
-import type { LobbyMapSelection } from "../features/lobby-map/types";
-
 export type DashboardData = {
     leetcode_username: string | null;
     display_name: string | null;
@@ -61,8 +59,6 @@ export type DashboardLobby = {
     programming_language: string;
     creator_id: number;
     players: LobbyPlayer[];
-    map_selection?: LobbyMapSelection | null;
-    captures?: Record<string, number>;
 };
 
 export type CreateInviteResponse = {

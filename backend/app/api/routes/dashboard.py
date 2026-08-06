@@ -10,12 +10,9 @@ from app.models.friendship import Friendship
 from app.models.leetcode_problem import LeetCodeProblem
 from app.models.lobby import Lobby
 from app.models.lobby_event import LobbyEvent
-from app.models.lobby_map import LobbyMap
-from app.models.lobby_map_province import LobbyMapProvince
 from app.models.lobby_player import LobbyPlayer
 from app.models.user import User
 from app.models.user_solved import UserSolved
-from app.services.map_config import build_default_map_draft
 from app.schemas.dashboard import (
     DashboardFactionResponse,
     DashboardLobbyPlayerResponse,
@@ -106,42 +103,6 @@ def build_activity_calendar(
     ]
 
 
-def _normalize_map_selection(value: object) -> dict:
-    default = {"kind": "generated", "draft": build_default_map_draft()}
-    if not isinstance(value, dict):
-        return default
-    if value.get("kind") != "generated":
-        return default
-    draft = value.get("draft")
-    if not isinstance(draft, dict):
-        return default
-    return {"kind": "generated", "draft": draft}
-
-
-def _lobby_map_selection(lobby: Lobby, db: Session) -> dict:
-    if lobby.status in {"active", "finished"}:
-        lmap = db.query(LobbyMap).filter_by(lobby_id=lobby.id).first()
-        if lmap:
-            return _normalize_map_selection(lmap.map_config)
-    return _normalize_map_selection(lobby.map_config)
-
-
-def _lobby_captures(lobby: Lobby, db: Session) -> dict[str, int]:
-    """Snapshot of captured provinces (province_id -> owner user id) for the
-    dashboard thumbnail. Read-only, no sync triggered."""
-    if lobby.status not in {"active", "finished"}:
-        return {}
-    lmap = db.query(LobbyMap).filter_by(lobby_id=lobby.id).first()
-    if not lmap:
-        return {}
-    rows = (
-        db.query(LobbyMapProvince.province_id, LobbyMapProvince.captured_by)
-        .filter_by(lobby_map_id=lmap.id)
-        .all()
-    )
-    return {province_id: owner_id for province_id, owner_id in rows if owner_id}
-
-
 def build_user_lobbies(current_user: User, db: Session) -> list[DashboardLobbyResponse]:
     memberships = (
         db.query(LobbyPlayer, Lobby)
@@ -191,8 +152,6 @@ def build_user_lobbies(current_user: User, db: Session) -> list[DashboardLobbyRe
                     )
                     for player, user in player_rows
                 ],
-                map_selection=_lobby_map_selection(lobby, db),
-                captures=_lobby_captures(lobby, db),
             )
         )
     return responses
