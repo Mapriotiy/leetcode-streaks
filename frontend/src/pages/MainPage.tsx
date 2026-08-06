@@ -847,9 +847,9 @@ export function MainPage() {
                             </div>
                         </div>
 
-                        <div className="grid gap-1.5">
+                        <div className="grid max-h-[14.5rem] gap-1.5 overflow-y-auto pr-0.5">
                             {friends.length > 0 ? (
-                                friends.map((friend, index) => (
+                                friends.slice(0, 5).map((friend, index) => (
                                     <FriendRow
                                         key={friend.friendship_id}
                                         friend={{
