@@ -87,7 +87,7 @@ function MainPageSkeleton() {
             transition={{ duration: 0.2, ease: "easeOut" }}
         >
             <header className="sticky top-0 z-30 border-b border-[#2b231f] bg-[#11100e]/94 backdrop-blur">
-                <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-7">
+            <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-7 2xl:max-w-[1600px]">
                     <Logo className="text-[1.1rem]" />
                     <div className="hidden items-center gap-2 lg:flex">
                         <SkeletonBlock className="h-6 w-20" />
@@ -102,7 +102,7 @@ function MainPageSkeleton() {
                 </div>
             </header>
 
-            <div className="mx-auto max-w-7xl px-7 py-3">
+            <div className="mx-auto max-w-7xl px-4 py-3 sm:px-7 2xl:max-w-[1600px]">
                 <DashboardBodySkeleton />
             </div>
         </motion.main>
@@ -208,7 +208,7 @@ function MainHeader({
 }) {
     return (
         <header className="sticky top-0 z-30 border-b border-[#2b231f] bg-[#11100e]/94 backdrop-blur">
-            <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-7">
+            <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-7 2xl:max-w-[1600px]">
                 <Logo className="text-[1.1rem]" />
 
                 <nav className="hidden items-center gap-2 lg:flex">
@@ -822,7 +822,7 @@ export function MainPage() {
     } else if (screen === "lobbies") {
         content = (
             <main className="page-enter min-h-screen bg-[#14110f] text-[#f4e7d8]">
-                <div className="mx-auto max-w-7xl px-7 py-4">
+                <div className="mx-auto max-w-7xl px-4 py-4 sm:px-7 2xl:max-w-[1600px]">
                     <div className="mb-4 flex items-center gap-3">
                         <button
                             type="button"
@@ -888,7 +888,7 @@ export function MainPage() {
 
     content = (
         <main className="min-h-screen bg-[#14110f] text-[#f4e7d8]">
-            <div className="mx-auto max-w-7xl px-7 py-3">
+            <div className="mx-auto max-w-7xl px-4 py-3 sm:px-7 2xl:max-w-[1600px]">
                 <AnimatePresence mode="wait" initial={false}>
                     {isDashboardLoading ? (
                         <DashboardBodySkeleton />
@@ -900,9 +900,9 @@ export function MainPage() {
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.22, ease: "easeOut" }}
                         >
-                <section className="grid min-h-[9.5rem] grid-cols-[13rem_minmax(0,1fr)_14rem] gap-5 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-2xl shadow-black/30">
+                <section className="grid min-h-[9.5rem] grid-cols-1 gap-3 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-2xl shadow-black/30 sm:gap-5 lg:grid-cols-[13rem_minmax(0,1fr)_14rem]">
                     <div
-                        className="relative overflow-hidden rounded-md border border-[#3f332d] bg-[#17120f]"
+                        className="relative min-h-[7rem] overflow-hidden rounded-md border border-[#3f332d] bg-[#17120f]"
                         style={{
                             backgroundImage: `linear-gradient(rgba(17,13,10,0.28), rgba(17,13,10,0.4)), url(${MAP_BG})`,
                             backgroundSize: "cover",
@@ -912,7 +912,7 @@ export function MainPage() {
                         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(17,13,10,0.2),transparent_35%,transparent_65%,rgba(17,13,10,0.42))]" />
                     </div>
 
-                    <div className="grid grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)] gap-5">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)] sm:gap-5">
                         <div className="flex flex-col justify-center px-1">
                             <h1 className="text-2xl font-black leading-none text-[#f4e7d8] md:text-3xl">
                                 Today's conquest
@@ -971,7 +971,7 @@ export function MainPage() {
                     </aside>
                 </section>
 
-                <section className="mt-3 grid grid-cols-[minmax(0,1fr)_23.5rem] gap-3">
+                <section className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_23.5rem]">
                     <div className="rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-xl shadow-black/25">
                         <div className="mb-3 flex items-center justify-between">
                             <div className="flex items-start gap-3">
