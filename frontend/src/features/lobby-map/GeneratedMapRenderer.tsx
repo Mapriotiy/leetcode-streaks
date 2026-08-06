@@ -1,6 +1,7 @@
 import { Minus, Plus, RotateCcw } from "lucide-react";
 import {
     useEffect,
+    useId,
     useMemo,
     useRef,
     useState,
@@ -8,7 +9,7 @@ import {
     type PointerEvent,
 } from "react";
 import { MAP_ASPECT_RATIO, mapAssetUrl } from "./assets";
-import type { GeneratedMapDraft, GeneratedMapIsland } from "./types";
+import type { GeneratedMapDraft, GeneratedMapIsland, GeneratedMapMarker, GeneratedMapRoad } from "./types";
 
 type GeneratedMapRendererProps = {
     draft: GeneratedMapDraft;
@@ -27,14 +28,14 @@ type GeneratedMapRendererProps = {
     maxZoom?: number;
     initialZoom?: number;
     fitHeight?: boolean;
+    interactive?: boolean;
+    showMarkers?: boolean;
+    showRoads?: boolean;
+    showEffects?: boolean;
 };
 
-type ProvinceMarker = {
-    provinceId: string;
+type ProvinceMarker = GeneratedMapMarker & {
     provinceName: string;
-    left: number;
-    top: number;
-    color: string | null;
 };
 
 type DragState = {
@@ -59,6 +60,7 @@ type PinchState = {
 };
 
 const ZOOM_STEP = 0.35;
+const DEFAULT_NUMERIC_MAP_ASPECT_RATIO = 1321 / 900;
 const svgTextCache = new Map<string, Promise<string>>();
 
 function loadSvgText(path: string) {
@@ -117,12 +119,88 @@ function mixHex(base: string, target: string, baseWeight: number) {
     });
 }
 
+function stableHash(value: string) {
+    let hash = 0;
+    for (let index = 0; index < value.length; index += 1) {
+        hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+    }
+    return hash;
+}
+
 function captureFillColor(color: string) {
     return mixHex(color, "#272323", 0.46);
 }
 
 function captureStrokeColor(color: string) {
     return mixHex(color, "#3a2528", 0.72);
+}
+
+function markerDisplayColor(color: string | null) {
+    if (!color) return "#9d9487";
+    return mixHex(color, "#fff0cc", 0.64);
+}
+
+function cssAttrValue(value: string) {
+    return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function provinceSelector(rendererId: string, provinceId: string) {
+    return `[data-generated-map-id="${cssAttrValue(rendererId)}"] [data-province-id="${cssAttrValue(provinceId)}"]`;
+}
+
+function dynamicProvinceStyles({
+    rendererId,
+    captured,
+    highlightedProvinces,
+    showEffects,
+}: {
+    rendererId: string;
+    captured: Map<string, string>;
+    highlightedProvinces: string[] | null;
+    showEffects: boolean;
+}) {
+    const blocks: string[] = [];
+
+    if (highlightedProvinces?.length) {
+        for (const provinceId of highlightedProvinces) {
+            blocks.push(`${provinceSelector(rendererId, provinceId)} {
+                fill-opacity: var(--generated-map-fill-opacity) !important;
+                opacity: var(--generated-map-layer-opacity) !important;
+                stroke-opacity: 0.72 !important;
+            }`);
+        }
+    }
+
+    for (const [provinceId, owner] of captured) {
+        const color = resolveCaptureColor(owner);
+        if (!color) continue;
+        const fill = captureFillColor(color);
+        const stroke = captureStrokeColor(color);
+        const filter = showEffects
+            ? `filter: saturate(0.94) brightness(0.9) drop-shadow(0 0 4px ${stroke}) drop-shadow(0 0 10px ${stroke});`
+            : "";
+        blocks.push(`${provinceSelector(rendererId, provinceId)} {
+            fill: ${fill} !important;
+            fill-opacity: var(--generated-map-capture-fill-opacity) !important;
+            opacity: 0.82 !important;
+            stroke: ${stroke} !important;
+            stroke-opacity: 0.82 !important;
+            stroke-width: 2.8 !important;
+            ${filter}
+        }`);
+        if (showEffects) {
+            blocks.push(`[data-generated-map-id="${cssAttrValue(rendererId)}"].generated-map-moving [data-province-id="${cssAttrValue(
+                provinceId,
+            )}"],
+            [data-generated-map-id="${cssAttrValue(rendererId)}"].generated-map-lite [data-province-id="${cssAttrValue(
+                provinceId,
+            )}"] {
+                filter: none !important;
+            }`);
+        }
+    }
+
+    return blocks.join("\n");
 }
 
 function setSvgAttr(tag: string, name: string, value: string) {
@@ -210,16 +288,136 @@ function clampPercent(value: number) {
     return Math.max(4, Math.min(96, value));
 }
 
+function clampNumber(value: number, min: number, max: number) {
+    return Math.max(min, Math.min(max, value));
+}
+
+function parseAspectRatioValue(value: string) {
+    const parts = value.split("/").map((part) => Number(part.trim()));
+    const width = parts[0];
+    const height = parts[1];
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+        return DEFAULT_NUMERIC_MAP_ASPECT_RATIO;
+    }
+    return width / height;
+}
+
+function islandRelativeArea(island: GeneratedMapIsland) {
+    const aspectRatio = parseAspectRatioValue(island.aspectRatio);
+    const height = island.width / aspectRatio;
+    return island.width * height;
+}
+
+function islandMarkerBaseScale(island: GeneratedMapIsland, islands: readonly GeneratedMapIsland[]) {
+    const area = islandRelativeArea(island);
+    const averageArea =
+        islands.reduce((total, currentIsland) => total + islandRelativeArea(currentIsland), 0) /
+        Math.max(1, islands.length);
+    const relativeSize = Math.sqrt(area / Math.max(averageArea, 1));
+
+    return clampNumber(0.86 + (relativeSize - 1) * 0.34, 0.68, 1.16);
+}
+
+function roadKey(a: ProvinceMarker, b: ProvinceMarker) {
+    return [a.provinceId, b.provinceId].sort().join("~");
+}
+
+function curvedRoadPath(a: ProvinceMarker, b: ProvinceMarker, seed: number) {
+    const dx = b.left - a.left;
+    const dy = b.top - a.top;
+    const distance = Math.max(1, Math.hypot(dx, dy));
+    const nx = -dy / distance;
+    const ny = dx / distance;
+    const direction = seed % 2 === 0 ? 1 : -1;
+    const bend = direction * clampNumber(distance * (0.05 + (seed % 7) * 0.006), 0.65, 3.1);
+    const wobble = ((seed >> 4) % 5 - 2) * 0.12;
+
+    const c1x = clampPercent(a.left + dx * 0.38 + nx * (bend + wobble));
+    const c1y = clampPercent(a.top + dy * 0.36 + ny * (bend - wobble));
+    const c2x = clampPercent(a.left + dx * 0.64 + nx * (bend - wobble));
+    const c2y = clampPercent(a.top + dy * 0.66 + ny * (bend + wobble));
+
+    return `M ${a.left.toFixed(2)} ${a.top.toFixed(2)} C ${c1x.toFixed(2)} ${c1y.toFixed(
+        2,
+    )}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${b.left.toFixed(2)} ${b.top.toFixed(2)}`;
+}
+
+function islandRoads(markers: ProvinceMarker[], islandId: string): GeneratedMapRoad[] {
+    if (markers.length < 2) return [];
+
+    const candidates = markers
+        .flatMap((marker, index) =>
+            markers.slice(index + 1).map((other) => ({
+                a: marker,
+                b: other,
+                distance: Math.hypot(marker.left - other.left, marker.top - other.top),
+                seed: stableHash(roadKey(marker, other)),
+            })),
+        )
+        .sort((a, b) => a.distance - b.distance || a.seed - b.seed);
+
+    const parent = new Map(markers.map((marker) => [marker.provinceId, marker.provinceId]));
+    const find = (id: string): string => {
+        const current = parent.get(id) ?? id;
+        if (current === id) return id;
+        const root = find(current);
+        parent.set(id, root);
+        return root;
+    };
+    const connect = (a: ProvinceMarker, b: ProvinceMarker) => {
+        const rootA = find(a.provinceId);
+        const rootB = find(b.provinceId);
+        if (rootA === rootB) return false;
+        parent.set(rootB, rootA);
+        return true;
+    };
+
+    const roads = new Map<string, { a: ProvinceMarker; b: ProvinceMarker; distance: number; seed: number }>();
+
+    for (const candidate of candidates) {
+        if (!connect(candidate.a, candidate.b)) continue;
+        roads.set(roadKey(candidate.a, candidate.b), candidate);
+        if (roads.size >= markers.length - 1) break;
+    }
+
+    const connectedDistances = [...roads.values()].map((road) => road.distance);
+    const averageRoadDistance =
+        connectedDistances.reduce((total, distance) => total + distance, 0) / Math.max(1, connectedDistances.length);
+    const extraMaxDistance = clampNumber(averageRoadDistance * 1.58, 14, 32);
+    const extraLimit = Math.max(2, Math.floor(markers.length * 0.52));
+    let extraCount = 0;
+
+    for (const candidate of candidates) {
+        if (extraCount >= extraLimit) break;
+        const key = roadKey(candidate.a, candidate.b);
+        const isShortBypass = candidate.distance <= averageRoadDistance * 1.02 && candidate.seed % 100 < 52;
+        const isCrossRoad = candidate.distance <= extraMaxDistance && candidate.seed % 100 < 38;
+        if (roads.has(key) || (!isShortBypass && !isCrossRoad)) continue;
+        roads.set(key, candidate);
+        extraCount += 1;
+    }
+
+    const longestRoad = Math.max(...[...roads.values()].map((road) => road.distance), 1);
+
+    return [...roads.values()]
+        .sort((a, b) => a.distance - b.distance || a.seed - b.seed)
+        .map(({ a, b, distance, seed }) => ({
+            id: roadKey(a, b),
+            islandId,
+            d: curvedRoadPath(a, b, seed),
+            opacity: clampNumber(0.42 + (longestRoad - distance) / longestRoad * 0.26, 0.34, 0.68),
+            dashOffset: seed % 11,
+        }));
+}
+
 function islandMarkers({
     svgText,
     island,
     draft,
-    captured,
 }: {
     svgText: string;
     island: GeneratedMapIsland;
     draft: GeneratedMapDraft;
-    captured: Map<string, string>;
 }): ProvinceMarker[] {
     const viewBox = parseViewBox(svgText);
     const provinceByPath = new Map(
@@ -228,7 +426,7 @@ function islandMarkers({
             .map((province) => [province.pathIndex, province]),
     );
 
-    return [...svgText.matchAll(/<path\b[^>]*>/g)]
+    const markers = [...svgText.matchAll(/<path\b[^>]*>/g)]
         .map((match) => match[0])
         .map((pathTag, pathIndex) => {
             const province = provinceByPath.get(pathIndex);
@@ -236,27 +434,42 @@ function islandMarkers({
             const centroid = pathCentroidFromTag(pathTag, pathIndex);
             return {
                 provinceId: province.provinceId,
+                islandId: island.islandId,
                 provinceName: province.name,
                 left: clampPercent(((centroid.x - viewBox.x) / viewBox.width) * 100),
                 top: clampPercent(((centroid.y - viewBox.y) / viewBox.height) * 100),
-                color: resolveCaptureColor(captured.get(province.provinceId)),
+                scale: 1,
             } satisfies ProvinceMarker;
         })
         .filter((marker): marker is ProvinceMarker => marker !== null);
+
+    const islandBaseScale = islandMarkerBaseScale(island, draft.islands);
+
+    return markers.map((marker) => {
+        const distances = markers
+            .filter((other) => other.provinceId !== marker.provinceId)
+            .map((other) => Math.hypot(marker.left - other.left, marker.top - other.top))
+            .sort((a, b) => a - b);
+        const nearbyCount = distances.filter((distance) => distance < 9).length;
+        const nearest = distances[0] ?? 12;
+        const densityPenalty = Math.min(0.28, nearbyCount * 0.045);
+        const nearestPenalty = nearest < 4.5 ? (4.5 - nearest) * 0.045 : 0;
+
+        return {
+            ...marker,
+            scale: clampNumber(islandBaseScale - densityPenalty - nearestPenalty, 0.56, 1.16),
+        };
+    });
 }
 
 export function renderGeneratedIslandSvg({
     svgText,
     island,
     draft,
-    captured,
-    highlightedProvinces,
 }: {
     svgText: string;
     island: GeneratedMapIsland;
     draft: GeneratedMapDraft;
-    captured: Map<string, string>;
-    highlightedProvinces: string[] | null;
 }) {
     const provinceByPath = new Map(
         draft.provinces
@@ -276,20 +489,12 @@ export function renderGeneratedIslandSvg({
             const region = province ? regionById.get(province.regionId) : null;
             const provinceId = province?.provinceId ?? `${island.islandId}-province-${String(pathIndex + 1).padStart(3, "0")}`;
             const provinceName = province?.name ?? provinceId;
-            const capturedColor = resolveCaptureColor(captured.get(provinceId));
-            const isHighlighted = highlightedProvinces ? highlightedProvinces.includes(provinceId) : true;
             const regionColor = region?.color ?? "#8f7458";
-            const fill = capturedColor ?? regionColor;
-            const stroke = capturedColor ?? regionColor;
-            const regionFill = capturedColor ? captureFillColor(capturedColor) : mixHex(regionColor, "#242827", 0.7);
-            const regionStroke = capturedColor ? captureStrokeColor(capturedColor) : mixHex(regionColor, "#303332", 0.82);
-            const filter = capturedColor ? `drop-shadow(0 0 6px ${capturedColor}) drop-shadow(0 0 12px ${capturedColor})` : "";
+            const regionFill = mixHex(regionColor, "#242827", 0.7);
+            const regionStroke = mixHex(regionColor, "#303332", 0.82);
             const inlineStyle = [
                 `--generated-map-region-color: ${regionFill}`,
                 `--generated-map-region-stroke-color: ${regionStroke}`,
-                `--generated-map-capture-color: ${capturedColor ?? "#ffad42"}`,
-                `--generated-map-capture-fill-color: ${capturedColor ? captureFillColor(capturedColor) : "#5e4730"}`,
-                `--generated-map-capture-stroke-color: ${capturedColor ? captureStrokeColor(capturedColor) : "#8a5b35"}`,
             ].join("; ");
             pathIndex += 1;
 
@@ -300,13 +505,10 @@ export function renderGeneratedIslandSvg({
             nextTag = setSvgAttr(nextTag, "data-province-id", provinceId);
             nextTag = setSvgAttr(nextTag, "data-province-name", provinceName);
             nextTag = setSvgAttr(nextTag, "data-region-id", province?.regionId ?? "region-01");
-            nextTag = setSvgAttr(nextTag, "data-muted", highlightedProvinces && !isHighlighted ? "true" : "false");
-            nextTag = setSvgAttr(nextTag, "data-captured", capturedColor ? "true" : "false");
-            nextTag = setSvgAttr(nextTag, "fill", fill);
+            nextTag = setSvgAttr(nextTag, "fill", regionColor);
             nextTag = setSvgAttr(nextTag, "fill-opacity", "1");
             nextTag = setSvgAttr(nextTag, "opacity", "1");
-            nextTag = setSvgAttr(nextTag, "stroke", stroke);
-            if (filter) nextTag = setSvgAttr(nextTag, "filter", filter);
+            nextTag = setSvgAttr(nextTag, "stroke", regionColor);
             return nextTag;
         });
 }
@@ -328,6 +530,10 @@ export function GeneratedMapRenderer({
     maxZoom = 3,
     initialZoom = 1,
     fitHeight = false,
+    interactive = true,
+    showMarkers = true,
+    showRoads = true,
+    showEffects = true,
 }: GeneratedMapRendererProps) {
     const [svgTexts, setSvgTexts] = useState<Record<string, string>>({});
     const [loadError, setLoadError] = useState<string | null>(null);
@@ -344,6 +550,11 @@ export function GeneratedMapRenderer({
     const pinchRef = useRef<PinchState | null>(null);
     const wheelHandlerRef = useRef<(event: globalThis.WheelEvent) => void>(() => {});
     const commitTimerRef = useRef<number | null>(null);
+    const movingTimerRef = useRef<number | null>(null);
+    const rendererId = useId().replace(/:/g, "-");
+    const castleSymbolId = `${rendererId}-castle`;
+    const effectiveZoomable = zoomable && interactive;
+    const canSelectProvince = interactive && Boolean(onSelect);
 
     // Content-based signature so that same-layout drafts (which the lobby
     // poll re-creates every few seconds) don't reset the view or refetch SVGs.
@@ -385,6 +596,17 @@ export function GeneratedMapRenderer({
         if (!layer) return;
         const { zoom: z, x, y } = displayRef.current;
         layer.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${z})`;
+    }
+
+    function markMoving() {
+        const root = rootRef.current;
+        if (!root || !showEffects) return;
+        root.classList.add("generated-map-moving");
+        if (movingTimerRef.current !== null) window.clearTimeout(movingTimerRef.current);
+        movingTimerRef.current = window.setTimeout(() => {
+            movingTimerRef.current = null;
+            root.classList.remove("generated-map-moving");
+        }, 180);
     }
 
     // Smoothly glide displayRef toward viewRef every frame. Discrete wheel
@@ -461,6 +683,7 @@ export function GeneratedMapRenderer({
             viewRef.current.y += vy * FRAME_MS;
             displayRef.current.x = viewRef.current.x;
             displayRef.current.y = viewRef.current.y;
+            markMoving();
             applyView();
             inertiaRef.current = requestAnimationFrame(tick);
         };
@@ -478,6 +701,12 @@ export function GeneratedMapRenderer({
             commitView();
         }, 200);
     }
+
+    useEffect(() => {
+        return () => {
+            if (movingTimerRef.current !== null) window.clearTimeout(movingTimerRef.current);
+        };
+    }, []);
 
     useEffect(() => {
         viewRef.current = { zoom: clampZoom(initialZoom, minZoom, maxZoom), x: 0, y: 0 };
@@ -499,15 +728,51 @@ export function GeneratedMapRenderer({
         [overlayOpacity, showFill, strokeWidth],
     );
 
+    const provinceNameById = useMemo(
+        () => new Map(draft.provinces.map((province) => [province.provinceId, province.name])),
+        [draft.provinces],
+    );
+
+    const hasPrecomputedRoads = Boolean(draft.roads?.length);
+    const needsMarkerGeometry = showMarkers || (showRoads && !hasPrecomputedRoads);
+
     const markersByIsland = useMemo(() => {
         const map = new Map<string, ProvinceMarker[]>();
+        if (!needsMarkerGeometry) return map;
+        if (draft.markers?.length) {
+            for (const marker of draft.markers) {
+                const entry: ProvinceMarker = {
+                    ...marker,
+                    provinceName: provinceNameById.get(marker.provinceId) ?? marker.provinceId,
+                };
+                map.set(marker.islandId, [...(map.get(marker.islandId) ?? []), entry]);
+            }
+            return map;
+        }
+
         for (const island of draft.islands) {
             const svgText = svgTexts[island.islandId];
             if (!svgText) continue;
-            map.set(island.islandId, islandMarkers({ svgText, island, draft, captured }));
+            map.set(island.islandId, islandMarkers({ svgText, island, draft }));
         }
         return map;
-    }, [captured, draft, svgTexts]);
+    }, [draft, needsMarkerGeometry, provinceNameById, svgTexts]);
+
+    const roadsByIsland = useMemo(() => {
+        const map = new Map<string, GeneratedMapRoad[]>();
+        if (!showRoads) return map;
+        if (draft.roads?.length) {
+            for (const road of draft.roads) {
+                map.set(road.islandId, [...(map.get(road.islandId) ?? []), road]);
+            }
+            return map;
+        }
+
+        for (const island of draft.islands) {
+            map.set(island.islandId, islandRoads(markersByIsland.get(island.islandId) ?? [], island.islandId));
+        }
+        return map;
+    }, [draft.islands, draft.roads, markersByIsland, showRoads]);
 
     const islandSvgHtml = useMemo(() => {
         const map = new Map<string, string>();
@@ -520,13 +785,16 @@ export function GeneratedMapRenderer({
                     svgText,
                     island,
                     draft,
-                    captured,
-                    highlightedProvinces,
                 }),
             );
         }
         return map;
-    }, [captured, highlightedProvinces, draft, svgTexts]);
+    }, [draft, svgTexts]);
+
+    const provinceDynamicCss = useMemo(
+        () => dynamicProvinceStyles({ rendererId, captured, highlightedProvinces, showEffects }),
+        [captured, highlightedProvinces, rendererId, showEffects],
+    );
 
     function updateZoom(nextZoom: number) {
         const clamped = clampZoom(nextZoom, minZoom, maxZoom);
@@ -535,19 +803,21 @@ export function GeneratedMapRenderer({
             x: clamped === minZoom ? 0 : viewRef.current.x,
             y: clamped === minZoom ? 0 : viewRef.current.y,
         };
+        markMoving();
         startSmoothZoom();
         commitView();
     }
 
     function resetView() {
         viewRef.current = { zoom: clampZoom(initialZoom, minZoom, maxZoom), x: 0, y: 0 };
+        markMoving();
         startSmoothZoom();
         commitView();
     }
 
     useEffect(() => {
         wheelHandlerRef.current = (event: globalThis.WheelEvent) => {
-            if (!zoomable) return;
+            if (!effectiveZoomable) return;
             event.preventDefault();
             // Normalize line/page deltas to pixels and zoom continuously so
             // both mouse notches and trackpad inertia feel smooth.
@@ -583,6 +853,7 @@ export function GeneratedMapRenderer({
                     viewRef.current = { ...viewRef.current, zoom: nextZoom };
                 }
             }
+            markMoving();
             startSmoothZoom();
             commitViewSoon();
         };
@@ -590,32 +861,32 @@ export function GeneratedMapRenderer({
 
     useEffect(() => {
         const root = rootRef.current;
-        if (!root || !zoomable) return;
+        if (!root || !effectiveZoomable) return;
         const onWheel = (event: globalThis.WheelEvent) => wheelHandlerRef.current(event);
         root.addEventListener("wheel", onWheel, { passive: false });
         return () => root.removeEventListener("wheel", onWheel);
-    }, [zoomable]);
+    }, [effectiveZoomable]);
 
     // Province selection rides on the native `click` event: the browser already
     // distinguishes a tap from a drag (movement suppresses click), so it works
     // reliably on phones without fighting pointer jitter.
     const clickHandlerRef = useRef<(event: MouseEvent) => void>(() => {});
     clickHandlerRef.current = (event: MouseEvent) => {
-        if (!zoomable) return;
+        if (!canSelectProvince) return;
         if ((event.target as Element).closest("button")) return;
         selectProvinceAt(event);
     };
 
     useEffect(() => {
         const root = rootRef.current;
-        if (!root || !zoomable) return;
+        if (!root || !canSelectProvince) return;
         const onClick = (event: MouseEvent) => clickHandlerRef.current(event);
         root.addEventListener("click", onClick);
         return () => root.removeEventListener("click", onClick);
-    }, [zoomable]);
+    }, [canSelectProvince]);
 
     function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
-        if (!zoomable || event.button !== 0) return;
+        if (!effectiveZoomable || event.button !== 0) return;
         if ((event.target as Element).closest("button")) return;
         applyViewInstant();
         activePointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
@@ -670,6 +941,7 @@ export function GeneratedMapRenderer({
                       };
             viewRef.current = nextView;
             displayRef.current = nextView;
+            markMoving();
             applyView();
             return;
         }
@@ -686,6 +958,7 @@ export function GeneratedMapRenderer({
         viewRef.current.y = drag.originY + dy;
         displayRef.current.x = viewRef.current.x;
         displayRef.current.y = viewRef.current.y;
+        markMoving();
         applyView();
 
         // Track a smoothed drag velocity (px per ms) for the release fling.
@@ -755,8 +1028,8 @@ export function GeneratedMapRenderer({
     }
 
     const mapLayerStyle: CSSProperties = {
-        willChange: "transform",
-        cursor: zoomable ? (zoom > minZoom ? "grab" : "zoom-in") : undefined,
+        willChange: effectiveZoomable ? "transform" : undefined,
+        cursor: effectiveZoomable ? (zoom > minZoom ? "grab" : "zoom-in") : undefined,
     };
     const rootStyle: CSSProperties = fitHeight
         ? { aspectRatio: MAP_ASPECT_RATIO, height: "100%", minWidth: "100%" }
@@ -767,17 +1040,30 @@ export function GeneratedMapRenderer({
             className={`generated-map-root relative overflow-hidden rounded-lg border border-white/10 shadow-2xl ${
                 fitHeight ? "inline-block align-top" : "w-full"
             } ${
-                zoomable ? "touch-none select-none" : ""
+                effectiveZoomable ? "touch-none select-none" : ""
+            } ${
+                showEffects ? "" : "generated-map-lite"
+            } ${
+                highlightedProvinces?.length ? "generated-map-has-highlight" : ""
             } ${className}`}
             style={rootStyle}
+            data-generated-map-id={rendererId}
             ref={rootRef}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
         >
+            {showMarkers ? (
+                <svg className="absolute h-0 w-0" aria-hidden="true" focusable="false">
+                    <symbol id={castleSymbolId} viewBox="0 0 15 15">
+                        <path d="M11,4H4C3.4477,4,3,3.5523,3,3V0.5C3,0.2239,3.2239,0,3.5,0S4,0.2239,4,0.5V2h1V1c0-0.5523,0.4477-1,1-1s1,0.4477,1,1v1h1V1c0-0.5523,0.4477-1,1-1s1,0.4477,1,1v1h1V0.5C11,0.2239,11.2239,0,11.5,0S12,0.2239,12,0.5V3C12,3.5523,11.5523,4,11,4z M14,14.5c0,0.2761-0.2239,0.5-0.5,0.5h-12C1.2239,15,1,14.7761,1,14.5S1.2239,14,1.5,14H2c0.5523,0,1-0.4477,1-1c0,0,1-6,1-7c0-0.5523,0.4477-1,1-1h5c0.5523,0,1,0.4477,1,1c0,1,1,7,1,7c0,0.5523,0.4477,1,1,1h0.5c0.2723-0.0001,0.4946,0.2178,0.5,0.49V14.5z M9,10.5C9,9.6716,8.3284,9,7.5,9S6,9.6716,6,10.5V14h3V10.5z" />
+                    </symbol>
+                </svg>
+            ) : null}
             <GeneratedMapStyles />
-            {zoomable ? (
+            {provinceDynamicCss ? <style>{provinceDynamicCss}</style> : null}
+            {effectiveZoomable ? (
                 <div className="absolute right-2 top-2 z-20 hidden items-center gap-1 rounded-md border border-white/10 bg-[#1b1b1b]/85 p-1 shadow-lg backdrop-blur sm:flex">
                     <button
                         type="button"
@@ -870,50 +1156,82 @@ export function GeneratedMapRenderer({
                                     }}
                                 />
                             ) : null}
-                            <div className="pointer-events-none absolute inset-0 z-[6]">
-                                {(markersByIsland.get(island.islandId) ?? []).map((marker) => (
-                                    <span
-                                        key={marker.provinceId}
-                                        className="generated-map-marker"
-                                        data-captured={marker.color ? "true" : "false"}
-                                        title={marker.provinceName}
-                                        style={{
-                                            left: `${marker.left}%`,
-                                            top: `${marker.top}%`,
-                                            "--generated-marker-color": marker.color ?? "#777777",
-                                        } as CSSProperties}
+                            {(roadsByIsland.get(island.islandId) ?? []).length > 0 ? (
+                                <div
+                                    className="generated-map-road-layer absolute inset-0 z-[5]"
+                                    aria-hidden="true"
+                                    style={maskStyle(island.svgPath)}
+                                >
+                                    <svg
+                                        className="h-full w-full overflow-visible"
+                                        viewBox="0 0 100 100"
+                                        preserveAspectRatio="none"
                                     >
-                                        <span className="generated-map-marker-shell">
-                                            {marker.color ? (
-                                                <span className="generated-map-marker-flag" />
-                                            ) : (
-                                                <span className="generated-map-marker-dot" />
-                                            )}
-                                        </span>
-                                        {bursts?.has(marker.provinceId) ? (
-                                            <span
-                                                className="generated-map-capture-burst"
+                                        {(roadsByIsland.get(island.islandId) ?? []).map((road) => (
+                                            <path
+                                                key={road.id}
+                                                className="generated-map-road"
+                                                d={road.d}
                                                 style={
                                                     {
-                                                        "--burst-color":
-                                                            bursts.get(marker.provinceId) ?? marker.color ?? "#ffffff",
+                                                        "--generated-road-opacity": road.opacity,
+                                                        "--generated-road-dash-offset": road.dashOffset,
                                                     } as CSSProperties
                                                 }
                                             />
-                                        ) : null}
-                                        {fortified?.has(marker.provinceId) ? (
-                                            <span className="generated-map-fortify" aria-label="fortified">
-                                                <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" aria-hidden="true">
-                                                    <path
-                                                        d="M11.302 21.6149C11.5234 21.744 11.6341 21.8086 11.7903 21.8421C11.9116 21.8681 12.0884 21.8681 12.2097 21.8421C12.3659 21.8086 12.4766 21.744 12.698 21.6149C14.646 20.4784 20 16.9084 20 12V6.6C20 6.04207 20 5.7631 19.8926 5.55048C19.7974 5.36198 19.6487 5.21152 19.4613 5.11409C19.25 5.00419 18.9663 5.00084 18.3988 4.99413C15.4272 4.95899 13.7136 4.71361 12 3C10.2864 4.71361 8.57279 4.95899 5.6012 4.99413C5.03373 5.00084 4.74999 5.00419 4.53865 5.11409C4.35129 5.21152 4.20259 5.36198 4.10739 5.55048C4 5.7631 4 6.04207 4 6.6V12C4 16.9084 9.35396 20.4784 11.302 21.6149Z"
-                                                        fill="currentColor"
+                                        ))}
+                                    </svg>
+                                </div>
+                            ) : null}
+                            {showMarkers ? (
+                                <div className="pointer-events-none absolute inset-0 z-[6]">
+                                    {(markersByIsland.get(island.islandId) ?? []).map((marker) => {
+                                        const markerColor = resolveCaptureColor(captured.get(marker.provinceId));
+                                        return (
+                                            <span
+                                                key={marker.provinceId}
+                                                className="generated-map-marker"
+                                                data-captured={markerColor ? "true" : "false"}
+                                                title={marker.provinceName}
+                                                style={{
+                                                    left: `${marker.left}%`,
+                                                    top: `${marker.top}%`,
+                                                    "--generated-marker-color": markerDisplayColor(markerColor),
+                                                    "--generated-marker-counter-rotation": `${-island.rotation}deg`,
+                                                    "--generated-marker-scale": marker.scale,
+                                                } as CSSProperties}
+                                            >
+                                                <span className="generated-map-marker-shell" aria-hidden="true">
+                                                    <svg className="generated-map-marker-castle" viewBox="0 0 15 15">
+                                                        <use href={`#${castleSymbolId}`} />
+                                                    </svg>
+                                                </span>
+                                                {showEffects && bursts?.has(marker.provinceId) ? (
+                                                    <span
+                                                        className="generated-map-capture-burst"
+                                                        style={
+                                                            {
+                                                                "--burst-color":
+                                                                    bursts.get(marker.provinceId) ?? markerColor ?? "#ffffff",
+                                                            } as CSSProperties
+                                                        }
                                                     />
-                                                </svg>
+                                                ) : null}
+                                                {showEffects && fortified?.has(marker.provinceId) ? (
+                                                    <span className="generated-map-fortify" aria-label="fortified">
+                                                        <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" aria-hidden="true">
+                                                            <path
+                                                                d="M11.302 21.6149C11.5234 21.744 11.6341 21.8086 11.7903 21.8421C11.9116 21.8681 12.0884 21.8681 12.2097 21.8421C12.3659 21.8086 12.4766 21.744 12.698 21.6149C14.646 20.4784 20 16.9084 20 12V6.6C20 6.04207 20 5.7631 19.8926 5.55048C19.7974 5.36198 19.6487 5.21152 19.4613 5.11409C19.25 5.00419 18.9663 5.00084 18.3988 4.99413C15.4272 4.95899 13.7136 4.71361 12 3C10.2864 4.71361 8.57279 4.95899 5.6012 4.99413C5.03373 5.00084 4.74999 5.00419 4.53865 5.11409C4.35129 5.21152 4.20259 5.36198 4.10739 5.55048C4 5.7631 4 6.04207 4 6.6V12C4 16.9084 9.35396 20.4784 11.302 21.6149Z"
+                                                                fill="currentColor"
+                                                            />
+                                                        </svg>
+                                                    </span>
+                                                ) : null}
                                             </span>
-                                        ) : null}
-                                    </span>
-                                ))}
-                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : null}
                         </div>
                     );
                 })}
@@ -964,6 +1282,12 @@ function GeneratedMapStyles() {
                     stroke-opacity: 0.16 !important;
                 }
 
+                .generated-map-root.generated-map-has-highlight .generated-map-svg .generated-map-province {
+                    fill-opacity: 0.04 !important;
+                    opacity: 0.24 !important;
+                    stroke-opacity: 0.16 !important;
+                }
+
                 .generated-map-svg .generated-map-province[data-captured="true"] {
                     fill: var(--generated-map-capture-fill-color) !important;
                     fill-opacity: var(--generated-map-capture-fill-opacity) !important;
@@ -985,14 +1309,66 @@ function GeneratedMapStyles() {
                     filter: drop-shadow(0 0 5px var(--generated-map-region-stroke-color));
                 }
 
+                .generated-map-root.generated-map-lite,
+                .generated-map-root.generated-map-moving {
+                    box-shadow: none;
+                }
+
+                .generated-map-root.generated-map-lite .generated-map-svg,
+                .generated-map-root.generated-map-moving .generated-map-svg,
+                .generated-map-root.generated-map-lite .generated-map-back,
+                .generated-map-root.generated-map-moving .generated-map-back,
+                .generated-map-root.generated-map-lite .generated-map-svg .generated-map-province,
+                .generated-map-root.generated-map-moving .generated-map-svg .generated-map-province {
+                    filter: none !important;
+                }
+
+                .generated-map-road-layer {
+                    pointer-events: none;
+                    overflow: visible;
+                    opacity: 0.98;
+                    filter:
+                        drop-shadow(0 1px 2px rgba(0, 0, 0, 0.46))
+                        drop-shadow(0 0 5px rgba(216, 137, 73, 0.28));
+                }
+
+                .generated-map-road {
+                    fill: none;
+                    stroke: #efa35f;
+                    stroke-width: 1.18px;
+                    stroke-linecap: round;
+                    stroke-linejoin: round;
+                    stroke-dasharray: 3.4 4.6;
+                    stroke-dashoffset: var(--generated-road-dash-offset);
+                    vector-effect: non-scaling-stroke;
+                    opacity: var(--generated-road-opacity);
+                    filter:
+                        drop-shadow(0 0 3px rgba(239, 163, 95, 0.42))
+                        drop-shadow(0 0 8px rgba(239, 163, 95, 0.2));
+                }
+
+                .generated-map-root.generated-map-lite .generated-map-road-layer,
+                .generated-map-root.generated-map-moving .generated-map-road-layer,
+                .generated-map-root.generated-map-lite .generated-map-road,
+                .generated-map-root.generated-map-moving .generated-map-road {
+                    filter: none !important;
+                }
+
+                .generated-map-root.generated-map-moving .generated-map-road {
+                    opacity: 0.34;
+                }
+
                 .generated-map-marker {
                     position: absolute;
                     display: grid;
-                    width: clamp(0.7rem, 1.05vw, 1.1rem);
+                    width: clamp(0.72rem, 1vw, 1.08rem);
                     aspect-ratio: 1;
                     place-items: center;
                     transform: translate(-50%, -50%);
-                    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+                    color: var(--generated-marker-color);
+                    filter:
+                        drop-shadow(0 1px 1px rgba(0, 0, 0, 0.82))
+                        drop-shadow(0 2px 4px rgba(0, 0, 0, 0.72));
                 }
 
                 .generated-map-marker-shell {
@@ -1001,29 +1377,43 @@ function GeneratedMapStyles() {
                     width: 100%;
                     height: 100%;
                     place-items: center;
-                    border-radius: 999px;
-                    border: 1px solid rgba(160, 160, 160, 0.78);
-                    background: rgba(20, 20, 20, 0.88);
-                    box-shadow:
-                        inset 0 0 0 2px rgba(255, 255, 255, 0.05),
-                        0 0 0 2px rgba(0, 0, 0, 0.22);
+                    color: currentColor;
+                    transform: rotate(var(--generated-marker-counter-rotation, 0deg)) scale(var(--generated-marker-scale, 1));
+                    transform-origin: center;
                 }
 
                 .generated-map-marker[data-captured="false"] {
-                    opacity: 0.68;
+                    opacity: 0.72;
                 }
 
                 .generated-map-marker[data-captured="false"] .generated-map-marker-shell {
-                    border-color: rgba(150, 150, 150, 0.48);
-                    background: rgba(20, 20, 20, 0.62);
+                    color: #9d9487;
+                    filter: saturate(0.74) brightness(1.08);
                 }
 
                 .generated-map-marker[data-captured="true"] .generated-map-marker-shell {
-                    border-color: var(--generated-marker-color);
-                    box-shadow:
-                        inset 0 0 0 2px rgba(255, 255, 255, 0.06),
-                        0 0 0 2px rgba(0, 0, 0, 0.28),
-                        0 0 10px color-mix(in srgb, var(--generated-marker-color) 55%, transparent);
+                    filter:
+                        saturate(1.08)
+                        drop-shadow(0 0 4px color-mix(in srgb, var(--generated-marker-color) 55%, transparent))
+                        drop-shadow(0 0 9px color-mix(in srgb, var(--generated-marker-color) 32%, transparent));
+                }
+
+                .generated-map-root.generated-map-lite .generated-map-marker,
+                .generated-map-root.generated-map-moving .generated-map-marker,
+                .generated-map-root.generated-map-lite .generated-map-marker-shell,
+                .generated-map-root.generated-map-moving .generated-map-marker-shell {
+                    filter: none !important;
+                }
+
+                .generated-map-marker-castle {
+                    display: block;
+                    width: 100%;
+                    height: 100%;
+                    fill: currentColor;
+                    stroke: rgba(12, 12, 12, 0.88);
+                    stroke-width: 0.42;
+                    stroke-linejoin: round;
+                    paint-order: stroke fill;
                 }
 
                 .generated-map-capture-burst {
@@ -1067,31 +1457,6 @@ function GeneratedMapStyles() {
                     pointer-events: none;
                 }
 
-                .generated-map-marker-dot {
-                    width: 22%;
-                    aspect-ratio: 1;
-                    border-radius: 999px;
-                    background: #858585;
-                }
-
-                .generated-map-marker-flag {
-                    position: relative;
-                    display: block;
-                    width: 42%;
-                    height: 58%;
-                    border-left: 1.5px solid var(--generated-marker-color);
-                }
-
-                .generated-map-marker-flag::after {
-                    content: "";
-                    position: absolute;
-                    left: 0;
-                    top: 0;
-                    width: 80%;
-                    height: 42%;
-                    background: var(--generated-marker-color);
-                    clip-path: polygon(0 0, 100% 28%, 0 58%);
-                }
             `}
         </style>
     );

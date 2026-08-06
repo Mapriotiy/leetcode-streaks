@@ -49,6 +49,22 @@ export type GeneratedMapRegion = {
     splitAcrossIslands: boolean;
 };
 
+export type GeneratedMapMarker = {
+    provinceId: string;
+    islandId: string;
+    left: number;
+    top: number;
+    scale: number;
+};
+
+export type GeneratedMapRoad = {
+    id: string;
+    islandId: string;
+    d: string;
+    opacity: number;
+    dashOffset: number;
+};
+
 export type GeneratedMapDraft = {
     schemaVersion: 1;
     generatorVersion: string;
@@ -63,6 +79,8 @@ export type GeneratedMapDraft = {
     seaSprites: GeneratedMapSeaSprite[];
     provinces: GeneratedMapProvince[];
     regions: GeneratedMapRegion[];
+    markers?: GeneratedMapMarker[];
+    roads?: GeneratedMapRoad[];
 };
 
 export type LobbyMapSelection = { kind: "generated"; draft: GeneratedMapDraft };

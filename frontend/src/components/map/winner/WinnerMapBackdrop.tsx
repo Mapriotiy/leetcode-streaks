@@ -95,7 +95,11 @@ export function WinnerMapBackdrop({
                     draft={draft}
                     captured={captured}
                     zoomable={false}
+                    interactive={false}
                     showBack
+                    showMarkers={false}
+                    showRoads={false}
+                    showEffects={false}
                 />
             </div>
         </div>

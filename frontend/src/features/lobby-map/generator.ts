@@ -1,4 +1,4 @@
-import {
+    import {
     GENERATED_MAP_VERSION,
     MAP_SIZE_CONFIG,
     MIN_INTERACTIVE_WIDTH,
@@ -13,9 +13,11 @@ import {
 import type {
     GeneratedMapDraft,
     GeneratedMapIsland,
+    GeneratedMapMarker,
     GeneratedMapPieceSize,
     GeneratedMapProvince,
     GeneratedMapRegion,
+    GeneratedMapRoad,
     GeneratedMapSeaSprite,
     GeneratedMapSize,
     LobbyMapTopic,
@@ -120,6 +122,10 @@ function randomBetween(min: number, max: number) {
 
 function clamp(value: number, min: number, max: number) {
     return Math.max(min, Math.min(max, value));
+}
+
+function round2(value: number) {
+    return Math.round(value * 100) / 100;
 }
 
 function pieceAspect(id: GeneratedMapPieceId) {
@@ -562,20 +568,55 @@ function createSeaSprites(islands: readonly LayoutPiece[], scale: GeneratedMapSi
     return sprites.map(({ height: _height, ...sprite }) => sprite);
 }
 
-function pathCentroid(pathTag: string, fallbackIndex: number) {
-    const d = pathTag.match(/\sd="([^"]+)"/)?.[1] ?? "";
-    const values = [...d.matchAll(/-?\d+(?:\.\d+)?/g)].map((match) => Number(match[0]));
-    if (values.length < 2) return { x: fallbackIndex, y: fallbackIndex };
+function getAttr(tag: string, name: string) {
+    const match = tag.match(new RegExp(`\\s${name}=(?:"([^"]*)"|'([^']*)')`, "i"));
+    return match?.[1] ?? match?.[2] ?? null;
+}
 
-    let x = 0;
-    let y = 0;
-    let count = 0;
-    for (let index = 0; index < values.length - 1; index += 2) {
-        x += values[index];
-        y += values[index + 1];
-        count += 1;
+function parseViewBox(svgText: string) {
+    const svgTag = svgText.match(/<svg\b[^>]*>/i)?.[0] ?? "";
+    const viewBox = getAttr(svgTag, "viewBox");
+    if (viewBox) {
+        const values = viewBox.trim().split(/[\s,]+/).map(Number);
+        if (values.length === 4 && values.every(Number.isFinite) && values[2] > 0 && values[3] > 0) {
+            return { x: values[0], y: values[1], width: values[2], height: values[3] };
+        }
     }
-    return count > 0 ? { x: x / count, y: y / count } : { x: fallbackIndex, y: fallbackIndex };
+
+    const width = Number(getAttr(svgTag, "width"));
+    const height = Number(getAttr(svgTag, "height"));
+    if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
+        return { x: 0, y: 0, width, height };
+    }
+
+    return { x: 0, y: 0, width: 100, height: 100 };
+}
+
+function pathCentroid(pathTag: string, fallbackIndex: number) {
+    const d = getAttr(pathTag, "d") ?? "";
+    const subpaths = d.split(/[Mm]/).filter(Boolean);
+    if (!subpaths.length) return { x: fallbackIndex, y: fallbackIndex };
+
+    let best: { x: number; y: number } | null = null;
+    let bestCount = 0;
+    for (const subpath of subpaths) {
+        const values = [...subpath.matchAll(/-?\d+(?:\.\d+)?/g)].map((match) => Number(match[0]));
+        if (values.length < 2) continue;
+        let x = 0;
+        let y = 0;
+        let count = 0;
+        for (let index = 0; index < values.length - 1; index += 2) {
+            x += values[index];
+            y += values[index + 1];
+            count += 1;
+        }
+        if (count > bestCount) {
+            bestCount = count;
+            best = { x: x / count, y: y / count };
+        }
+    }
+
+    return best ?? { x: fallbackIndex, y: fallbackIndex };
 }
 
 function orderProvincePaths(points: { x: number; y: number }[]) {
@@ -767,6 +808,122 @@ function hashString(value: string) {
     return Math.abs(hash);
 }
 
+function parseAspectRatioValue(value: string) {
+    const parts = value.split("/").map((part) => Number(part.trim()));
+    const width = parts[0];
+    const height = parts[1];
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+        return 1321 / 900;
+    }
+    return width / height;
+}
+
+function islandRelativeArea(island: GeneratedMapIsland) {
+    const aspectRatio = parseAspectRatioValue(island.aspectRatio);
+    const height = island.width / aspectRatio;
+    return island.width * height;
+}
+
+function islandMarkerBaseScale(island: GeneratedMapIsland, islands: readonly GeneratedMapIsland[]) {
+    const area = islandRelativeArea(island);
+    const averageArea =
+        islands.reduce((total, currentIsland) => total + islandRelativeArea(currentIsland), 0) /
+        Math.max(1, islands.length);
+    const relativeSize = Math.sqrt(area / Math.max(averageArea, 1));
+
+    return clamp(0.86 + (relativeSize - 1) * 0.34, 0.68, 1.16);
+}
+
+function roadKey(a: Pick<GeneratedMapMarker, "provinceId">, b: Pick<GeneratedMapMarker, "provinceId">) {
+    return [a.provinceId, b.provinceId].sort().join("~");
+}
+
+function curvedRoadPath(a: GeneratedMapMarker, b: GeneratedMapMarker, seed: number) {
+    const dx = b.left - a.left;
+    const dy = b.top - a.top;
+    const distance = Math.max(1, Math.hypot(dx, dy));
+    const nx = -dy / distance;
+    const ny = dx / distance;
+    const direction = seed % 2 === 0 ? 1 : -1;
+    const bend = direction * clamp(distance * (0.05 + (seed % 7) * 0.006), 0.65, 3.1);
+    const wobble = ((seed >> 4) % 5 - 2) * 0.12;
+
+    const c1x = clamp(a.left + dx * 0.38 + nx * (bend + wobble), 4, 96);
+    const c1y = clamp(a.top + dy * 0.36 + ny * (bend - wobble), 4, 96);
+    const c2x = clamp(a.left + dx * 0.64 + nx * (bend - wobble), 4, 96);
+    const c2y = clamp(a.top + dy * 0.66 + ny * (bend + wobble), 4, 96);
+
+    return `M ${a.left.toFixed(2)} ${a.top.toFixed(2)} C ${c1x.toFixed(2)} ${c1y.toFixed(
+        2,
+    )}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${b.left.toFixed(2)} ${b.top.toFixed(2)}`;
+}
+
+function createIslandRoads(markers: GeneratedMapMarker[], islandId: string): GeneratedMapRoad[] {
+    if (markers.length < 2) return [];
+
+    const candidates = markers
+        .flatMap((marker, index) =>
+            markers.slice(index + 1).map((other) => ({
+                a: marker,
+                b: other,
+                distance: Math.hypot(marker.left - other.left, marker.top - other.top),
+                seed: hashString(roadKey(marker, other)),
+            })),
+        )
+        .sort((a, b) => a.distance - b.distance || a.seed - b.seed);
+
+    const parent = new Map(markers.map((marker) => [marker.provinceId, marker.provinceId]));
+    const find = (id: string): string => {
+        const current = parent.get(id) ?? id;
+        if (current === id) return id;
+        const root = find(current);
+        parent.set(id, root);
+        return root;
+    };
+    const connect = (a: GeneratedMapMarker, b: GeneratedMapMarker) => {
+        const rootA = find(a.provinceId);
+        const rootB = find(b.provinceId);
+        if (rootA === rootB) return false;
+        parent.set(rootB, rootA);
+        return true;
+    };
+
+    const roads = new Map<string, { a: GeneratedMapMarker; b: GeneratedMapMarker; distance: number; seed: number }>();
+    for (const candidate of candidates) {
+        if (!connect(candidate.a, candidate.b)) continue;
+        roads.set(roadKey(candidate.a, candidate.b), candidate);
+        if (roads.size >= markers.length - 1) break;
+    }
+
+    const connectedDistances = [...roads.values()].map((road) => road.distance);
+    const averageRoadDistance =
+        connectedDistances.reduce((total, distance) => total + distance, 0) / Math.max(1, connectedDistances.length);
+    const extraMaxDistance = clamp(averageRoadDistance * 1.58, 14, 32);
+    const extraLimit = Math.max(2, Math.floor(markers.length * 0.52));
+    let extraCount = 0;
+
+    for (const candidate of candidates) {
+        if (extraCount >= extraLimit) break;
+        const key = roadKey(candidate.a, candidate.b);
+        const isShortBypass = candidate.distance <= averageRoadDistance * 1.02 && candidate.seed % 100 < 52;
+        const isCrossRoad = candidate.distance <= extraMaxDistance && candidate.seed % 100 < 38;
+        if (roads.has(key) || (!isShortBypass && !isCrossRoad)) continue;
+        roads.set(key, candidate);
+        extraCount += 1;
+    }
+
+    const longestRoad = Math.max(...[...roads.values()].map((road) => road.distance), 1);
+    return [...roads.values()]
+        .sort((a, b) => a.distance - b.distance || a.seed - b.seed)
+        .map(({ a, b, distance, seed }) => ({
+            id: roadKey(a, b),
+            islandId,
+            d: curvedRoadPath(a, b, seed),
+            opacity: round2(clamp(0.42 + (longestRoad - distance) / longestRoad * 0.26, 0.34, 0.68)),
+            dashOffset: seed % 11,
+        }));
+}
+
 function topicFeatures(topicName: string) {
     return TOPIC_FEATURE_HINTS.find((hint) => hint.pattern.test(topicName))?.features ?? PROVINCE_FEATURES;
 }
@@ -861,6 +1018,66 @@ function buildRegionsAndProvinces(
     return { provinces, regions, topics: normalizedTopics };
 }
 
+function buildMarkerGeometry({
+    islands,
+    pathTagsByPiece,
+    provinces,
+    texts,
+}: {
+    islands: readonly GeneratedMapIsland[];
+    pathTagsByPiece: readonly string[][];
+    provinces: readonly GeneratedMapProvince[];
+    texts: readonly string[];
+}) {
+    const provincesByIslandPath = new Map(
+        provinces.map((province) => [`${province.islandId}:${province.pathIndex}`, province]),
+    );
+    const markers: GeneratedMapMarker[] = [];
+
+    islands.forEach((island, pieceIndex) => {
+        const viewBox = parseViewBox(texts[pieceIndex] ?? "");
+        const islandBaseScale = islandMarkerBaseScale(island, islands);
+        const rawMarkers = (pathTagsByPiece[pieceIndex] ?? [])
+            .map((pathTag, pathIndex) => {
+                const province = provincesByIslandPath.get(`${island.islandId}:${pathIndex}`);
+                if (!province) return null;
+                const centroid = pathCentroid(pathTag, pathIndex);
+                return {
+                    provinceId: province.provinceId,
+                    islandId: island.islandId,
+                    left: round2(clamp(((centroid.x - viewBox.x) / viewBox.width) * 100, 4, 96)),
+                    top: round2(clamp(((centroid.y - viewBox.y) / viewBox.height) * 100, 4, 96)),
+                    scale: 1,
+                } satisfies GeneratedMapMarker;
+            })
+            .filter((marker): marker is GeneratedMapMarker => marker !== null);
+
+        rawMarkers.forEach((marker) => {
+            const distances = rawMarkers
+                .filter((other) => other.provinceId !== marker.provinceId)
+                .map((other) => Math.hypot(marker.left - other.left, marker.top - other.top))
+                .sort((a, b) => a - b);
+            const nearbyCount = distances.filter((distance) => distance < 9).length;
+            const nearest = distances[0] ?? 12;
+            const densityPenalty = Math.min(0.28, nearbyCount * 0.045);
+            const nearestPenalty = nearest < 4.5 ? (4.5 - nearest) * 0.045 : 0;
+            markers.push({
+                ...marker,
+                scale: round2(clamp(islandBaseScale - densityPenalty - nearestPenalty, 0.56, 1.16)),
+            });
+        });
+    });
+
+    const roads = islands.flatMap((island) =>
+        createIslandRoads(
+            markers.filter((marker) => marker.islandId === island.islandId),
+            island.islandId,
+        ),
+    );
+
+    return { markers, roads };
+}
+
 async function assignRegions(
     islands: readonly GeneratedMapIsland[],
     topics: readonly LobbyMapTopic[],
@@ -869,8 +1086,15 @@ async function assignRegions(
     const layoutPieces = islands.map(islandToLayout);
     const { assignments, pathTagsByPiece, totalProvinces } = createBalancedRegionAssignments(texts, layoutPieces, topics.length);
     const regionData = buildRegionsAndProvinces(islands, assignments, pathTagsByPiece, topics);
+    const geometry = buildMarkerGeometry({
+        islands,
+        pathTagsByPiece,
+        provinces: regionData.provinces,
+        texts,
+    });
     return {
         ...regionData,
+        ...geometry,
         provinceCount: totalProvinces,
     };
 }
@@ -902,6 +1126,8 @@ export async function createGeneratedMapDraft({
         seaSprites,
         provinces: assigned.provinces,
         regions: assigned.regions,
+        markers: assigned.markers,
+        roads: assigned.roads,
     };
 }
 
@@ -918,6 +1144,8 @@ export async function reassignGeneratedMapRegions(
         topics: assigned.topics,
         provinces: assigned.provinces,
         regions: assigned.regions,
+        markers: assigned.markers,
+        roads: assigned.roads,
     };
 }
 

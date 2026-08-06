@@ -64,7 +64,13 @@ function MapPreview({ draft }: { draft: GeneratedMapDraft }) {
     return (
         <div ref={frameRef} className="flex h-full min-h-0 w-full items-center justify-center">
             <div className="max-w-full" style={{ width: width ? `${width}px` : "100%" }}>
-                <GeneratedMapRenderer draft={draft} className="mx-auto w-full" />
+                <GeneratedMapRenderer
+                    draft={draft}
+                    className="mx-auto w-full"
+                    showMarkers={false}
+                    showRoads={false}
+                    showEffects={false}
+                />
             </div>
         </div>
     );

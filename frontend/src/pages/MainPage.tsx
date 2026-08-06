@@ -33,7 +33,7 @@ import { LanguageIcon } from "../components/LanguageIcon";
 import { CreateLobbyModal } from "../components/CreateLobbyModal";
 import type { DashboardData, DashboardLobby, Faction, LobbyPlayer } from "../types/dashboard";
 
-const MAP_BG = `${import.meta.env.BASE_URL}maps/leet_background.webp`;
+const MAP_BG = `${import.meta.env.BASE_URL}map-bg.webp`;
 
 type User = {
     id: number;
@@ -315,21 +315,6 @@ function MainHeader({
                 ))}
             </nav>
         </header>
-    );
-}
-
-function MapPreview() {
-    return (
-        <div
-            className="relative h-full min-h-[5rem] overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]"
-            style={{
-                backgroundImage: `linear-gradient(rgba(20, 15, 12, 0.12), rgba(20, 15, 12, 0.22)), url(${MAP_BG})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-            }}
-        >
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(20,15,12,0.28),transparent_30%,transparent_70%,rgba(20,15,12,0.32))]" />
-        </div>
     );
 }
 
@@ -968,19 +953,18 @@ export function MainPage() {
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.22, ease: "easeOut" }}
                         >
-                <section className="grid min-h-[8rem] grid-cols-1 gap-3 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-2xl shadow-black/30 sm:gap-5 lg:grid-cols-[13rem_minmax(0,1fr)_14rem] 2xl:grid-cols-[16rem_minmax(0,1fr)_17rem] min-[2200px]:grid-cols-[18rem_minmax(0,1fr)_19rem]">
-                    <div
-                        className="relative hidden min-h-[5rem] overflow-hidden rounded-md border border-[#3f332d] bg-[#17120f] lg:block"
-                        style={{
-                            backgroundImage: `linear-gradient(rgba(17,13,10,0.28), rgba(17,13,10,0.4)), url(${MAP_BG})`,
-                            backgroundSize: "cover",
-                            backgroundPosition: "center",
-                        }}
-                    >
-                        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(17,13,10,0.2),transparent_35%,transparent_65%,rgba(17,13,10,0.42))]" />
-                    </div>
+                <section
+                    className="relative grid min-h-[12rem] grid-cols-1 gap-3 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-2xl shadow-black/30 sm:min-h-[13.5rem] sm:gap-5 sm:p-4 lg:grid-cols-[minmax(0,1fr)_14rem] 2xl:grid-cols-[minmax(0,1fr)_17rem] min-[2200px]:grid-cols-[minmax(0,1fr)_19rem]"
+                    style={{
+                        backgroundImage: `url(${MAP_BG})`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                    }}
+                >
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_72%_48%,rgba(216,122,56,0.18),transparent_28%),linear-gradient(90deg,rgba(20,17,15,0.95),rgba(20,17,15,0.8)_38%,rgba(20,17,15,0.42)_72%,rgba(20,17,15,0.66))]" />
+                    <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(20,17,15,0.12),transparent_42%,rgba(20,17,15,0.6))]" />
 
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)] sm:gap-5">
+                    <div className="relative z-10 flex min-w-0 flex-col justify-center px-1 py-1 sm:py-3">
                         <div className="flex flex-col justify-center px-1">
                             <h1 className="text-2xl font-black leading-none text-[#f4e7d8] md:text-3xl">
                                 Today's conquest
@@ -1009,13 +993,9 @@ export function MainPage() {
                                 </div>
                             </div>
                         </div>
-
-                        <div className="hidden sm:block">
-                            <MapPreview />
-                        </div>
                     </div>
 
-                    <aside className="rounded-lg border border-[#3f332d] bg-[#1c1613]/86 p-2.5">
+                    <aside className="relative z-10 rounded-lg border border-[#3f332d] bg-[#1c1613]/86 p-2.5 backdrop-blur-sm">
                         <div className="flex items-center gap-3 border-b border-[#3f332d] pb-2">
                             <Flame size={26} className="text-[#e6a15d]" fill="currentColor" />
                             <div>
