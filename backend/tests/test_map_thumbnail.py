@@ -89,6 +89,78 @@ def test_renders_default_map_thumbnail(db, seeded_lobby):
     assert missing is None
 
 
+def test_renders_multi_island_generated_map(db):
+    # Two islands that reuse the same piece asset but carry their own
+    # per-island pathIndex (0..n). The global mapping would overwrite island 2;
+    # the per-island filter must keep them distinct.
+    draft = {
+        "schemaVersion": 1,
+        "id": "multi",
+        "size": "small",
+        "seaBaseSrc": "maps/leet_background.webp",
+        "regions": [
+            {"regionId": "r1", "color": "#2bff88", "provinceIds": []},
+            {"regionId": "r2", "color": "#2979ff", "provinceIds": []},
+        ],
+        "islands": [
+            {
+                "islandId": "i1",
+                "backPath": "map-test/backs/1.webp",
+                "svgPath": "map-test/pieces/big/1.svg",
+                "left": 5,
+                "top": 5,
+                "width": 40,
+                "aspectRatio": "1518 / 1036",
+                "rotation": 0,
+            },
+            {
+                "islandId": "i2",
+                "backPath": "map-test/backs/2.webp",
+                "svgPath": "map-test/pieces/big/2.svg",
+                "left": 50,
+                "top": 20,
+                "width": 40,
+                "aspectRatio": "1518 / 1036",
+                "rotation": 0,
+            },
+        ],
+        "provinces": [
+            {"provinceId": "i1-p1", "name": "P1", "islandId": "i1", "pathIndex": 0, "regionId": "r1"},
+            {"provinceId": "i1-p2", "name": "P2", "islandId": "i1", "pathIndex": 1, "regionId": "r1"},
+            {"provinceId": "i2-p1", "name": "P3", "islandId": "i2", "pathIndex": 0, "regionId": "r2"},
+            {"provinceId": "i2-p2", "name": "P4", "islandId": "i2", "pathIndex": 1, "regionId": "r2"},
+        ],
+    }
+
+    lobby = Lobby(
+        creator_id=1,
+        name="multi",
+        status="active",
+        game_mode="free_for_all",
+        map_size="small",
+        max_players=2,
+        faction_mode=False,
+        faction_count=0,
+        win_condition={"type": "territory_control", "threshold": 0.5},
+    )
+    db.add(lobby)
+    db.flush()
+    db.add(
+        LobbyMap(
+            lobby_id=lobby.id,
+            map_size="small",
+            map_kind="generated",
+            map_config={"kind": "generated", "draft": draft},
+        )
+    )
+    db.add(LobbyPlayer(lobby_id=lobby.id, user_id=1, faction_id=1, status="ready"))
+    db.commit()
+
+    png = render_lobby_map_thumbnail(lobby.id, width=320, db=db)
+    assert png
+    assert png[:8] == b"\x89PNG\r\n\x1a\n"
+
+
 def test_thumbnail_endpoint(tmp_path):
     engine = create_engine(f"sqlite:///{tmp_path / 'thumb.db'}")
     Base.metadata.create_all(engine)

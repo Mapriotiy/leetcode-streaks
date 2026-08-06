@@ -231,14 +231,21 @@ def _render_draft(
         for region in (draft.get("regions") or [])
         if isinstance(region, dict) and region.get("regionId")
     }
-    province_by_path: dict[int, dict] = {}
-    for province in draft.get("provinces") or []:
-        if not isinstance(province, dict):
-            continue
-        try:
-            province_by_path[int(province.get("pathIndex"))] = province
-        except (TypeError, ValueError):
-            continue
+
+    # pathIndex is per-island (each island numbers its own paths from 0), so it
+    # must be resolved per island — matching the frontend's island filter.
+    def province_by_path_for(island_id: str) -> dict[int, dict]:
+        by_path: dict[int, dict] = {}
+        for province in draft.get("provinces") or []:
+            if not isinstance(province, dict):
+                continue
+            if str(province.get("islandId") or "") != island_id:
+                continue
+            try:
+                by_path[int(province.get("pathIndex"))] = province
+            except (TypeError, ValueError):
+                continue
+        return by_path
 
     for island in draft.get("islands") or []:
         if not isinstance(island, dict):
@@ -261,6 +268,7 @@ def _render_draft(
         top = round(float(island.get("top", 0)) / 100 * height)
 
         viewbox, path_ds = _island_svg(svg_path)
+        island_provinces = province_by_path_for(str(island.get("islandId") or ""))
         mask = Image.new("L", (box_w, box_h), 0)
         md = ImageDraw.Draw(mask)
         for d in path_ds:
@@ -278,7 +286,7 @@ def _render_draft(
         fill_layer = Image.new("RGBA", (box_w, box_h), (0, 0, 0, 0))
         fd = ImageDraw.Draw(fill_layer)
         for index, d in enumerate(path_ds):
-            province = province_by_path.get(index)
+            province = island_provinces.get(index)
             if not province:
                 continue
             province_id = str(province.get("provinceId") or "")
