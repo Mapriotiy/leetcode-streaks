@@ -10,6 +10,7 @@ import {
     Flame,
     Gamepad2,
     Home,
+    Hourglass,
     LogOut,
     Shield,
     Swords,
@@ -235,15 +236,25 @@ function GameCard({
             </div>
 
             <div className="mt-2 grid grid-cols-[1fr_7.5rem] gap-3">
-                <div className="relative aspect-[1321/900] w-full overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]">
-                    <img
-                        src={thumbnailUrl}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        className="absolute inset-0 h-full w-full object-cover"
-                    />
-                </div>
+                {lobby.status === "waiting" ? (
+                    <div className="relative flex aspect-[1321/900] w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-md border border-dashed border-[#3f332d] bg-[#1b1612]">
+                        <span className="grid h-10 w-10 place-items-center rounded-full border border-[#4c3a31] bg-[#211a16] text-[#e6a15d]">
+                            <Hourglass size={18} />
+                        </span>
+                        <p className="text-xs font-bold text-[#d9c5ad]">Waiting for players</p>
+                        <p className="text-[11px] text-[#756354]">{playerCount} seated</p>
+                    </div>
+                ) : (
+                    <div className="relative aspect-[1321/900] w-full overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]">
+                        <img
+                            src={thumbnailUrl}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                            className="absolute inset-0 h-full w-full object-cover"
+                        />
+                    </div>
+                )}
                 <div className="rounded-md border border-[#3f332d] bg-[#1b1512]/88 p-2 text-xs text-[#a8917d]">
                     <p className="font-semibold text-[#d9c5ad]">{slotLabel}</p>
                     <p className="mt-2 flex items-center gap-1.5">
