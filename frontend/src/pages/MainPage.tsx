@@ -469,7 +469,14 @@ export function MainPage() {
                 factions: res.lobby.factions,
             });
         } catch (e) {
-            setError(e instanceof Error ? e.message : "Failed to create lobby");
+            const message = e instanceof Error ? e.message : "Failed to create lobby";
+            if (/not authenticated|could not validate|account suspended/i.test(message)) {
+                localStorage.removeItem("accessToken");
+                setUser(null);
+                setDashboardData(null);
+                return;
+            }
+            setError(message);
         }
     }, [pushNav]);
 
