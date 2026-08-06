@@ -62,6 +62,7 @@ export type DashboardLobby = {
     creator_id: number;
     players: LobbyPlayer[];
     map_selection?: LobbyMapSelection | null;
+    captures?: Record<string, number>;
 };
 
 export type CreateInviteResponse = {

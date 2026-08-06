@@ -48,6 +48,7 @@ class DashboardLobbyResponse(BaseModel):
     creator_id: int
     players: list[DashboardLobbyPlayerResponse] = Field(default_factory=list)
     map_selection: Optional[dict[str, Any]] = None
+    captures: dict[str, int] = Field(default_factory=dict)
 
 
 class PlayerStatsResponse(BaseModel):

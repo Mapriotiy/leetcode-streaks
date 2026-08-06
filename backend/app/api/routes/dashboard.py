@@ -11,6 +11,7 @@ from app.models.leetcode_problem import LeetCodeProblem
 from app.models.lobby import Lobby
 from app.models.lobby_event import LobbyEvent
 from app.models.lobby_map import LobbyMap
+from app.models.lobby_map_province import LobbyMapProvince
 from app.models.lobby_player import LobbyPlayer
 from app.models.user import User
 from app.models.user_solved import UserSolved
@@ -121,35 +122,24 @@ def _lobby_map_selection(lobby: Lobby, db: Session) -> dict:
     if lobby.status in {"active", "finished"}:
         lmap = db.query(LobbyMap).filter_by(lobby_id=lobby.id).first()
         if lmap:
-            return _trim_map_preview(_normalize_map_selection(lmap.map_config))
-    return _trim_map_preview(_normalize_map_selection(lobby.map_config))
+            return _normalize_map_selection(lmap.map_config)
+    return _normalize_map_selection(lobby.map_config)
 
 
-def _trim_map_preview(selection: dict) -> dict:
-    """Keep only the thumbnail data (sea base + island art positions) so the
-    dashboard payload stays small; full drafts come from the lobby endpoints."""
-    draft = selection.get("draft")
-    if not isinstance(draft, dict):
-        return selection
-    selection = dict(selection)
-    selection["draft"] = {
-        "seaBaseSrc": draft.get("seaBaseSrc"),
-        "islands": [
-            {
-                "islandId": island.get("islandId"),
-                "backPath": island.get("backPath"),
-                "svgPath": island.get("svgPath"),
-                "left": island.get("left"),
-                "top": island.get("top"),
-                "width": island.get("width"),
-                "aspectRatio": island.get("aspectRatio"),
-                "rotation": island.get("rotation"),
-            }
-            for island in (draft.get("islands") or [])
-            if isinstance(island, dict)
-        ],
-    }
-    return selection
+def _lobby_captures(lobby: Lobby, db: Session) -> dict[str, int]:
+    """Snapshot of captured provinces (province_id -> owner user id) for the
+    dashboard thumbnail. Read-only, no sync triggered."""
+    if lobby.status not in {"active", "finished"}:
+        return {}
+    lmap = db.query(LobbyMap).filter_by(lobby_id=lobby.id).first()
+    if not lmap:
+        return {}
+    rows = (
+        db.query(LobbyMapProvince.province_id, LobbyMapProvince.captured_by)
+        .filter_by(lobby_map_id=lmap.id)
+        .all()
+    )
+    return {province_id: owner_id for province_id, owner_id in rows if owner_id}
 
 
 def build_user_lobbies(current_user: User, db: Session) -> list[DashboardLobbyResponse]:
@@ -202,6 +192,7 @@ def build_user_lobbies(current_user: User, db: Session) -> list[DashboardLobbyRe
                     for player, user in player_rows
                 ],
                 map_selection=_lobby_map_selection(lobby, db),
+                captures=_lobby_captures(lobby, db),
             )
         )
     return responses

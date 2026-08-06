@@ -1,28 +1,19 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
     Activity,
-    Binary,
-    Braces,
     Check,
     ChevronDown,
     ChevronRight,
-    Coffee,
-    Cog,
-    Code2,
     Copy,
     Crown,
-    FileCode,
     Flame,
     Gamepad2,
-    Hash,
     Home,
     LogOut,
-    Rocket,
     Shield,
     Swords,
     Target,
-    Terminal,
     Trophy,
     UserCircle,
     UserPlus,
@@ -33,8 +24,8 @@ import { apiRequest } from "../api/client";
 import { LobbyPage } from "./LobbyPage";
 import { LobbyGamePage } from "./LobbyGamePage";
 import { ProfilePage } from "./ProfilePage";
-import { mapAssetUrl } from "../features/lobby-map/assets";
-import type { GeneratedMapDraft } from "../features/lobby-map/types";
+import { LanguageIcon } from "../components/LanguageIcon";
+import { GeneratedMapRenderer } from "../features/lobby-map/GeneratedMapRenderer";
 import type { DashboardData, DashboardLobby, Faction, LobbyPlayer } from "../types/dashboard";
 
 const MAP_BG = `${import.meta.env.BASE_URL}maps/leet_background.webp`;
@@ -76,31 +67,6 @@ const LANGUAGE_LABELS: Record<string, string> = {
     golang: "Go",
     rust: "Rust",
 };
-
-const LANGUAGE_ICONS: Record<string, { icon: typeof Code2; color: string }> = {
-    python3: { icon: Terminal, color: "#7fa0b8" },
-    cpp: { icon: Binary, color: "#8fa66f" },
-    java: { icon: Coffee, color: "#d8a05a" },
-    javascript: { icon: Braces, color: "#e0c14e" },
-    typescript: { icon: FileCode, color: "#7fa0b8" },
-    csharp: { icon: Hash, color: "#b08ab4" },
-    golang: { icon: Rocket, color: "#6fc2b0" },
-    rust: { icon: Cog, color: "#cf8a52" },
-};
-
-function maskStyle(path: string): CSSProperties {
-    const url = `url("${mapAssetUrl(path)}")`;
-    return {
-        maskImage: url,
-        maskRepeat: "no-repeat",
-        maskPosition: "center",
-        maskSize: "100% 100%",
-        WebkitMaskImage: url,
-        WebkitMaskRepeat: "no-repeat",
-        WebkitMaskPosition: "center",
-        WebkitMaskSize: "100% 100%",
-    };
-}
 
 const LOBBY_ACCENTS = ["#d87a38", "#6f93a1", "#9d6b93", "#8fa66f", "#b86a3a", "#5b8a72"];
 const FRIEND_COLORS = ["#6f93a1", "#d87a38", "#9d6b93", "#8fa66f", "#5b8a72", "#b86a3a"];
@@ -212,57 +178,16 @@ function NavItem({ item }: { item: (typeof navItems)[number] }) {
     );
 }
 
-function MapPreview({ draft }: { draft?: GeneratedMapDraft }) {
-    const hasDraft = Boolean(draft && draft.seaBaseSrc && Array.isArray(draft.islands) && draft.islands.length > 0);
-
-    if (!hasDraft || !draft) {
-        return (
-            <div
-                className="relative h-full min-h-[5rem] overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]"
-                style={{
-                    backgroundImage: `linear-gradient(rgba(20, 15, 12, 0.12), rgba(20, 15, 12, 0.22)), url(${MAP_BG})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                }}
-            >
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(20,15,12,0.28),transparent_30%,transparent_70%,rgba(20,15,12,0.32))]" />
-            </div>
-        );
-    }
-
-    // Lightweight thumbnail: render only the sea base + island art images
-    // (lazy, cached). The province SVG layer is skipped — plenty for a card
-    // preview and avoids fetching N island SVGs per lobby.
+function MapPreview() {
     return (
-        <div className="relative h-full min-h-[5rem] overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]">
-            <img
-                src={mapAssetUrl(draft.seaBaseSrc)}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                className="absolute inset-0 h-full w-full object-fill"
-            />
-            {draft.islands
-                .filter((island) => island.backPath !== draft.seaBaseSrc)
-                .map((island) => (
-                    <img
-                        key={island.islandId}
-                        src={mapAssetUrl(island.backPath)}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        className="absolute"
-                        style={{
-                            left: `${island.left}%`,
-                            top: `${island.top}%`,
-                            width: `${island.width}%`,
-                            aspectRatio: island.aspectRatio,
-                            transform: `rotate(${island.rotation}deg)`,
-                            transformOrigin: "center",
-                            ...(island.svgPath ? maskStyle(island.svgPath) : null),
-                        }}
-                    />
-                ))}
+        <div
+            className="relative h-full min-h-[5rem] overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]"
+            style={{
+                backgroundImage: `linear-gradient(rgba(20, 15, 12, 0.12), rgba(20, 15, 12, 0.22)), url(${MAP_BG})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+            }}
+        >
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(20,15,12,0.28),transparent_30%,transparent_70%,rgba(20,15,12,0.32))]" />
         </div>
     );
@@ -284,6 +209,21 @@ function GameCard({
         : `${playerCount} / ${lobby.max_players} players`;
     const statusLabel = lobby.status === "active" ? "In progress" : lobby.status === "finished" ? "Finished" : "Waiting";
     const progress = lobby.faction_mode ? 45 : Math.min(100, Math.round((playerCount / Math.max(1, lobby.max_players)) * 100));
+    const draft = lobby.map_selection?.kind === "generated" ? lobby.map_selection.draft : null;
+
+    const captured = useMemo(() => {
+        const map = new Map<string, string>();
+        const factionColor = new Map(lobby.factions.map((f) => [f.id, f.color]));
+        const factionIdByUser = new Map(
+            lobby.players.filter((p) => p.faction_id != null).map((p) => [p.user_id, p.faction_id as number]),
+        );
+        for (const [provinceId, ownerId] of Object.entries(lobby.captures ?? {})) {
+            const fid = factionIdByUser.get(ownerId);
+            const color = fid != null ? factionColor.get(fid) : undefined;
+            if (color) map.set(provinceId, color);
+        }
+        return map;
+    }, [lobby]);
 
     return (
         <article className="rounded-lg border border-[#3f332d] bg-[#211a16]/88 p-3 shadow-xl shadow-black/20">
@@ -310,15 +250,24 @@ function GameCard({
             </div>
 
             <div className="mt-2 grid grid-cols-[1fr_7.5rem] gap-3">
-                <MapPreview draft={lobby.map_selection?.draft} />
+                {draft ? (
+                    <div className="relative h-28 overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]">
+                        <GeneratedMapRenderer
+                            draft={draft}
+                            captured={captured}
+                            zoomable={false}
+                            showBack
+                            fitHeight
+                            onSelect={() => {}}
+                        />
+                    </div>
+                ) : (
+                    <MapPreview />
+                )}
                 <div className="rounded-md border border-[#3f332d] bg-[#1b1512]/88 p-2 text-xs text-[#a8917d]">
                     <p className="font-semibold text-[#d9c5ad]">{slotLabel}</p>
                     <p className="mt-2 flex items-center gap-1.5">
-                        {(() => {
-                            const lang = LANGUAGE_ICONS[lobby.programming_language];
-                            const LangIcon = lang?.icon ?? Code2;
-                            return <LangIcon size={13} className="shrink-0" style={{ color: lang?.color }} />;
-                        })()}
+                        <LanguageIcon language={lobby.programming_language} size={14} />
                         <span className="truncate">{LANGUAGE_LABELS[lobby.programming_language] ?? lobby.programming_language}</span>
                     </p>
                     <p className="mt-3">Mode</p>
