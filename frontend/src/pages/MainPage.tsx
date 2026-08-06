@@ -69,7 +69,7 @@ function NavItem({ item }: { item: (typeof navItems)[number] }) {
     return (
         <button
             type="button"
-            className={`inline-flex h-12 items-center gap-2 border-b-2 px-3 text-sm font-semibold transition ${
+            className={`inline-flex h-10 items-center gap-2 border-b-2 px-3 text-sm font-semibold transition ${
                 item.active
                     ? "border-[#d87a38] text-[#e6a15d]"
                     : "border-transparent text-[#8f8278] hover:text-[#f1dfc8]"
@@ -84,7 +84,7 @@ function NavItem({ item }: { item: (typeof navItems)[number] }) {
 function MapPreview() {
     return (
         <div
-            className="relative h-full min-h-[8.5rem] overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]"
+            className="relative h-full min-h-[5rem] overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]"
             style={{
                 backgroundImage: `linear-gradient(rgba(20, 15, 12, 0.12), rgba(20, 15, 12, 0.22)), url(${MAP_BG})`,
                 backgroundSize: "cover",
@@ -120,17 +120,17 @@ function GameCard({ game }: { game: (typeof games)[number] }) {
                 </button>
             </div>
 
-            <div className="mt-3 grid grid-cols-[1fr_7.5rem] gap-3">
+            <div className="mt-2 grid grid-cols-[1fr_7.5rem] gap-3">
                 <MapPreview />
-                <div className="rounded-md border border-[#3f332d] bg-[#1b1512]/88 p-3 text-xs text-[#a8917d]">
+                <div className="rounded-md border border-[#3f332d] bg-[#1b1512]/88 p-2 text-xs text-[#a8917d]">
                     <p className="font-semibold text-[#d9c5ad]">{game.players}</p>
-                    <p className="mt-3">🐍 {game.language}</p>
-                    <p className="mt-5">Last activity</p>
+                    <p className="mt-2">🐍 {game.language}</p>
+                    <p className="mt-3">Last activity</p>
                     <p className="mt-1 font-semibold text-[#d9c5ad]">{game.activity}</p>
                 </div>
             </div>
 
-            <div className="mt-3 flex items-center gap-3 text-xs text-[#a8917d]">
+            <div className="mt-2 flex items-center gap-3 text-xs text-[#a8917d]">
                 <span>Territories</span>
                 <span className="h-1 flex-1 overflow-hidden rounded-full bg-[#3b3029]">
                     <span
@@ -151,11 +151,11 @@ function FriendRow({ friend }: { friend: (typeof friends)[number] }) {
     return (
         <button
             type="button"
-            className="flex w-full items-center justify-between gap-3 rounded-md border border-[#3f332d] bg-[#211a16]/88 px-3 py-2.5 text-left transition hover:border-[#7d4d32]"
+            className="flex w-full items-center justify-between gap-3 rounded-md border border-[#3f332d] bg-[#211a16]/88 px-3 py-2 text-left transition hover:border-[#7d4d32]"
         >
             <span className="flex min-w-0 items-center gap-3">
                 <span
-                    className="grid h-11 w-11 shrink-0 place-items-center rounded-full border text-sm font-black text-[#17110e]"
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full border text-sm font-black text-[#17110e]"
                     style={{ backgroundColor: `${friend.color}dd`, borderColor: friend.color }}
                 >
                     {friend.name.slice(0, 1).toUpperCase()}
@@ -178,14 +178,14 @@ function MetricItem({ metric }: { metric: (typeof metrics)[number] }) {
     const Icon = metric.icon;
 
     return (
-        <div className="flex min-w-0 items-center gap-3 border-r border-[#3f332d] px-5 last:border-r-0">
-            <Icon size={28} style={{ color: metric.color }} />
+        <div className="flex min-w-0 items-center gap-3 border-r border-[#3f332d] px-4 last:border-r-0">
+            <Icon size={22} style={{ color: metric.color }} />
             <div>
                 <div className="flex items-baseline gap-2">
-                    <strong className="text-2xl text-[#f4e7d8]">{metric.value}</strong>
+                    <strong className="text-lg text-[#f4e7d8]">{metric.value}</strong>
                     {metric.trend ? <span className="text-xs font-bold text-[#8fa66f]">{metric.trend}</span> : null}
                 </div>
-                <p className="mt-1 text-xs text-[#a8917d]">{metric.label}</p>
+                <p className="mt-0.5 text-xs text-[#a8917d]">{metric.label}</p>
             </div>
         </div>
     );
@@ -195,8 +195,8 @@ export function MainPage() {
     return (
         <main className="min-h-screen bg-[#14110f] text-[#f4e7d8]">
             <header className="sticky top-0 z-30 border-b border-[#2b231f] bg-[#11100e]/94 backdrop-blur">
-                <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center justify-between gap-4 px-7">
-                    <Logo className="text-[1.2rem]" />
+                <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-7">
+                    <Logo className="text-[1.1rem]" />
 
                     <nav className="hidden items-center gap-2 lg:flex">
                         {navItems.map((item) => (
@@ -207,27 +207,27 @@ export function MainPage() {
                     <div className="flex items-center gap-3">
                         <button
                             type="button"
-                            className="flex h-12 items-center gap-3 rounded-lg border border-[#3f332d] bg-[#24201c] px-3 text-sm font-bold text-[#f4e7d8] shadow-lg shadow-black/20"
+                            className="flex h-10 items-center gap-3 rounded-lg border border-[#3f332d] bg-[#24201c] px-3 text-sm font-bold text-[#f4e7d8] shadow-lg shadow-black/20"
                         >
-                            <span className="relative h-8 w-8 rounded-full bg-[linear-gradient(135deg,#7b5b46,#d1a77f)]">
-                                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border border-[#24201c] bg-[#79a85e]" />
+                            <span className="relative h-7 w-7 rounded-full bg-[linear-gradient(135deg,#7b5b46,#d1a77f)]">
+                                <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full border border-[#24201c] bg-[#79a85e]" />
                             </span>
                             mapriotii
-                            <ChevronRight size={15} className="rotate-90 text-[#756354]" />
+                            <ChevronRight size={14} className="rotate-90 text-[#756354]" />
                         </button>
                         <button
                             type="button"
-                            className="grid h-12 w-12 place-items-center rounded-lg border border-[#3f332d] bg-[#24201c] text-[#d9c5ad]"
+                            className="grid h-10 w-10 place-items-center rounded-lg border border-[#3f332d] bg-[#24201c] text-[#d9c5ad]"
                             aria-label="Security"
                         >
-                            <Shield size={20} />
+                            <Shield size={18} />
                         </button>
                     </div>
                 </div>
             </header>
 
-            <div className="mx-auto max-w-7xl px-7 py-4">
-                <section className="grid min-h-[14.5rem] grid-cols-[13rem_minmax(0,1fr)_14rem] gap-5 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-4 shadow-2xl shadow-black/30">
+            <div className="mx-auto max-w-7xl px-7 py-3">
+                <section className="grid min-h-[9.5rem] grid-cols-[13rem_minmax(0,1fr)_14rem] gap-5 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-2xl shadow-black/30">
                     <div
                         className="relative overflow-hidden rounded-md border border-[#3f332d] bg-[#17120f]"
                         style={{
@@ -241,26 +241,26 @@ export function MainPage() {
 
                     <div className="grid grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)] gap-5">
                         <div className="flex flex-col justify-center px-1">
-                            <h1 className="text-4xl font-black leading-none text-[#f4e7d8] md:text-5xl">
+                            <h1 className="text-2xl font-black leading-none text-[#f4e7d8] md:text-3xl">
                                 Today's conquest
                             </h1>
-                            <p className="mt-4 max-w-xl text-sm leading-6 text-[#a8917d]">
+                            <p className="mt-2 max-w-xl text-sm leading-5 text-[#a8917d]">
                                 Solve problems. Capture territories. Grow your empire.
                             </p>
 
-                            <div className="mt-6 flex items-center gap-4">
-                                <span className="grid h-14 w-14 place-items-center rounded-full border border-[#7d4d32] bg-[#33241b] text-[#e6a15d] shadow-lg shadow-[#8a3e22]/20">
-                                    <Flame size={25} fill="currentColor" />
+                            <div className="mt-3 flex items-center gap-4">
+                                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#7d4d32] bg-[#33241b] text-[#e6a15d] shadow-lg shadow-[#8a3e22]/20">
+                                    <Flame size={21} fill="currentColor" />
                                 </span>
                                 <div className="min-w-0 flex-1">
                                     <div className="flex items-center justify-between gap-4">
                                         <div>
                                             <strong className="block text-sm">Daily challenge</strong>
-                                            <span className="mt-1 block text-xs text-[#a8917d]">Solve today to claim your territory.</span>
+                                            <span className="mt-0.5 block text-xs text-[#a8917d]">Solve today to claim your territory.</span>
                                         </div>
                                         <span className="text-sm text-[#a8917d]">2 / 4 solved</span>
                                     </div>
-                                    <div className="mt-4 h-3 overflow-hidden rounded-full border border-[#3f332d] bg-[#191410]">
+                                    <div className="mt-2 h-2 overflow-hidden rounded-full border border-[#3f332d] bg-[#191410]">
                                         <span className="block h-full w-1/2 rounded-full bg-[linear-gradient(90deg,#d87a38,#e6a15d)]" />
                                     </div>
                                 </div>
@@ -270,24 +270,24 @@ export function MainPage() {
                         <MapPreview />
                     </div>
 
-                    <aside className="rounded-lg border border-[#3f332d] bg-[#1c1613]/86 p-4">
-                        <div className="flex items-center gap-3 border-b border-[#3f332d] pb-4">
-                            <Flame size={33} className="text-[#e6a15d]" fill="currentColor" />
+                    <aside className="rounded-lg border border-[#3f332d] bg-[#1c1613]/86 p-3">
+                        <div className="flex items-center gap-3 border-b border-[#3f332d] pb-3">
+                            <Flame size={26} className="text-[#e6a15d]" fill="currentColor" />
                             <div>
-                                <strong className="block text-2xl">2</strong>
-                                <span className="text-xs text-[#a8917d]">day streak</span>
+                                <strong className="block text-xl leading-none">2</strong>
+                                <span className="mt-1 block text-xs text-[#a8917d]">day streak</span>
                             </div>
                         </div>
-                        <div className="flex items-center gap-3 border-b border-[#3f332d] py-4">
-                            <Crown size={32} className="text-[#f1c58e]" />
+                        <div className="flex items-center gap-3 border-b border-[#3f332d] py-3">
+                            <Crown size={25} className="text-[#f1c58e]" />
                             <div>
-                                <strong className="block text-2xl">5</strong>
-                                <span className="text-xs text-[#a8917d]">territories conquered this week</span>
+                                <strong className="block text-xl leading-none">5</strong>
+                                <span className="mt-1 block text-xs text-[#a8917d]">territories conquered this week</span>
                             </div>
                         </div>
                         <button
                             type="button"
-                            className="mt-4 h-11 w-full rounded-lg bg-[linear-gradient(180deg,#e6a15d,#c76f32)] text-sm font-black text-[#1d120c] shadow-lg shadow-[#8a3e22]/25"
+                            className="mt-3 h-10 w-full rounded-lg bg-[linear-gradient(180deg,#e6a15d,#c76f32)] text-sm font-black text-[#1d120c] shadow-lg shadow-[#8a3e22]/25"
                         >
                             Start solving
                         </button>
@@ -295,8 +295,8 @@ export function MainPage() {
                 </section>
 
                 <section className="mt-3 grid grid-cols-[minmax(0,1fr)_23.5rem] gap-3">
-                    <div className="rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-4 shadow-xl shadow-black/25">
-                        <div className="mb-4 flex items-center justify-between">
+                    <div className="rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-xl shadow-black/25">
+                        <div className="mb-3 flex items-center justify-between">
                             <div className="flex items-start gap-3">
                                 <Users size={22} className="mt-0.5 text-[#f1c58e]" />
                                 <div>
@@ -313,29 +313,29 @@ export function MainPage() {
                             </button>
                         </div>
 
-                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="grid gap-3 md:grid-cols-2">
                             {games.map((game) => (
                                 <GameCard key={game.name} game={game} />
                             ))}
                         </div>
 
-                        <div className="mt-3 grid h-[4.5rem] grid-cols-4 rounded-lg border border-[#3f332d] bg-[#1b1512]/88 py-3">
+                        <div className="mt-2 grid h-14 grid-cols-4 rounded-lg border border-[#3f332d] bg-[#1b1512]/88 py-2">
                             {metrics.map((metric) => (
                                 <MetricItem key={metric.label} metric={metric} />
                             ))}
                         </div>
                     </div>
 
-                    <aside className="rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-4 shadow-xl shadow-black/25">
-                        <div className="mb-4 flex items-start gap-3">
-                            <Flame size={22} className="mt-0.5 text-[#e6a15d]" fill="currentColor" />
+                    <aside className="rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-xl shadow-black/25">
+                        <div className="mb-3 flex items-start gap-3">
+                            <Flame size={20} className="mt-0.5 text-[#e6a15d]" fill="currentColor" />
                             <div>
-                                <h2 className="text-lg font-black">Friend streaks</h2>
+                                <h2 className="text-base font-black">Friend streaks</h2>
                                 <p className="mt-1 text-sm text-[#a8917d]">Your allies, your rivals</p>
                             </div>
                         </div>
 
-                        <div className="grid gap-2">
+                        <div className="grid gap-1.5">
                             {friends.map((friend) => (
                                 <FriendRow key={friend.name} friend={friend} />
                             ))}
@@ -343,9 +343,9 @@ export function MainPage() {
 
                         <button
                             type="button"
-                            className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-[#3f332d] bg-[#1b1512] text-sm font-black text-[#e6a15d] transition hover:border-[#7d4d32]"
+                            className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-[#3f332d] bg-[#1b1512] text-sm font-black text-[#e6a15d] transition hover:border-[#7d4d32]"
                         >
-                            <UserPlus size={18} />
+                            <UserPlus size={17} />
                             Invite a friend
                         </button>
                     </aside>
