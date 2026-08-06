@@ -28,6 +28,7 @@ import { LobbyPage } from "./LobbyPage";
 import { LobbyGamePage } from "./LobbyGamePage";
 import { ProfilePage } from "./ProfilePage";
 import { LanguageIcon } from "../components/LanguageIcon";
+import { CreateLobbyModal } from "../components/CreateLobbyModal";
 import type { DashboardData, DashboardLobby, Faction, LobbyPlayer } from "../types/dashboard";
 
 const MAP_BG = `${import.meta.env.BASE_URL}maps/leet_background.webp`;
@@ -39,11 +40,6 @@ type User = {
     avatar_url: string | null;
     leetcode_verified_at: string | null;
     is_admin?: boolean;
-};
-
-type CreateLobbyResponse = {
-    lobby: { id: number; players: LobbyPlayer[]; factions: Faction[]; status: string };
-    invite_url: string;
 };
 
 type CreateInviteResponse = {
@@ -547,6 +543,7 @@ export function MainPage() {
     const navDepthRef = useRef(0);
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
     const [selectedFriend, setSelectedFriend] = useState<FriendRowData | null>(null);
+    const [showCreateModal, setShowCreateModal] = useState(false);
     const profileMenuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -697,39 +694,13 @@ export function MainPage() {
         setInviteUrl(null);
     }, []);
 
-    const createLobby = useCallback(async () => {
-        setError(null);
-        try {
-            const res = await apiRequest<CreateLobbyResponse>("/lobbies", {
-                method: "POST",
-                body: JSON.stringify({
-                    name: "New Expedition",
-                    game_mode: "free_for_all",
-                    map_size: "medium",
-                    max_players: 2,
-                    programming_language: "python3",
-                }),
-            });
-            setActiveLobbyId(res.lobby.id);
-            setActivePlayers(res.lobby.players);
-            setActiveFactions(res.lobby.factions);
-            pushNav({
-                screen: res.lobby.status === "active" ? "game" : "lobby",
-                lobbyId: res.lobby.id,
-                players: res.lobby.players,
-                factions: res.lobby.factions,
-            });
-        } catch (e) {
-            const message = e instanceof Error ? e.message : "Failed to create lobby";
-            if (/not authenticated|could not validate|account suspended/i.test(message)) {
-                localStorage.removeItem("accessToken");
-                setUser(null);
-                setDashboardData(null);
-                return;
-            }
-            setError(message);
-        }
-    }, [pushNav]);
+    const handleLobbyCreated = useCallback(
+        (lobbyId: number) => {
+            setShowCreateModal(false);
+            pushNav({ screen: "lobby", lobbyId });
+        },
+        [pushNav],
+    );
 
     const createInvite = useCallback(async () => {
         setIsCreatingInvite(true);
@@ -1025,7 +996,7 @@ export function MainPage() {
                                 ) : null}
                                 <button
                                     type="button"
-                                    onClick={() => void createLobby()}
+                                    onClick={() => setShowCreateModal(true)}
                                     className="h-9 shrink-0 rounded-lg bg-[linear-gradient(180deg,#e6a15d,#c76f32)] px-4 text-sm font-black text-[#1d120c] shadow-lg shadow-[#8a3e22]/25"
                                 >
                                     New Battle
@@ -1162,6 +1133,15 @@ export function MainPage() {
                     {content}
                 </motion.div>
             </AnimatePresence>
+
+            {showCreateModal ? (
+                <CreateLobbyModal
+                    username={user.leetcode_username ?? ""}
+                    friends={dashboardData?.friends ?? []}
+                    onClose={() => setShowCreateModal(false)}
+                    onCreated={handleLobbyCreated}
+                />
+            ) : null}
         </div>
     );
 }
