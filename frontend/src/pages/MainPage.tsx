@@ -81,41 +81,17 @@ function NavItem({ item }: { item: (typeof navItems)[number] }) {
     );
 }
 
-function MapPreview({ tone = "ember" }: { tone?: "ember" | "ink" }) {
-    const colors =
-        tone === "ink"
-            ? ["#3d4f59", "#614257", "#6b5634", "#344f3c"]
-            : ["#834521", "#5c4130", "#314936", "#483558"];
-
+function MapPreview() {
     return (
         <div
             className="relative h-full min-h-[8.5rem] overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]"
             style={{
-                backgroundImage: `linear-gradient(rgba(20, 15, 12, 0.18), rgba(20, 15, 12, 0.28)), url(${MAP_BG})`,
+                backgroundImage: `linear-gradient(rgba(20, 15, 12, 0.12), rgba(20, 15, 12, 0.22)), url(${MAP_BG})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
             }}
         >
-            <span
-                className="absolute left-[13%] top-[25%] h-[42%] w-[30%] rotate-[-13deg] rounded-[48%_52%_44%_56%] border"
-                style={{ backgroundColor: `${colors[0]}aa`, borderColor: `${colors[0]}` }}
-            />
-            <span
-                className="absolute left-[38%] top-[16%] h-[40%] w-[34%] rotate-[8deg] rounded-[52%_48%_58%_42%] border"
-                style={{ backgroundColor: `${colors[1]}99`, borderColor: `${colors[1]}` }}
-            />
-            <span
-                className="absolute bottom-[13%] left-[28%] h-[34%] w-[32%] rotate-[3deg] rounded-[44%_56%_48%_52%] border"
-                style={{ backgroundColor: `${colors[2]}aa`, borderColor: `${colors[2]}` }}
-            />
-            <span
-                className="absolute bottom-[19%] right-[12%] h-[34%] w-[35%] rotate-[-7deg] rounded-[50%_50%_58%_42%] border"
-                style={{ backgroundColor: `${colors[3]}a3`, borderColor: `${colors[3]}` }}
-            />
-            <span className="absolute left-[50%] top-[42%] text-lg text-[#e6a15d]">⚑</span>
-            <span className="absolute left-[22%] top-[38%] text-sm text-[#b69a82]">♜</span>
-            <span className="absolute right-[25%] top-[30%] text-sm text-[#b69a82]">♜</span>
-            <span className="absolute bottom-[29%] left-[40%] text-sm text-[#b69a82]">♜</span>
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(20,15,12,0.28),transparent_30%,transparent_70%,rgba(20,15,12,0.32))]" />
         </div>
     );
 }
@@ -145,7 +121,7 @@ function GameCard({ game }: { game: (typeof games)[number] }) {
             </div>
 
             <div className="mt-3 grid grid-cols-[1fr_7.5rem] gap-3">
-                <MapPreview tone={game.tone as "ember" | "ink"} />
+                <MapPreview />
                 <div className="rounded-md border border-[#3f332d] bg-[#1b1512]/88 p-3 text-xs text-[#a8917d]">
                     <p className="font-semibold text-[#d9c5ad]">{game.players}</p>
                     <p className="mt-3">🐍 {game.language}</p>
@@ -255,17 +231,12 @@ export function MainPage() {
                     <div
                         className="relative overflow-hidden rounded-md border border-[#3f332d] bg-[#17120f]"
                         style={{
-                            backgroundImage: `linear-gradient(rgba(17,13,10,0.35), rgba(17,13,10,0.48)), url(${MAP_BG})`,
+                            backgroundImage: `linear-gradient(rgba(17,13,10,0.28), rgba(17,13,10,0.4)), url(${MAP_BG})`,
                             backgroundSize: "cover",
-                            backgroundPosition: "left center",
+                            backgroundPosition: "center",
                         }}
                     >
-                        <div className="absolute inset-x-7 bottom-8 top-5 rounded-[44%_56%_48%_52%] border border-[#7d4d32] bg-[#3b2c20]/72 shadow-[inset_0_0_35px_rgba(0,0,0,0.42)]" />
-                        <div className="absolute left-14 top-5 h-28 w-16 rotate-[-2deg] rounded-sm border border-[#8a4d2c] bg-[#8a3e22] shadow-2xl shadow-black/40">
-                            <span className="absolute inset-x-3 top-4 h-16 rounded-sm bg-[#c76f32]" />
-                            <span className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[#f1c58e]">⌁</span>
-                        </div>
-                        <span className="absolute bottom-7 right-9 text-2xl">♨</span>
+                        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(17,13,10,0.2),transparent_35%,transparent_65%,rgba(17,13,10,0.42))]" />
                     </div>
 
                     <div className="grid grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)] gap-5">
