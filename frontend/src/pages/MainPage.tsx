@@ -536,13 +536,6 @@ export function MainPage() {
                     <div className="flex items-center gap-3">
                         <button
                             type="button"
-                            onClick={() => void createLobby()}
-                            className="h-10 rounded-lg bg-[linear-gradient(180deg,#e6a15d,#c76f32)] px-4 text-sm font-black text-[#1d120c] shadow-lg shadow-[#8a3e22]/25"
-                        >
-                            New Expedition
-                        </button>
-                        <button
-                            type="button"
                             className="flex h-10 items-center gap-3 rounded-lg border border-[#3f332d] bg-[#24201c] px-3 text-sm font-bold text-[#f4e7d8] shadow-lg shadow-black/20"
                         >
                             <span className="relative h-7 w-7 rounded-full bg-[linear-gradient(135deg,#7b5b46,#d1a77f)]">
@@ -659,6 +652,13 @@ export function MainPage() {
                                     {lobbies.length}
                                 </span>
                             </div>
+                            <button
+                                type="button"
+                                onClick={() => void createLobby()}
+                                className="h-9 shrink-0 rounded-lg bg-[linear-gradient(180deg,#e6a15d,#c76f32)] px-4 text-sm font-black text-[#1d120c] shadow-lg shadow-[#8a3e22]/25"
+                            >
+                                New Battle
+                            </button>
                         </div>
 
                         {lobbies.length > 0 ? (
