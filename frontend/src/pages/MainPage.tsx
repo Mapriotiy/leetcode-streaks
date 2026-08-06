@@ -28,6 +28,7 @@ import { API_URL, apiRequest } from "../api/client";
 import { LobbyPage } from "./LobbyPage";
 import { LobbyGamePage } from "./LobbyGamePage";
 import { ProfilePage } from "./ProfilePage";
+import { AdminPage } from "./AdminPage";
 import { LanguageIcon } from "../components/LanguageIcon";
 import { CreateLobbyModal } from "../components/CreateLobbyModal";
 import type { DashboardData, DashboardLobby, Faction, LobbyPlayer } from "../types/dashboard";
@@ -70,6 +71,14 @@ const LANGUAGE_LABELS: Record<string, string> = {
 const LOBBY_ACCENTS = ["#d87a38", "#6f93a1", "#9d6b93", "#8fa66f", "#b86a3a", "#5b8a72"];
 const FRIEND_COLORS = ["#6f93a1", "#d87a38", "#9d6b93", "#8fa66f", "#5b8a72", "#b86a3a"];
 
+function getFriendPreviewLimit() {
+    if (typeof window === "undefined") return 5;
+    if (window.innerWidth >= 3000) return 12;
+    if (window.innerWidth >= 2200) return 10;
+    if (window.innerWidth >= 1536) return 7;
+    return 5;
+}
+
 function SkeletonBlock({ className = "" }: { className?: string }) {
     return (
         <div
@@ -81,14 +90,14 @@ function SkeletonBlock({ className = "" }: { className?: string }) {
 function MainPageSkeleton() {
     return (
         <motion.main
-            className="min-h-screen bg-[#14110f] text-[#f4e7d8]"
+            className="min-h-[100dvh] bg-[#14110f] pb-[env(safe-area-inset-bottom)] text-[#f4e7d8]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
         >
             <header className="sticky top-0 z-30 border-b border-[#2b231f] bg-[#11100e]/94 backdrop-blur">
-            <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-7 2xl:max-w-[1920px] ">
+            <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-7 2xl:max-w-[1920px] min-[2200px]:max-w-[2240px] min-[3000px]:max-w-[2480px]">
                     <Logo className="text-[1.1rem]" />
                     <div className="hidden items-center gap-2 lg:flex">
                         <SkeletonBlock className="h-6 w-20" />
@@ -96,14 +105,14 @@ function MainPageSkeleton() {
                         <SkeletonBlock className="h-6 w-20" />
                     </div>
                     <div className="flex items-center gap-3">
-                        <SkeletonBlock className="h-10 w-32" />
-                        <SkeletonBlock className="h-10 w-36" />
+                        <SkeletonBlock className="hidden h-10 w-32 sm:block" />
+                        <SkeletonBlock className="hidden h-10 w-36 sm:block" />
                         <SkeletonBlock className="h-10 w-10" />
                     </div>
                 </div>
             </header>
 
-            <div className="mx-auto max-w-7xl px-4 py-2 sm:px-7 2xl:max-w-[1920px] ">
+            <div className="mx-auto max-w-7xl px-3 py-2 sm:px-7 2xl:max-w-[1920px] min-[2200px]:max-w-[2240px] min-[3000px]:max-w-[2480px]">
                 <DashboardBodySkeleton />
             </div>
         </motion.main>
@@ -119,12 +128,12 @@ function DashboardBodySkeleton() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
         >
-            <section className="grid min-h-[9.5rem] grid-cols-[13rem_minmax(0,1fr)_14rem] gap-5 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-2xl shadow-black/30">
-                <SkeletonBlock className="h-full min-h-[8rem]" />
-                <div className="grid grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)] gap-5">
+            <section className="grid min-h-[9.5rem] grid-cols-1 gap-3 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-2xl shadow-black/30 lg:grid-cols-[13rem_minmax(0,1fr)_14rem] lg:gap-5 2xl:grid-cols-[16rem_minmax(0,1fr)_17rem] min-[2200px]:grid-cols-[18rem_minmax(0,1fr)_19rem]">
+                <SkeletonBlock className="hidden h-full min-h-[8rem] lg:block" />
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)] lg:gap-5">
                     <div className="flex flex-col justify-center px-1">
-                        <SkeletonBlock className="h-7 w-56" />
-                        <SkeletonBlock className="mt-3 h-4 w-72" />
+                        <SkeletonBlock className="h-7 w-full max-w-56" />
+                        <SkeletonBlock className="mt-3 h-4 w-full max-w-72" />
                         <SkeletonBlock className="mt-5 h-12 w-full" />
                         <SkeletonBlock className="mt-3 h-2 w-full" />
                     </div>
@@ -137,7 +146,7 @@ function DashboardBodySkeleton() {
                 </div>
             </section>
 
-            <section className="mt-3 grid grid-cols-[minmax(0,1fr)_23.5rem] gap-3">
+            <section className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_19rem] 2xl:grid-cols-[minmax(0,1fr)_21rem] min-[2200px]:grid-cols-[minmax(0,1fr)_23rem]">
                 <div className="rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-xl shadow-black/25">
                     <SkeletonBlock className="h-8 w-52" />
                     <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -174,7 +183,7 @@ function NavItem({
         <button
             type="button"
             onClick={onClick}
-            className={`inline-flex h-10 items-center gap-2 border-b-2 px-3 text-sm font-semibold transition ${
+            className={`inline-flex h-11 shrink-0 items-center gap-2 border-b-2 px-3 text-sm font-semibold transition lg:h-10 ${
                 active
                     ? "border-[#d87a38] text-[#e6a15d]"
                     : "border-transparent text-[#8f8278] hover:text-[#f1dfc8]"
@@ -192,6 +201,7 @@ function MainHeader({
     onHome,
     onOpenLobbies,
     onOpenProfile,
+    onOpenAdmin,
     onLogout,
     profileMenuOpen,
     setProfileMenuOpen,
@@ -202,6 +212,7 @@ function MainHeader({
     onHome: () => void;
     onOpenLobbies: () => void;
     onOpenProfile: () => void;
+    onOpenAdmin: () => void;
     onLogout: () => void;
     profileMenuOpen: boolean;
     setProfileMenuOpen: (value: boolean) => void;
@@ -209,7 +220,7 @@ function MainHeader({
 }) {
     return (
         <header className="sticky top-0 z-30 border-b border-[#2b231f] bg-[#11100e]/94 backdrop-blur">
-            <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-7 2xl:max-w-[1920px] ">
+            <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-3 sm:gap-4 sm:px-7 2xl:max-w-[1920px] min-[2200px]:max-w-[2240px] min-[3000px]:max-w-[2480px]">
                 <Logo className="text-[1.1rem]" />
 
                 <nav className="hidden items-center gap-2 lg:flex">
@@ -235,7 +246,7 @@ function MainHeader({
                         <button
                             type="button"
                             onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                            className="group flex h-10 items-center gap-2.5 rounded-lg border border-[#3f332d] bg-[#24201c] px-3 text-sm font-bold text-[#f4e7d8] shadow-lg shadow-black/20 transition hover:border-[#7d4d32]"
+                            className="group flex h-11 items-center gap-2.5 rounded-lg border border-[#3f332d] bg-[#24201c] px-3 text-sm font-bold text-[#f4e7d8] shadow-lg shadow-black/20 transition hover:border-[#7d4d32] sm:h-10"
                         >
                             <span className="grid h-7 w-7 shrink-0 place-items-center overflow-hidden rounded-full border border-[#4c3a31] bg-[#33241b] text-[#d9c5ad]">
                                 {user.avatar_url ? (
@@ -263,6 +274,16 @@ function MainHeader({
                                     <UserCircle size={15} />
                                     View profile
                                 </button>
+                                {user.is_admin ? (
+                                    <button
+                                        type="button"
+                                        onClick={onOpenAdmin}
+                                        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-[#f4e7d8] transition hover:bg-[#2b211c]"
+                                    >
+                                        <Shield size={15} />
+                                        Admin panel
+                                    </button>
+                                ) : null}
                                 <button
                                     type="button"
                                     onClick={onLogout}
@@ -276,6 +297,23 @@ function MainHeader({
                     </div>
                 </div>
             </div>
+            <nav className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-3 pb-2 lg:hidden">
+                {navItems.map((item) => (
+                    <NavItem
+                        key={item.label}
+                        label={item.label}
+                        icon={item.icon}
+                        active={activeNav === item.label}
+                        onClick={
+                            item.label === "Home"
+                                ? onHome
+                                : item.label === "Lobbies"
+                                  ? onOpenLobbies
+                                  : undefined
+                        }
+                    />
+                ))}
+            </nav>
         </header>
     );
 }
@@ -311,12 +349,18 @@ function GameCard({
         : `${playerCount} / ${lobby.max_players} players`;
     const statusLabel = lobby.status === "active" ? "In progress" : lobby.status === "finished" ? "Finished" : "Waiting";
     const progress = lobby.faction_mode ? 45 : Math.min(100, Math.round((playerCount / Math.max(1, lobby.max_players)) * 100));
-    const thumbnailUrl = `${API_URL}/lobbies/${lobby.id}/thumbnail.png?w=320`;
+    const thumbnailUrl = `${API_URL}/lobbies/${lobby.id}/thumbnail.png?w=640`;
+    const thumbnailSrcSet = [
+        `${API_URL}/lobbies/${lobby.id}/thumbnail.png?w=480 480w`,
+        `${API_URL}/lobbies/${lobby.id}/thumbnail.png?w=640 640w`,
+        `${API_URL}/lobbies/${lobby.id}/thumbnail.png?w=960 960w`,
+        `${API_URL}/lobbies/${lobby.id}/thumbnail.png?w=1280 1280w`,
+    ].join(", ");
 
     return (
-        <article className="overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16]/88 p-2.5 shadow-xl shadow-black/20">
+        <article className="min-w-0 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16]/88 p-3 shadow-xl shadow-black/20 2xl:p-3">
             <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3">
+                <div className="flex min-w-0 items-start gap-3">
                     <span
                         className="grid h-11 w-11 shrink-0 place-items-center rounded-md border bg-[#2b211c]"
                         style={{ borderColor: `${accent}80`, color: accent }}
@@ -331,15 +375,20 @@ function GameCard({
                 <button
                     type="button"
                     onClick={() => onOpen(lobby)}
-                    className="h-9 shrink-0 rounded-md border border-[#4c3a31] px-3 text-xs font-bold text-[#e6a15d] transition hover:border-[#d87a38]"
+                    className="h-11 shrink-0 rounded-md border border-[#4c3a31] px-3 text-xs font-bold text-[#e6a15d] transition hover:border-[#d87a38] sm:h-9"
                 >
                     {lobby.status === "active" ? "Open map" : "Continue"}
                 </button>
             </div>
 
-            <div className="mt-2 grid grid-cols-[minmax(0,11rem)_minmax(0,1fr)] gap-3">
+            <div
+                className="mt-2 grid min-w-0 gap-3"
+                style={{
+                    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 12rem), 1fr))",
+                }}
+            >
                 {lobby.status === "waiting" ? (
-                    <div className="relative flex aspect-[1321/900] w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-md border border-dashed border-[#3f332d] bg-[#1b1612]">
+                    <div className="relative flex aspect-[16/10] min-w-0 w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-md border border-dashed border-[#3f332d] bg-[#1b1612] sm:aspect-[1321/900]">
                         <span className="grid h-10 w-10 place-items-center rounded-full border border-[#4c3a31] bg-[#211a16] text-[#e6a15d]">
                             <Hourglass size={18} />
                         </span>
@@ -347,17 +396,19 @@ function GameCard({
                         <p className="text-[11px] text-[#756354]">{playerCount} seated</p>
                     </div>
                 ) : (
-                <div className="w-full overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]">
+                <div className="min-w-0 w-full overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]">
                     <img
                         src={thumbnailUrl}
+                        srcSet={thumbnailSrcSet}
+                        sizes="(min-width: 3000px) 780px, (min-width: 2200px) 680px, (min-width: 1536px) 520px, (min-width: 768px) 36vw, 92vw"
                         alt=""
                         loading="lazy"
                         decoding="async"
-                        className="aspect-[1321/900] w-full object-cover"
+                        className="aspect-[16/10] w-full object-cover sm:aspect-[1321/900]"
                     />
                 </div>
                 )}
-                <div className="rounded-md border border-[#3f332d] bg-[#1b1512]/88 p-2 text-xs text-[#a8917d]">
+                <div className="min-w-0 rounded-md border border-[#3f332d] bg-[#1b1512]/88 p-2 text-xs text-[#a8917d]">
                     <p className="font-semibold text-[#d9c5ad]">{slotLabel}</p>
                     <p className="mt-2 flex items-center gap-1.5">
                         <LanguageIcon language={lobby.programming_language} size={14} />
@@ -430,7 +481,7 @@ function FriendRow({
             <button
                 type="button"
                 onClick={toggleMenu}
-                className="flex w-full items-center justify-between gap-3 rounded-md border border-[#3f332d] bg-[#211a16]/88 px-3 py-2 text-left transition hover:border-[#7d4d32]"
+                className="flex min-h-11 w-full items-center justify-between gap-3 rounded-md border border-[#3f332d] bg-[#211a16]/88 px-3 py-2 text-left transition hover:border-[#7d4d32]"
             >
                 <span className="flex min-w-0 items-center gap-3">
                     <span
@@ -465,7 +516,7 @@ function FriendRow({
                                   onView(friend);
                               }}
                               disabled={!friend.leetcodeUsername}
-                              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-[#f4e7d8] transition hover:bg-[#2b211c] disabled:cursor-not-allowed disabled:text-[#756354]"
+                              className="flex min-h-11 w-full items-center gap-2.5 px-3 py-2 text-sm text-[#f4e7d8] transition hover:bg-[#2b211c] disabled:cursor-not-allowed disabled:text-[#756354]"
                           >
                               <UserCircle size={15} />
                               View profile
@@ -476,7 +527,7 @@ function FriendRow({
                                   setMenuOpen(false);
                                   onRemove(friend.friendshipId);
                               }}
-                              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-300 transition hover:bg-[#2b211c]"
+                              className="flex min-h-11 w-full items-center gap-2.5 px-3 py-2 text-sm text-red-300 transition hover:bg-[#2b211c]"
                           >
                               <Trash2 size={15} />
                               Remove friend
@@ -523,7 +574,7 @@ function MetricItem({
 }
 
 type NavState = {
-    screen: "lobby" | "game" | "profile" | "lobbies" | "friendProfile";
+    screen: "lobby" | "game" | "profile" | "lobbies" | "friendProfile" | "admin";
     lobbyId: number;
     players?: LobbyPlayer[];
     factions?: Faction[];
@@ -534,7 +585,7 @@ export function MainPage() {
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [screen, setScreen] = useState<"dashboard" | "lobby" | "game" | "profile" | "lobbies" | "friendProfile">("dashboard");
+    const [screen, setScreen] = useState<"dashboard" | "lobby" | "game" | "profile" | "lobbies" | "friendProfile" | "admin">("dashboard");
     const [activeLobbyId, setActiveLobbyId] = useState<number | null>(null);
     const [activePlayers, setActivePlayers] = useState<LobbyPlayer[]>([]);
     const [activeFactions, setActiveFactions] = useState<Faction[]>([]);
@@ -545,6 +596,7 @@ export function MainPage() {
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
     const [selectedFriend, setSelectedFriend] = useState<FriendRowData | null>(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [friendPreviewLimit, setFriendPreviewLimit] = useState(getFriendPreviewLimit);
     const profileMenuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -555,6 +607,12 @@ export function MainPage() {
         };
         document.addEventListener("click", onClick);
         return () => document.removeEventListener("click", onClick);
+    }, []);
+
+    useEffect(() => {
+        const onResize = () => setFriendPreviewLimit(getFriendPreviewLimit());
+        window.addEventListener("resize", onResize);
+        return () => window.removeEventListener("resize", onResize);
     }, []);
 
     useEffect(() => {
@@ -584,7 +642,7 @@ export function MainPage() {
     }, [screen, loadDashboard]);
 
     const applyNavState = useCallback((state: NavState | null) => {
-        if (state && (state.screen === "profile" || state.screen === "friendProfile" || state.screen === "lobbies")) {
+        if (state && (state.screen === "profile" || state.screen === "friendProfile" || state.screen === "lobbies" || state.screen === "admin")) {
             setScreen(state.screen);
             setActiveLobbyId(null);
             setActivePlayers([]);
@@ -605,7 +663,8 @@ export function MainPage() {
     const pushNav = useCallback(
         (state: NavState) => {
             navDepthRef.current += 1;
-            window.history.pushState(state, "");
+            // Namespaced so MainApp's own popstate handler ignores these.
+            window.history.pushState({ __mp: state }, "");
             applyNavState(state);
         },
         [applyNavState],
@@ -614,7 +673,8 @@ export function MainPage() {
     useEffect(() => {
         const onPopState = (event: PopStateEvent) => {
             navDepthRef.current = Math.max(0, navDepthRef.current - 1);
-            const state = event.state as NavState | null;
+            const raw = event.state as { __mp?: NavState } | null;
+            const state = raw?.__mp ?? null;
             // Back/forward into a lobby or game must not show a stale or
             // deleted lobby: verify it still exists before restoring.
             if (state && (state.screen === "lobby" || state.screen === "game")) {
@@ -663,6 +723,11 @@ export function MainPage() {
     const openProfile = useCallback(() => {
         setProfileMenuOpen(false);
         pushNav({ screen: "profile", lobbyId: 0 });
+    }, [pushNav]);
+
+    const openAdmin = useCallback(() => {
+        setProfileMenuOpen(false);
+        pushNav({ screen: "admin", lobbyId: 0 });
     }, [pushNav]);
 
     const handleViewFriend = useCallback(
@@ -730,7 +795,7 @@ export function MainPage() {
 
     if (!user) {
         return (
-            <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-[#14110f] p-6 text-center text-[#f4e7d8]">
+            <main className="flex min-h-[100dvh] flex-col items-center justify-center gap-6 bg-[#14110f] p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-center text-[#f4e7d8]">
                 <Logo className="text-[1.4rem]" />
                 <p className="max-w-md text-sm leading-6 text-[#a8917d]">
                     Log in to see your campaign table, live lobbies and friend streaks.
@@ -757,14 +822,16 @@ export function MainPage() {
 
     if (screen === "profile") {
         content = <ProfilePage onBack={goDashboard} onLogout={handleLogout} />;
+    } else if (screen === "admin") {
+        content = <AdminPage onBack={goDashboard} onLogout={handleLogout} />;
     } else if (screen === "friendProfile" && selectedFriend) {
         content = (
-            <main className="page-enter min-h-screen bg-[#14110f] text-[#f4e7d8]">
-                <div className="mx-auto max-w-3xl px-7 py-6">
+            <main className="page-enter min-h-[100dvh] bg-[#14110f] pb-[env(safe-area-inset-bottom)] text-[#f4e7d8]">
+                <div className="mx-auto max-w-3xl px-3 py-4 sm:px-7 sm:py-6">
                     <button
                         type="button"
                         onClick={goDashboard}
-                        className="mb-6 grid h-9 w-9 place-items-center rounded-lg border border-[#3f332d] bg-[#24201c] text-[#d9c5ad] transition hover:border-[#7d4d32]"
+                            className="mb-6 grid h-11 w-11 place-items-center rounded-lg border border-[#3f332d] bg-[#24201c] text-[#d9c5ad] transition hover:border-[#7d4d32] sm:h-9 sm:w-9"
                         aria-label="Back"
                     >
                         <ChevronRight size={16} className="rotate-180" />
@@ -788,7 +855,7 @@ export function MainPage() {
                         </div>
                     </div>
 
-                    <div className="mt-8 grid grid-cols-2 gap-3">
+                    <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div className="rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-5">
                             <p className="text-xs uppercase tracking-widest text-[#756354]">Current streak</p>
                             <p className="mt-2 flex items-center gap-2 font-serif text-4xl font-black text-[#f1c58e]">
@@ -822,13 +889,13 @@ export function MainPage() {
         );
     } else if (screen === "lobbies") {
         content = (
-            <main className="page-enter min-h-screen bg-[#14110f] text-[#f4e7d8]">
-                <div className="mx-auto max-w-7xl px-4 py-4 sm:px-7 2xl:max-w-[1920px] ">
+            <main className="page-enter min-h-[100dvh] bg-[#14110f] pb-[env(safe-area-inset-bottom)] text-[#f4e7d8]">
+                <div className="mx-auto max-w-7xl px-3 py-4 sm:px-7 2xl:max-w-[1920px] min-[2200px]:max-w-[2240px] min-[3000px]:max-w-[2480px]">
                     <div className="mb-4 flex items-center gap-3">
                         <button
                             type="button"
                             onClick={goDashboard}
-                            className="grid h-9 w-9 place-items-center rounded-lg border border-[#3f332d] bg-[#24201c] text-[#d9c5ad] transition hover:border-[#7d4d32]"
+                            className="grid h-11 w-11 place-items-center rounded-lg border border-[#3f332d] bg-[#24201c] text-[#d9c5ad] transition hover:border-[#7d4d32] sm:h-9 sm:w-9"
                             aria-label="Back"
                         >
                             <ChevronRight size={16} className="rotate-180" />
@@ -840,7 +907,7 @@ export function MainPage() {
                     </div>
 
                     {lobbies.length > 0 ? (
-                        <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+                        <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3 min-[2200px]:grid-cols-4">
                             {lobbies.map((lobby, index) => (
                                 <GameCard key={lobby.id} lobby={lobby} index={index} onOpen={openLobby} />
                             ))}
@@ -888,8 +955,8 @@ export function MainPage() {
     const isDashboardLoading = !dashboardData && !error;
 
     content = (
-        <main className="min-h-screen bg-[#14110f] text-[#f4e7d8]">
-            <div className="mx-auto max-w-7xl px-4 py-2 sm:px-7 2xl:max-w-[1920px] ">
+        <main className="min-h-[100dvh] bg-[#14110f] pb-[calc(1rem+env(safe-area-inset-bottom))] text-[#f4e7d8]">
+            <div className="mx-auto max-w-7xl px-3 py-2 sm:px-7 2xl:max-w-[1920px] min-[2200px]:max-w-[2240px] min-[3000px]:max-w-[2480px]">
                 <AnimatePresence mode="wait" initial={false}>
                     {isDashboardLoading ? (
                         <DashboardBodySkeleton />
@@ -901,9 +968,9 @@ export function MainPage() {
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.22, ease: "easeOut" }}
                         >
-                <section className="grid min-h-[8rem] grid-cols-1 gap-3 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-2.5 shadow-2xl shadow-black/30 sm:gap-5 lg:grid-cols-[13rem_minmax(0,1fr)_14rem]">
+                <section className="grid min-h-[8rem] grid-cols-1 gap-3 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-2xl shadow-black/30 sm:gap-5 lg:grid-cols-[13rem_minmax(0,1fr)_14rem] 2xl:grid-cols-[16rem_minmax(0,1fr)_17rem] min-[2200px]:grid-cols-[18rem_minmax(0,1fr)_19rem]">
                     <div
-                        className="relative min-h-[5rem] overflow-hidden rounded-md border border-[#3f332d] bg-[#17120f]"
+                        className="relative hidden min-h-[5rem] overflow-hidden rounded-md border border-[#3f332d] bg-[#17120f] lg:block"
                         style={{
                             backgroundImage: `linear-gradient(rgba(17,13,10,0.28), rgba(17,13,10,0.4)), url(${MAP_BG})`,
                             backgroundSize: "cover",
@@ -922,17 +989,17 @@ export function MainPage() {
                                 Solve problems. Capture territories. Grow your empire.
                             </p>
 
-                            <div className="mt-3 flex items-center gap-4">
+                            <div className="mt-3 flex items-start gap-3 sm:items-center sm:gap-4">
                                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#7d4d32] bg-[#33241b] text-[#e6a15d] shadow-lg shadow-[#8a3e22]/20">
                                     <Flame size={21} fill="currentColor" />
                                 </span>
                                 <div className="min-w-0 flex-1">
-                                    <div className="flex items-center justify-between gap-4">
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                                         <div>
                                             <strong className="block text-sm">Daily challenge</strong>
                                             <span className="mt-0.5 block text-xs text-[#a8917d]">Solve today to claim your territory.</span>
                                         </div>
-                                        <span className="text-sm text-[#a8917d]">
+                                        <span className="text-xs text-[#a8917d] sm:text-sm">
                                             {dashboardData?.today_submissions.length ?? 0} solved today
                                         </span>
                                     </div>
@@ -943,7 +1010,9 @@ export function MainPage() {
                             </div>
                         </div>
 
-                        <MapPreview />
+                        <div className="hidden sm:block">
+                            <MapPreview />
+                        </div>
                     </div>
 
                     <aside className="rounded-lg border border-[#3f332d] bg-[#1c1613]/86 p-2.5">
@@ -965,16 +1034,16 @@ export function MainPage() {
                         </div>
                         <button
                             type="button"
-                            className="mt-3 h-10 w-full rounded-lg border border-[#4c3a31] bg-[#2b211c] text-sm font-black text-[#a8917d]"
+                            className="mt-3 h-11 w-full rounded-lg border border-[#4c3a31] bg-[#2b211c] text-sm font-black text-[#a8917d] sm:h-10"
                         >
                             Start solving
                         </button>
                     </aside>
                 </section>
 
-                <section className="mt-2 grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_23.5rem]">
-                    <div className="rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-xl shadow-black/25">
-                        <div className="mb-3 flex items-center justify-between">
+                <section className="mt-2 grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_19rem] 2xl:grid-cols-[minmax(0,1fr)_21rem] min-[2200px]:grid-cols-[minmax(0,1fr)_23rem]">
+                    <div className="min-w-0 rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-xl shadow-black/25 2xl:p-4">
+                        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex items-start gap-3">
                                 <Users size={22} className="mt-0.5 text-[#f1c58e]" />
                                 <div>
@@ -985,12 +1054,12 @@ export function MainPage() {
                                     {lobbies.length}
                                 </span>
                             </div>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 sm:justify-end">
                                 {lobbies.length > 2 ? (
                                     <button
                                         type="button"
                                         onClick={openLobbies}
-                                        className="text-xs font-semibold text-[#8f8278] underline decoration-[#8f8278]/40 underline-offset-4 transition hover:text-[#e6a15d] hover:decoration-[#e6a15d]"
+                                        className="inline-flex h-11 items-center text-xs font-semibold text-[#8f8278] underline decoration-[#8f8278]/40 underline-offset-4 transition hover:text-[#e6a15d] hover:decoration-[#e6a15d] sm:h-auto"
                                     >
                                         Show all ({lobbies.length})
                                     </button>
@@ -998,7 +1067,7 @@ export function MainPage() {
                                 <button
                                     type="button"
                                     onClick={() => setShowCreateModal(true)}
-                                    className="h-9 shrink-0 rounded-lg bg-[linear-gradient(180deg,#e6a15d,#c76f32)] px-4 text-sm font-black text-[#1d120c] shadow-lg shadow-[#8a3e22]/25"
+                                    className="h-11 flex-1 shrink-0 rounded-lg bg-[linear-gradient(180deg,#e6a15d,#c76f32)] px-4 text-sm font-black text-[#1d120c] shadow-lg shadow-[#8a3e22]/25 sm:h-9 sm:flex-none"
                                 >
                                     New Battle
                                 </button>
@@ -1006,7 +1075,12 @@ export function MainPage() {
                         </div>
 
                         {lobbies.length > 0 ? (
-                            <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+                            <div
+                                className="grid auto-rows-fr gap-3"
+                                style={{
+                                    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 28rem), 1fr))",
+                                }}
+                            >
                                 {lobbies.slice(0, 2).map((lobby, index) => (
                                     <GameCard key={lobby.id} lobby={lobby} index={index} onOpen={openLobby} />
                                 ))}
@@ -1024,7 +1098,7 @@ export function MainPage() {
                         </div>
                     </div>
 
-                    <aside className="rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-xl shadow-black/25">
+                    <aside className="min-w-0 rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-xl shadow-black/25 2xl:p-4">
                         <div className="mb-3 flex items-start gap-3">
                             <Flame size={20} className="mt-0.5 text-[#e6a15d]" fill="currentColor" />
                             <div>
@@ -1033,9 +1107,9 @@ export function MainPage() {
                             </div>
                         </div>
 
-                        <div className="grid max-h-[10rem] gap-1.5 overflow-y-auto pr-0.5">
+                        <div className="grid gap-1.5 xl:max-h-[10rem] xl:overflow-y-auto xl:pr-0.5">
                             {friends.length > 0 ? (
-                                friends.slice(0, 5).map((friend, index) => (
+                                friends.slice(0, friendPreviewLimit).map((friend, index) => (
                                     <FriendRow
                                         key={friend.friendship_id}
                                         friend={{
@@ -1061,7 +1135,7 @@ export function MainPage() {
                             type="button"
                             onClick={() => void createInvite()}
                             disabled={isCreatingInvite}
-                            className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-[#3f332d] bg-[#1b1512] text-sm font-black text-[#e6a15d] transition hover:border-[#7d4d32] disabled:cursor-not-allowed disabled:text-[#756354]"
+                            className="mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#3f332d] bg-[#1b1512] text-sm font-black text-[#e6a15d] transition hover:border-[#7d4d32] disabled:cursor-not-allowed disabled:text-[#756354] sm:h-10"
                         >
                             <UserPlus size={17} />
                             {isCreatingInvite ? "Creating..." : "Invite a friend"}
@@ -1074,13 +1148,13 @@ export function MainPage() {
                                     <input
                                         readOnly
                                         value={inviteUrl}
-                                        className="min-w-0 flex-1 rounded-md border border-[#3f332d] bg-[#191410] px-2 py-1.5 text-xs text-[#d9c5ad]"
+                                        className="min-w-0 flex-1 rounded-md border border-[#3f332d] bg-[#191410] px-2 py-2 text-base text-[#d9c5ad] sm:py-1.5 sm:text-xs"
                                         onFocus={(e) => e.currentTarget.select()}
                                     />
                                     <button
                                         type="button"
                                         onClick={() => void copyInvite()}
-                                        className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-[#4c3a31] text-[#e6a15d] transition hover:border-[#d87a38]"
+                                        className="grid h-11 w-11 shrink-0 place-items-center rounded-md border border-[#4c3a31] text-[#e6a15d] transition hover:border-[#d87a38] sm:h-8 sm:w-8"
                                         aria-label="Copy invite link"
                                     >
                                         {copyMessage ? <Check size={15} /> : <Copy size={15} />}
@@ -1109,16 +1183,17 @@ export function MainPage() {
     }
 
     const screenKey = screen === "dashboard" ? "dashboard" : `${screen}-${activeLobbyId ?? 0}`;
-    const activeNav = screen === "dashboard" || screen === "profile" || screen === "friendProfile" ? "Home" : "Lobbies";
+    const activeNav = screen === "dashboard" || screen === "profile" || screen === "friendProfile" || screen === "admin" ? "Home" : "Lobbies";
 
     return (
-        <div className="min-h-screen bg-[#14110f] text-[#f4e7d8]">
+        <div className="min-h-[100dvh] bg-[#14110f] text-[#f4e7d8]">
             <MainHeader
                 user={user}
                 activeNav={activeNav}
                 onHome={goDashboard}
                 onOpenLobbies={openLobbies}
                 onOpenProfile={openProfile}
+                onOpenAdmin={openAdmin}
                 onLogout={handleLogout}
                 profileMenuOpen={profileMenuOpen}
                 setProfileMenuOpen={setProfileMenuOpen}

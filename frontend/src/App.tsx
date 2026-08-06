@@ -6,7 +6,6 @@ import { InviteModal } from "./components/InviteModal";
 import { Background } from "./components/Background";
 import { ToastProvider } from "./components/toast/ToastProvider";
 import { AuthPage } from "./pages/AuthPage";
-import { DashboardPage } from "./pages/DashboardPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { ReplayPage } from "./pages/ReplayPage";
 import { LobbyPage } from "./pages/LobbyPage";
@@ -36,14 +35,11 @@ const processedOAuthStates = new Set<string>();
 export default function App() {
     const params = new URLSearchParams(window.location.search);
     const isMapTest = params.get("mapTest") === "1";
-    const isMainPreview = params.get("mainPreview") === "1";
     const replayParam = params.get("replay");
     return (
         <ToastProvider>
             <Background />
-            {isMainPreview ? (
-                <MainPage />
-            ) : isMapTest ? (
+            {isMapTest ? (
                 <MapTestPage />
             ) : replayParam ? (
                 <ReplayPage lobbyId={Number(replayParam)} />
@@ -60,7 +56,6 @@ function MainApp() {
     const [sessionStalled, setSessionStalled] = useState(false);
     const [inviteToken, setInviteToken] = useState<string | null>(null);
     const [lobbyInviteToken, setLobbyInviteToken] = useState<string | null>(null);
-    const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
     const [showAdmin, setShowAdmin] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
     const [activeLobbyId, setActiveLobbyId] = useState<number | null>(null);
@@ -137,6 +132,11 @@ function MainApp() {
 
     useEffect(() => {
         const onPopState = (event: PopStateEvent) => {
+            // States pushed by MainPage are namespaced under __mp and handled
+            // inside MainPage — don't let them drive MainApp navigation.
+            if (event.state && typeof event.state === "object" && "__mp" in event.state) {
+                return;
+            }
             navDepthRef.current = Math.max(0, navDepthRef.current - 1);
             applyNavState(event.state as NavState | null);
         };
@@ -276,11 +276,11 @@ function MainApp() {
                 onBack={goBack}
                 onReplay={() => {
                     goRoot();
-                    setDashboardRefreshKey((key) => key + 1);
+                    
                 }}
                 onLeft={() => {
                     goRoot();
-                    setDashboardRefreshKey((key) => key + 1);
+                    
                 }}
             />
         );
@@ -293,7 +293,7 @@ function MainApp() {
                 currentUserVerified={user.leetcode_verified_at != null}
                 onBack={() => {
                     goBack();
-                    setDashboardRefreshKey((key) => key + 1);
+                    
                 }}
                 onGameStarted={(lobbyId, players, factions) => {
                     pushNav({ screen: "game", lobbyId, players, factions });
@@ -330,29 +330,7 @@ function MainApp() {
         screenKey = "dashboard";
         screen = (
             <>
-                <DashboardPage
-                    user={user}
-                    refreshKey={dashboardRefreshKey}
-                    onLogout={() => {
-                        localStorage.removeItem("accessToken");
-                        clearCache();
-                        setUser(null);
-                    }}
-                    onOpenAdmin={() => pushNav({ screen: "admin" })}
-                    onOpenProfile={() => pushNav({ screen: "profile" })}
-                    onOpenLobby={(lobbyId, players, factions) => {
-                        const screen = players && players.length > 0 ? "game" : "lobby";
-                        pushNav({
-                            screen,
-                            lobbyId,
-                            players: players ?? [],
-                            factions: factions ?? [],
-                        });
-                    }}
-                    onLinkChanged={() => {
-                        apiRequest<User>("/auth/me").then(setUser).catch(() => {});
-                    }}
-                />
+                <MainPage />
 
                 {inviteToken ? (
                     <InviteModal
@@ -367,7 +345,7 @@ function MainApp() {
                             localStorage.removeItem("pendingInviteToken");
                             setInviteToken(null);
                             clearUrlParam("invite");
-                            setDashboardRefreshKey((key) => key + 1);
+                            
                         }}
                         onNeedAuth={() => {
                             setInviteToken(null);

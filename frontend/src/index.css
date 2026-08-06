@@ -6,6 +6,41 @@ body {
     background: #1a1a1a;
 }
 
+html,
+body,
+#root {
+    min-height: 100%;
+}
+
+@supports (min-height: 100dvh) {
+    body,
+    #root {
+        min-height: 100dvh;
+    }
+}
+
+@media (max-width: 767px) {
+    button,
+    [role="button"],
+    a,
+    input,
+    textarea,
+    select {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    button,
+    [role="button"] {
+        touch-action: manipulation;
+    }
+
+    input,
+    textarea,
+    select {
+        font-size: 16px;
+    }
+}
+
 .brand-wordmark {
     font-family: "Comfortaa", ui-rounded, "Avenir Next Rounded", "Nunito", system-ui, sans-serif;
     letter-spacing: 0;

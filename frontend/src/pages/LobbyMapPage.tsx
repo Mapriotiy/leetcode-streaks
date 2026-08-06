@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { ArrowLeft, HelpCircle, LogOut, UserPlus } from 'lucide-react';
+import { ArrowLeft, HelpCircle, LogOut, ScrollText, UserPlus, X } from 'lucide-react';
 import ProvincePopup from '../components/ProvincePopup';
 import { WinnerOverlay } from '../components/WinnerOverlay';
 import { EventLogPanel } from '../components/map/EventLogPanel';
@@ -122,6 +122,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     const [lobbyInfo, setLobbyInfo] = useState<{ left_players: LobbyPlayer[]; players: LobbyPlayer[]; max_players: number; faction_mode: boolean } | null>(null);
     const [friends, setFriends] = useState<{ friendship_id: number; friend: { id: number; leetcode_username: string | null } }[]>([]);
     const [showAddPlayer, setShowAddPlayer] = useState(false);
+    const [showMobileLog, setShowMobileLog] = useState(false);
     const [factionChoiceByUser, setFactionChoiceByUser] = useState<Record<number, number>>({});
     const [bursts, setBursts] = useState<Map<string, string>>(new Map());
     const prevOwnersRef = useRef<Map<string, number | null>>(new Map());
@@ -609,7 +610,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     })();
 
     return (
-        <main className="min-h-screen bg-transparent p-4 text-white sm:p-6">
+        <main className="min-h-screen bg-transparent p-2.5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] text-white sm:p-6 sm:pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-6">
             <div className="mx-auto max-w-7xl">
                 <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4">
@@ -621,8 +622,8 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                             <ArrowLeft size={20} />
                         </button>
                         <div>
-                            <h1 className="text-2xl font-semibold tracking-tight">Lobby Map</h1>
-                            <p className="mt-1 text-sm text-[#8f8278]">Capture provinces by solving problems</p>
+                            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Lobby Map</h1>
+                            <p className="mt-0.5 text-xs text-[#8f8278] sm:mt-1 sm:text-sm">Capture provinces by solving problems</p>
                         </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -650,10 +651,11 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                             type="button"
                             onClick={() => setConfirmLeave(true)}
                             disabled={isLeaving}
-                            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#3f332d] bg-[#211a16] px-4 text-sm font-medium text-[#d9c5ad] transition hover:border-red-400/60 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:border-[#3f332d] disabled:bg-[#211a16] disabled:text-[#777]"
+                            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#3f332d] bg-[#211a16] px-3 text-sm font-medium text-[#d9c5ad] transition hover:border-red-400/60 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:border-[#3f332d] disabled:bg-[#211a16] disabled:text-[#777] sm:px-4"
                         >
                             <LogOut size={16} />
-                            {isLeaving ? 'Leaving...' : 'Leave Lobby'}
+                            <span className="hidden sm:inline">{isLeaving ? 'Leaving...' : 'Leave Lobby'}</span>
+                            <span className="sm:hidden">{isLeaving ? '...' : 'Leave'}</span>
                         </button>
                     </div>
                 </header>
@@ -809,7 +811,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                     </section>
                 )}
 
-                <section className="mt-6 rounded-lg border border-[#3f332d] bg-[#211a16] p-4 shadow-xl shadow-black/20">
+                <section className="mt-3 rounded-lg border border-[#3f332d] bg-[#211a16] p-3 shadow-xl shadow-black/20 sm:mt-6 sm:p-4">
                     <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
                         {scoreRows.map((row) => {
                             return (
@@ -896,8 +898,8 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                     })() : null}
                 </section>
 
-                <div className="mt-6 flex items-stretch gap-6">
-                    <section className="relative min-w-0 flex-1 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16] p-4 shadow-xl shadow-black/20 transition hover:border-[#00d9ff]/25 hover:shadow-[0_0_35px_-8px_rgba(0,217,255,0.2)]">
+                <div className="mt-3 flex flex-col gap-3 lg:mt-6 lg:flex-row lg:items-stretch lg:gap-6">
+                    <section className="relative min-w-0 flex-1 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16] p-2.5 shadow-xl shadow-black/20 transition hover:border-[#00d9ff]/25 hover:shadow-[0_0_35px_-8px_rgba(0,217,255,0.2)] sm:p-4">
                         {loading ? (
                             <div className="flex items-center justify-center py-20 text-[#8f8278]">Loading map...</div>
                         ) : (
@@ -961,7 +963,7 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                             <MapLegend
                                 regions={legendRegions}
                                 onHover={setHoveredProvinces}
-                                className="mt-4 flex max-h-56 list-none flex-col gap-2 overflow-y-auto pr-1 md:hidden"
+                                className="mt-3 flex list-none gap-2 overflow-x-auto pb-1 pr-1 md:hidden [&>li]:min-w-[9.5rem] [&>li]:shrink-0 [&>li]:px-2.5 [&>li]:py-2 [&>li]:text-xs"
                             />
                         )}
 
@@ -1013,11 +1015,37 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
                 </div>
 
                 {!loading && (
-                    <EventLogPanel
-                        events={events}
-                        currentUserId={currentUserId}
-                        className="mt-6 max-h-80 lg:hidden"
-                    />
+                    <div className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:hidden">
+                        {showMobileLog ? (
+                            <div className="relative overflow-hidden rounded-t-xl border border-[#3f332d] bg-[#1b1512] shadow-2xl shadow-black/60">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowMobileLog(false)}
+                                    aria-label="Close battle log"
+                                    className="absolute right-2 top-2 z-10 grid h-8 w-8 place-items-center rounded-md border border-white/10 bg-[#24201c] text-[#a8917d]"
+                                >
+                                    <X size={16} />
+                                </button>
+                                <EventLogPanel
+                                    events={events}
+                                    currentUserId={currentUserId}
+                                    className="max-h-[45dvh] rounded-none border-0 bg-transparent"
+                                />
+                            </div>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => setShowMobileLog(true)}
+                                className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-[#3f332d] bg-[#211a16]/95 text-sm font-semibold text-[#d9c5ad] shadow-2xl shadow-black/50 backdrop-blur"
+                            >
+                                <ScrollText size={16} className="text-[#e6a15d]" />
+                                Battle log
+                                <span className="rounded-full bg-[#e6a15d]/15 px-2 py-0.5 text-xs text-[#e6a15d]">
+                                    {events.length}
+                                </span>
+                            </button>
+                        )}
+                    </div>
                 )}
 
                 <ProvincePopup

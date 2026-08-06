@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Bookmark, Check, Map as MapIcon, Pencil, RotateCcw, Shuffle, Trash2, X } from "lucide-react";
 import { createMapPreset, deleteMapPreset, listMapPresets, type MapPreset } from "./api";
 import { MAP_SIZE_CONFIG } from "./assets";
@@ -18,6 +18,7 @@ type MapChooserModalProps = {
 type CatalogPreview = { kind: "default" } | { kind: "preset"; preset: MapPreset };
 
 const SIZE_ORDER = ["small", "medium", "large"] as const satisfies readonly GeneratedMapSize[];
+const MAP_PREVIEW_ASPECT = 1321 / 900;
 
 function normalizeTopicIds(topics: LobbyMapTopic[], selected: readonly string[]) {
     const known = new Set(topics.map((topic) => topic.id));
@@ -26,11 +27,47 @@ function normalizeTopicIds(topics: LobbyMapTopic[], selected: readonly string[])
 }
 
 function catalogCardClass(active: boolean) {
-    return `flex w-full items-center gap-3 rounded-md border px-3 py-3 text-left transition ${
+    return `flex min-w-[13.75rem] items-center gap-3 rounded-md border px-3 py-3 text-left transition md:min-w-0 md:w-full ${
         active
             ? "border-[#e6a15d] bg-[#2a2418]"
             : "border-white/10 bg-[#24201c] hover:border-[#e6a15d]/60"
     }`;
+}
+
+function MapPreview({ draft }: { draft: GeneratedMapDraft }) {
+    const frameRef = useRef<HTMLDivElement | null>(null);
+    const [width, setWidth] = useState<number | null>(null);
+
+    useEffect(() => {
+        const frame = frameRef.current;
+        if (!frame) return;
+
+        const updateSize = () => {
+            const rect = frame.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0) return;
+
+            const nextWidth = Math.floor(Math.min(rect.width, rect.height * MAP_PREVIEW_ASPECT));
+            setWidth((current) => (current === nextWidth ? current : nextWidth));
+        };
+
+        updateSize();
+        const observer = new ResizeObserver(updateSize);
+        observer.observe(frame);
+        window.addEventListener("orientationchange", updateSize);
+
+        return () => {
+            observer.disconnect();
+            window.removeEventListener("orientationchange", updateSize);
+        };
+    }, []);
+
+    return (
+        <div ref={frameRef} className="flex h-full min-h-0 w-full items-center justify-center">
+            <div className="max-w-full" style={{ width: width ? `${width}px` : "100%" }}>
+                <GeneratedMapRenderer draft={draft} className="mx-auto w-full" />
+            </div>
+        </div>
+    );
 }
 
 export function MapChooserModal({
@@ -213,12 +250,12 @@ export function MapChooserModal({
     if (!open) return null;
 
     return (
-        <div className="fixed inset-0 z-50 bg-black/70 p-2 text-white sm:p-4" onMouseDown={onClose}>
+        <div className="fixed inset-0 z-50 bg-black/70 text-white sm:p-4 2xl:p-6" onMouseDown={onClose}>
             <div
-                className="mx-auto flex h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16] shadow-2xl sm:h-[92vh]"
+                className="mx-auto flex h-[100dvh] w-screen max-w-none flex-col overflow-hidden rounded-none border-y border-[#3f332d] bg-[#211a16] shadow-2xl sm:h-[90vh] sm:max-h-[calc(100dvh-2rem)] sm:w-full sm:max-w-[96vw] sm:rounded-lg sm:border xl:h-[88vh] xl:max-w-[1500px] 2xl:h-[86vh] 2xl:max-h-[1280px] 2xl:max-w-[1800px] min-[2200px]:h-[82vh] min-[2200px]:max-h-[1400px] min-[2200px]:max-w-[2100px] min-[3000px]:h-[78vh] min-[3000px]:max-h-[1520px] min-[3000px]:max-w-[2400px]"
                 onMouseDown={(event) => event.stopPropagation()}
             >
-                <header className="flex items-center justify-between border-b border-white/10 px-3 py-2 sm:px-4 sm:py-3">
+                <header className="flex items-center justify-between border-b border-white/10 px-3 py-2 sm:px-4 sm:py-3 2xl:px-5">
                     <div>
                         <h2 className="text-lg font-semibold tracking-normal">Choose Map</h2>
                         <p className="mt-0.5 hidden text-sm text-[#8f8278] sm:block">Catalog preset or generated lobby draft</p>
@@ -232,8 +269,8 @@ export function MapChooserModal({
                     </button>
                 </header>
 
-                <div className="flex min-h-0 flex-1 flex-col md:grid md:grid-cols-[260px_1fr]">
-                    <aside className="shrink-0 border-b border-white/10 p-3 md:overflow-auto md:border-b-0 md:border-r md:p-4">
+                <div className="flex min-h-0 flex-1 flex-col md:grid md:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)] min-[2200px]:grid-cols-[340px_minmax(0,1fr)]">
+                    <aside className="shrink-0 border-b border-white/10 p-2.5 sm:p-3 md:overflow-auto md:border-b-0 md:border-r md:p-4 2xl:p-5">
                         <div className="grid grid-cols-2 gap-2">
                             {(["catalog", "custom"] as const).map((nextTab) => (
                                 <button
@@ -252,7 +289,7 @@ export function MapChooserModal({
                         </div>
 
                         {tab === "catalog" ? (
-                            <div className="mt-3 max-h-[70vh] space-y-2 overflow-auto md:mt-4 md:pr-1">
+                            <div className="mt-3 flex gap-2 overflow-x-auto pb-1 md:mt-4 md:block md:max-h-[70vh] md:space-y-2 md:overflow-auto md:pb-0 md:pr-1">
                                 <button
                                     type="button"
                                     onClick={() => setCatalogPreview({ kind: "default" })}
@@ -269,12 +306,12 @@ export function MapChooserModal({
                                 </button>
 
                                 {presets.length === 0 ? (
-                                    <p className="px-1 text-xs text-[#8f8278]">
+                                    <p className="min-w-[13.75rem] px-1 text-xs text-[#8f8278] md:min-w-0">
                                         Generate a map from the Custom tab, then "Save preset" to add it here.
                                     </p>
                                 ) : (
                                     presets.map((preset) => (
-                                        <div key={preset.id} className="flex items-center gap-1">
+                                        <div key={preset.id} className="flex min-w-[16.5rem] items-center gap-1 md:min-w-0">
                                             <button
                                                 type="button"
                                                 onClick={() => setCatalogPreview({ kind: "preset", preset })}
@@ -306,7 +343,7 @@ export function MapChooserModal({
                                 )}
                             </div>
                         ) : (
-                            <div className="mt-3 space-y-3 md:mt-4 md:space-y-4">
+                            <div className="mt-3 space-y-2 md:mt-4 md:space-y-4">
                                 <div>
                                     <p className="mb-2 text-xs uppercase tracking-wide text-[#8f8278]">Size</p>
                                     <div className="grid grid-cols-3 gap-2 md:grid-cols-1">
@@ -345,7 +382,7 @@ export function MapChooserModal({
                                                     key={topic.id}
                                                     type="button"
                                                     onClick={() => toggleTopic(topic.id)}
-                                                    className={`flex min-w-[150px] items-center gap-2 rounded-md border px-3 py-2 text-left text-sm transition md:w-full md:min-w-0 ${
+                                                    className={`flex min-w-[8.75rem] items-center gap-2 rounded-md border px-3 py-2 text-left text-sm transition md:w-full md:min-w-0 ${
                                                         checked
                                                             ? "border-[#e6a15d]/50 bg-[#2b211c] text-white"
                                                             : "border-white/10 bg-[#24201c] text-[#8f8278] hover:border-[#e6a15d]/40"
@@ -363,7 +400,7 @@ export function MapChooserModal({
                         )}
                     </aside>
 
-                    <section className="flex min-h-0 flex-1 flex-col overflow-hidden p-3 md:overflow-auto md:p-4">
+                    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] sm:p-3 md:overflow-auto md:p-4 2xl:p-5">
                         {tab === "catalog" ? (
                             <div className="flex min-h-0 flex-1 flex-col gap-3">
                                 <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -372,7 +409,7 @@ export function MapChooserModal({
                                             ? "Production map layout"
                                             : `${catalogPreview.preset.draft.provinceCount} provinces / ${catalogPreview.preset.draft.regionCount} regions`}
                                     </div>
-                                    <div className="flex flex-wrap justify-end gap-2">
+                                    <div className="hidden flex-wrap justify-end gap-2 sm:flex">
                                         {catalogPreview.kind === "preset" ? (
                                             <button
                                                 type="button"
@@ -401,16 +438,35 @@ export function MapChooserModal({
                                     </p>
                                 ) : null}
 
-                                <div className="min-h-0 flex-1 overflow-auto rounded-lg bg-[#1b1512] text-center">
+                                <div className="grid min-h-0 flex-1 place-items-center overflow-hidden rounded-lg bg-[#1b1512] p-2 text-center sm:p-3 2xl:p-4">
                                     {catalogPreview.kind === "default" ? (
-                                        <div className="flex h-full items-center justify-center p-4">
-                                            <div className="w-full max-w-xl">
-                                                <GeneratedMapRenderer draft={DEFAULT_MAP_DRAFT} fitHeight className="mx-auto" />
-                                            </div>
-                                        </div>
+                                        <MapPreview draft={DEFAULT_MAP_DRAFT} />
                                     ) : (
-                                        <GeneratedMapRenderer draft={catalogPreview.preset.draft} fitHeight className="mx-auto" />
+                                        <MapPreview draft={catalogPreview.preset.draft} />
                                     )}
+                                </div>
+                                <div className="shrink-0 border-t border-white/10 pt-2 sm:hidden">
+                                    <div className={catalogPreview.kind === "preset" ? "grid grid-cols-[minmax(0,0.42fr)_minmax(0,0.58fr)] gap-2" : "grid"}>
+                                        {catalogPreview.kind === "preset" ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => editPresetInCustom(catalogPreview.preset)}
+                                                className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-white/10 bg-[#24201c] px-3 text-sm font-semibold text-[#d9c5ad] transition hover:border-[#e6a15d]/60"
+                                            >
+                                                <Pencil size={16} />
+                                                Customize
+                                            </button>
+                                        ) : null}
+                                        <button
+                                            type="button"
+                                            onClick={chooseCatalogPreview}
+                                            disabled={isApplying}
+                                            className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-[#e6a15d] bg-[#e6a15d] px-3 text-sm font-bold text-[#191410] disabled:cursor-not-allowed disabled:border-[#5f4a25] disabled:bg-[#5f4a25] disabled:text-[#a8917d]"
+                                        >
+                                            <Check size={16} />
+                                            {isApplying ? "Saving..." : "Use Map"}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ) : (
@@ -419,7 +475,7 @@ export function MapChooserModal({
                                     <div className="text-sm text-[#d9c5ad]">
                                         {draft ? `${draft.provinceCount} provinces / ${draft.regionCount} regions` : "No generated draft yet"}
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+                                    <div className="hidden gap-2 sm:flex sm:flex-wrap">
                                         <button
                                             type="button"
                                             onClick={applyTopicsOnly}
@@ -468,8 +524,8 @@ export function MapChooserModal({
                                 ) : null}
 
                                 {draft ? (
-                                    <div className="min-h-0 flex-1 overflow-hidden rounded-lg bg-[#1b1512] text-center">
-                                        <GeneratedMapRenderer draft={draft} fitHeight className="mx-auto" />
+                                    <div className="grid min-h-0 flex-1 place-items-center overflow-hidden rounded-lg bg-[#1b1512] p-2 text-center sm:p-3 2xl:p-4">
+                                        <MapPreview draft={draft} />
                                     </div>
                                 ) : (
                                     <button
@@ -481,6 +537,46 @@ export function MapChooserModal({
                                         {isGenerating ? "Generating..." : "Generate Map"}
                                     </button>
                                 )}
+                                <div className="shrink-0 border-t border-white/10 pt-2 sm:hidden">
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={applyTopicsOnly}
+                                            disabled={isGenerating || selectedTopics.length === 0}
+                                            className="inline-flex h-10 items-center justify-center gap-1 rounded-md border border-white/10 bg-[#24201c] px-2 text-xs font-semibold text-[#d9c5ad] transition hover:border-[#e6a15d]/60 disabled:cursor-not-allowed disabled:text-[#8f8278]"
+                                        >
+                                            <RotateCcw size={14} />
+                                            Topics
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => generateNextDraft()}
+                                            disabled={isGenerating || selectedTopics.length === 0}
+                                            className="inline-flex h-10 items-center justify-center gap-1 rounded-md border border-white/10 bg-[#24201c] px-2 text-xs font-semibold text-[#d9c5ad] transition hover:border-[#e6a15d]/60 disabled:cursor-not-allowed disabled:text-[#8f8278]"
+                                        >
+                                            <Shuffle size={14} />
+                                            {isGenerating ? "..." : "Reroll"}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={saveCurrentAsPreset}
+                                            disabled={!draft || isGenerating || isSavingPreset}
+                                            className="inline-flex h-10 items-center justify-center gap-1 rounded-md border border-white/10 bg-[#24201c] px-2 text-xs font-semibold text-[#d9c5ad] transition hover:border-[#e6a15d]/60 disabled:cursor-not-allowed disabled:text-[#8f8278]"
+                                        >
+                                            <Bookmark size={14} />
+                                            {isSavingPreset ? "..." : "Save"}
+                                        </button>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={chooseGenerated}
+                                        disabled={!draft || isGenerating || isApplying}
+                                        className="mt-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-[#e6a15d] bg-[#e6a15d] px-3 text-sm font-bold text-[#191410] disabled:cursor-not-allowed disabled:border-[#5f4a25] disabled:bg-[#5f4a25] disabled:text-[#a8917d]"
+                                    >
+                                        <Check size={16} />
+                                        {isApplying ? "Saving..." : "Use Map"}
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </section>
