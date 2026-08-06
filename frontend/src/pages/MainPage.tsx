@@ -15,6 +15,7 @@ import {
     Shield,
     Swords,
     Target,
+    Trash2,
     Trophy,
     UserCircle,
     UserPlus,
@@ -282,32 +283,93 @@ function GameCard({
     );
 }
 
-function FriendRow({ friend }: { friend: { name: string; streak: number; color: string } }) {
+function FriendRow({
+    friend,
+    onView,
+    onRemove,
+}: {
+    friend: { name: string; streak: number; color: string; leetcodeUsername: string | null; friendshipId: number };
+    onView: (friend: FriendRowData) => void;
+    onRemove: (friendshipId: number) => void;
+}) {
+    const [menuOpen, setMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!menuOpen) return;
+        const onClick = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setMenuOpen(false);
+            }
+        };
+        document.addEventListener("click", onClick);
+        return () => document.removeEventListener("click", onClick);
+    }, [menuOpen]);
+
     return (
-        <button
-            type="button"
-            className="flex w-full items-center justify-between gap-3 rounded-md border border-[#3f332d] bg-[#211a16]/88 px-3 py-2 text-left transition hover:border-[#7d4d32]"
-        >
-            <span className="flex min-w-0 items-center gap-3">
-                <span
-                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full border text-sm font-black text-[#17110e]"
-                    style={{ backgroundColor: `${friend.color}dd`, borderColor: friend.color }}
-                >
-                    {friend.name.slice(0, 1).toUpperCase()}
+        <div className="relative" ref={menuRef}>
+            <button
+                type="button"
+                onClick={() => setMenuOpen((value) => !value)}
+                className="flex w-full items-center justify-between gap-3 rounded-md border border-[#3f332d] bg-[#211a16]/88 px-3 py-2 text-left transition hover:border-[#7d4d32]"
+            >
+                <span className="flex min-w-0 items-center gap-3">
+                    <span
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full border text-sm font-black text-[#17110e]"
+                        style={{ backgroundColor: `${friend.color}dd`, borderColor: friend.color }}
+                    >
+                        {friend.name.slice(0, 1).toUpperCase()}
+                    </span>
+                    <span className="min-w-0">
+                        <strong className="block truncate text-sm text-[#f4e7d8]">{friend.name}</strong>
+                        <span className="mt-1 block truncate text-xs text-[#a8917d]">Longest streak: {friend.streak} days</span>
+                    </span>
                 </span>
-                <span className="min-w-0">
-                    <strong className="block truncate text-sm text-[#f4e7d8]">{friend.name}</strong>
-                    <span className="mt-1 block truncate text-xs text-[#a8917d]">Longest streak: {friend.streak} days</span>
+                <span className="inline-flex items-center gap-2 text-sm font-black text-[#f1c58e]">
+                    <Flame size={15} fill="currentColor" />
+                    {friend.streak}
+                    <ChevronRight size={15} className={`text-[#756354] transition ${menuOpen ? "rotate-90" : ""}`} />
                 </span>
-            </span>
-            <span className="inline-flex items-center gap-2 text-sm font-black text-[#f1c58e]">
-                <Flame size={15} fill="currentColor" />
-                {friend.streak}
-                <ChevronRight size={15} className="text-[#756354]" />
-            </span>
-        </button>
+            </button>
+
+            {menuOpen ? (
+                <div className="absolute right-0 top-full z-50 mt-1 w-48 overflow-hidden rounded-lg border border-[#3f332d] bg-[#1e1812] py-1 shadow-2xl shadow-black/50">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setMenuOpen(false);
+                            onView(friend);
+                        }}
+                        disabled={!friend.leetcodeUsername}
+                        className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-[#f4e7d8] transition hover:bg-[#2b211c] disabled:cursor-not-allowed disabled:text-[#756354]"
+                    >
+                        <UserCircle size={15} />
+                        View profile
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setMenuOpen(false);
+                            onRemove(friend.friendshipId);
+                        }}
+                        className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-300 transition hover:bg-[#2b211c]"
+                    >
+                        <Trash2 size={15} />
+                        Remove friend
+                    </button>
+                </div>
+            ) : null}
+        </div>
     );
 }
+
+type FriendRowData = {
+    name: string;
+    streak: number;
+    color: string;
+    leetcodeUsername: string | null;
+    friendshipId: number;
+};
 
 function MetricItem({
     icon: Icon,
@@ -468,6 +530,25 @@ export function MainPage() {
         setProfileMenuOpen(false);
         pushNav({ screen: "profile", lobbyId: 0 });
     }, [pushNav]);
+
+    const handleViewFriend = useCallback((friend: FriendRowData) => {
+        if (!friend.leetcodeUsername) return;
+        window.open(`https://leetcode.com/u/${encodeURIComponent(friend.leetcodeUsername)}/`, "_blank", "noopener");
+    }, []);
+
+    const handleRemoveFriend = useCallback(async (friendshipId: number) => {
+        setError(null);
+        try {
+            await apiRequest<void>(`/friends/${friendshipId}`, { method: "DELETE" });
+            setDashboardData((data) =>
+                data
+                    ? { ...data, friends: data.friends.filter((f) => f.friendship_id !== friendshipId) }
+                    : data,
+            );
+        } catch (e) {
+            setError(e instanceof Error ? e.message : "Failed to remove friend");
+        }
+    }, []);
 
     const handleLogout = useCallback(() => {
         localStorage.removeItem("accessToken");
@@ -856,7 +937,11 @@ export function MainPage() {
                                             name: friend.friend.leetcode_username ?? `user #${friend.friend.id}`,
                                             streak: friend.streak.current_count ?? friend.streak.longest_count ?? 0,
                                             color: FRIEND_COLORS[index % FRIEND_COLORS.length],
+                                            leetcodeUsername: friend.friend.leetcode_username,
+                                            friendshipId: friend.friendship_id,
                                         }}
+                                        onView={handleViewFriend}
+                                        onRemove={(friendshipId) => void handleRemoveFriend(friendshipId)}
                                     />
                                 ))
                             ) : (
