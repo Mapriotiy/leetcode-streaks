@@ -29,7 +29,7 @@ function catalogCardClass(active: boolean) {
     return `flex w-full items-center gap-3 rounded-md border px-3 py-3 text-left transition ${
         active
             ? "border-[#e6a15d] bg-[#2a2418]"
-            : "border-white/10 bg-[#242424] hover:border-[#e6a15d]/60"
+            : "border-white/10 bg-[#24201c] hover:border-[#e6a15d]/60"
     }`;
 }
 
@@ -221,12 +221,12 @@ export function MapChooserModal({
                 <header className="flex items-center justify-between border-b border-white/10 px-3 py-2 sm:px-4 sm:py-3">
                     <div>
                         <h2 className="text-lg font-semibold tracking-normal">Choose Map</h2>
-                        <p className="mt-0.5 hidden text-sm text-[#9a9a9a] sm:block">Catalog preset or generated lobby draft</p>
+                        <p className="mt-0.5 hidden text-sm text-[#8f8278] sm:block">Catalog preset or generated lobby draft</p>
                     </div>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="grid h-9 w-9 place-items-center rounded-md border border-white/10 bg-[#24201c] text-[#bdbdbd] transition hover:border-[#e6a15d]/60 hover:text-white"
+                        className="grid h-9 w-9 place-items-center rounded-md border border-white/10 bg-[#24201c] text-[#d9c5ad] transition hover:border-[#e6a15d]/60 hover:text-white"
                     >
                         <X size={18} />
                     </button>
@@ -263,13 +263,13 @@ export function MapChooserModal({
                                     </span>
                                     <span className="min-w-0 flex-1">
                                         <span className="block text-sm font-semibold text-white">Default Map</span>
-                                        <span className="mt-0.5 block text-xs text-[#9a9a9a]">Current production layout</span>
+                                        <span className="mt-0.5 block text-xs text-[#8f8278]">Current production layout</span>
                                     </span>
                                     {isDefaultCurrent ? <Check size={16} className="shrink-0 text-[#e6a15d]" /> : null}
                                 </button>
 
                                 {presets.length === 0 ? (
-                                    <p className="px-1 text-xs text-[#777]">
+                                    <p className="px-1 text-xs text-[#8f8278]">
                                         Generate a map from the Custom tab, then "Save preset" to add it here.
                                     </p>
                                 ) : (
@@ -287,7 +287,7 @@ export function MapChooserModal({
                                                 </span>
                                                 <span className="min-w-0 flex-1">
                                                     <span className="block truncate text-sm font-semibold text-white">{preset.name}</span>
-                                                    <span className="mt-0.5 block text-xs text-[#9a9a9a]">
+                                                    <span className="mt-0.5 block text-xs text-[#8f8278]">
                                                         {MAP_SIZE_CONFIG[preset.draft.size].label} · {preset.draft.provinceCount} provinces
                                                     </span>
                                                 </span>
@@ -297,7 +297,7 @@ export function MapChooserModal({
                                                 type="button"
                                                 onClick={() => removePreset(preset)}
                                                 aria-label={`Delete preset ${preset.name}`}
-                                                className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-white/10 bg-[#242424] text-[#8f8278] transition hover:text-red-400"
+                                                className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-white/10 bg-[#24201c] text-[#8f8278] transition hover:text-red-400"
                                             >
                                                 <Trash2 size={14} />
                                             </button>
@@ -308,7 +308,7 @@ export function MapChooserModal({
                         ) : (
                             <div className="mt-3 space-y-3 md:mt-4 md:space-y-4">
                                 <div>
-                                    <p className="mb-2 text-xs uppercase tracking-wide text-[#888]">Size</p>
+                                    <p className="mb-2 text-xs uppercase tracking-wide text-[#8f8278]">Size</p>
                                     <div className="grid grid-cols-3 gap-2 md:grid-cols-1">
                                         {SIZE_ORDER.map((nextSize) => {
                                             const config = MAP_SIZE_CONFIG[nextSize];
@@ -328,7 +328,7 @@ export function MapChooserModal({
                                                     }`}
                                                 >
                                                     <span>{config.label}</span>
-                                                    <span className="text-xs text-[#9a9a9a]">~{config.target}</span>
+                                                    <span className="text-xs text-[#8f8278]">~{config.target}</span>
                                                 </button>
                                             );
                                         })}
@@ -336,7 +336,7 @@ export function MapChooserModal({
                                 </div>
 
                                 <div>
-                                    <p className="mb-2 text-xs uppercase tracking-wide text-[#888]">Topics</p>
+                                    <p className="mb-2 text-xs uppercase tracking-wide text-[#8f8278]">Topics</p>
                                     <div className="flex gap-2 overflow-x-auto pb-1 md:block md:max-h-72 md:space-y-2 md:overflow-auto md:pb-0 md:pr-1">
                                         {availableTopics.map((topic) => {
                                             const checked = selectedTopicIds.includes(topic.id);
@@ -348,7 +348,7 @@ export function MapChooserModal({
                                                     className={`flex min-w-[150px] items-center gap-2 rounded-md border px-3 py-2 text-left text-sm transition md:w-full md:min-w-0 ${
                                                         checked
                                                             ? "border-white/20 bg-[#2d2d2d] text-white"
-                                                            : "border-white/10 bg-[#242424] text-[#9a9a9a] hover:border-white/20"
+                                                            : "border-white/10 bg-[#24201c] text-[#8f8278] hover:border-white/20"
                                                     }`}
                                                 >
                                                     <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: topic.color }} />
@@ -367,7 +367,7 @@ export function MapChooserModal({
                         {tab === "catalog" ? (
                             <div className="flex min-h-0 flex-1 flex-col gap-3">
                                 <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                    <div className="text-sm text-[#bdbdbd]">
+                                    <div className="text-sm text-[#d9c5ad]">
                                         {catalogPreview.kind === "default"
                                             ? "Production map layout"
                                             : `${catalogPreview.preset.draft.provinceCount} provinces / ${catalogPreview.preset.draft.regionCount} regions`}
@@ -387,7 +387,7 @@ export function MapChooserModal({
                                             type="button"
                                             onClick={chooseCatalogPreview}
                                             disabled={isApplying}
-                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-[#e6a15d] bg-[#e6a15d] px-2 text-xs font-semibold text-[#191410] disabled:cursor-not-allowed disabled:border-[#5f4a25] disabled:bg-[#5f4a25] disabled:text-[#a0a0a0] sm:gap-2 sm:px-3 sm:text-sm"
+                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-[#e6a15d] bg-[#e6a15d] px-2 text-xs font-semibold text-[#191410] disabled:cursor-not-allowed disabled:border-[#5f4a25] disabled:bg-[#5f4a25] disabled:text-[#a8917d] sm:gap-2 sm:px-3 sm:text-sm"
                                         >
                                             <Check size={15} />
                                             {isApplying ? "Saving..." : "Use This Map"}
@@ -401,7 +401,7 @@ export function MapChooserModal({
                                     </p>
                                 ) : null}
 
-                                <div className="min-h-0 flex-1 overflow-auto rounded-lg bg-[#191919] text-center">
+                                <div className="min-h-0 flex-1 overflow-auto rounded-lg bg-[#1b1512] text-center">
                                     {catalogPreview.kind === "default" ? (
                                         <div className="flex h-full items-center justify-center p-4">
                                             <div className="w-full max-w-xl">
@@ -416,7 +416,7 @@ export function MapChooserModal({
                         ) : (
                             <div className="flex min-h-0 flex-1 flex-col gap-3">
                                 <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                    <div className="text-sm text-[#bdbdbd]">
+                                    <div className="text-sm text-[#d9c5ad]">
                                         {draft ? `${draft.provinceCount} provinces / ${draft.regionCount} regions` : "No generated draft yet"}
                                     </div>
                                     <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
@@ -424,7 +424,7 @@ export function MapChooserModal({
                                             type="button"
                                             onClick={applyTopicsOnly}
                                             disabled={isGenerating || selectedTopics.length === 0}
-                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-white/10 bg-[#24201c] px-2 text-xs text-[#d9c5ad] transition hover:border-[#e6a15d]/60 disabled:cursor-not-allowed disabled:text-[#777] sm:gap-2 sm:px-3 sm:text-sm"
+                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-white/10 bg-[#24201c] px-2 text-xs text-[#d9c5ad] transition hover:border-[#e6a15d]/60 disabled:cursor-not-allowed disabled:text-[#8f8278] sm:gap-2 sm:px-3 sm:text-sm"
                                         >
                                             <RotateCcw size={15} />
                                             <span className="hidden sm:inline">Apply Topics</span>
@@ -434,7 +434,7 @@ export function MapChooserModal({
                                             type="button"
                                             onClick={() => generateNextDraft()}
                                             disabled={isGenerating || selectedTopics.length === 0}
-                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-white/10 bg-[#24201c] px-2 text-xs text-[#d9c5ad] transition hover:border-[#e6a15d]/60 disabled:cursor-not-allowed disabled:text-[#777] sm:gap-2 sm:px-3 sm:text-sm"
+                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-white/10 bg-[#24201c] px-2 text-xs text-[#d9c5ad] transition hover:border-[#e6a15d]/60 disabled:cursor-not-allowed disabled:text-[#8f8278] sm:gap-2 sm:px-3 sm:text-sm"
                                         >
                                             <Shuffle size={15} />
                                             {isGenerating ? "Generating..." : "Reroll"}
@@ -443,7 +443,7 @@ export function MapChooserModal({
                                             type="button"
                                             onClick={saveCurrentAsPreset}
                                             disabled={!draft || isGenerating || isSavingPreset}
-                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-white/10 bg-[#24201c] px-2 text-xs text-[#d9c5ad] transition hover:border-[#e6a15d]/60 disabled:cursor-not-allowed disabled:text-[#777] sm:gap-2 sm:px-3 sm:text-sm"
+                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-white/10 bg-[#24201c] px-2 text-xs text-[#d9c5ad] transition hover:border-[#e6a15d]/60 disabled:cursor-not-allowed disabled:text-[#8f8278] sm:gap-2 sm:px-3 sm:text-sm"
                                         >
                                             <Bookmark size={15} />
                                             <span className="hidden sm:inline">{isSavingPreset ? "Saving..." : "Save preset"}</span>
@@ -453,7 +453,7 @@ export function MapChooserModal({
                                             type="button"
                                             onClick={chooseGenerated}
                                             disabled={!draft || isGenerating || isApplying}
-                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-[#e6a15d] bg-[#e6a15d] px-2 text-xs font-semibold text-[#191410] disabled:cursor-not-allowed disabled:border-[#5f4a25] disabled:bg-[#5f4a25] disabled:text-[#a0a0a0] sm:gap-2 sm:px-3 sm:text-sm"
+                                            className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-[#e6a15d] bg-[#e6a15d] px-2 text-xs font-semibold text-[#191410] disabled:cursor-not-allowed disabled:border-[#5f4a25] disabled:bg-[#5f4a25] disabled:text-[#a8917d] sm:gap-2 sm:px-3 sm:text-sm"
                                         >
                                             <Check size={15} />
                                             {isApplying ? "Saving..." : "Use Map"}
@@ -468,7 +468,7 @@ export function MapChooserModal({
                                 ) : null}
 
                                 {draft ? (
-                                    <div className="min-h-0 flex-1 overflow-hidden rounded-lg bg-[#191919] text-center">
+                                    <div className="min-h-0 flex-1 overflow-hidden rounded-lg bg-[#1b1512] text-center">
                                         <GeneratedMapRenderer draft={draft} fitHeight className="mx-auto" />
                                     </div>
                                 ) : (
@@ -476,7 +476,7 @@ export function MapChooserModal({
                                         type="button"
                                         onClick={() => generateNextDraft()}
                                         disabled={isGenerating || selectedTopics.length === 0}
-                                        className="flex min-h-[17.5rem] flex-1 items-center justify-center rounded-lg border border-dashed border-white/15 bg-[#191919] text-sm font-medium text-[#bdbdbd] transition hover:border-[#e6a15d]/60 hover:text-white disabled:cursor-not-allowed disabled:text-[#777] md:min-h-[26.25rem]"
+                                        className="flex min-h-[17.5rem] flex-1 items-center justify-center rounded-lg border border-dashed border-white/15 bg-[#1b1512] text-sm font-medium text-[#d9c5ad] transition hover:border-[#e6a15d]/60 hover:text-white disabled:cursor-not-allowed disabled:text-[#8f8278] md:min-h-[26.25rem]"
                                     >
                                         {isGenerating ? "Generating..." : "Generate Map"}
                                     </button>
