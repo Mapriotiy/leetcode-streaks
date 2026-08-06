@@ -799,32 +799,32 @@ export function MainPage() {
                                     {lobbies.length}
                                 </span>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => void createLobby()}
-                                className="h-9 shrink-0 rounded-lg bg-[linear-gradient(180deg,#e6a15d,#c76f32)] px-4 text-sm font-black text-[#1d120c] shadow-lg shadow-[#8a3e22]/25"
-                            >
-                                New Battle
-                            </button>
-                        </div>
-
-                        {lobbies.length > 0 ? (
-                            <>
-                                <div className="grid gap-3 md:grid-cols-2">
-                                    {lobbies.slice(0, 2).map((lobby, index) => (
-                                        <GameCard key={lobby.id} lobby={lobby} index={index} onOpen={openLobby} />
-                                    ))}
-                                </div>
+                            <div className="flex items-center gap-3">
                                 {lobbies.length > 2 ? (
                                     <button
                                         type="button"
                                         onClick={openLobbies}
-                                        className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-[#3f332d] bg-[#1b1512] text-sm font-black text-[#e6a15d] transition hover:border-[#7d4d32]"
+                                        className="text-xs font-semibold text-[#8f8278] underline decoration-[#8f8278]/40 underline-offset-4 transition hover:text-[#e6a15d] hover:decoration-[#e6a15d]"
                                     >
-                                        Show all lobbies ({lobbies.length})
+                                        Show all ({lobbies.length})
                                     </button>
                                 ) : null}
-                            </>
+                                <button
+                                    type="button"
+                                    onClick={() => void createLobby()}
+                                    className="h-9 shrink-0 rounded-lg bg-[linear-gradient(180deg,#e6a15d,#c76f32)] px-4 text-sm font-black text-[#1d120c] shadow-lg shadow-[#8a3e22]/25"
+                                >
+                                    New Battle
+                                </button>
+                            </div>
+                        </div>
+
+                        {lobbies.length > 0 ? (
+                            <div className="grid gap-3 md:grid-cols-2">
+                                {lobbies.slice(0, 2).map((lobby, index) => (
+                                    <GameCard key={lobby.id} lobby={lobby} index={index} onOpen={openLobby} />
+                                ))}
+                            </div>
                         ) : (
                             <div className="rounded-md border border-dashed border-[#3f332d] bg-[#1b1512]/88 p-6 text-center text-sm text-[#a8917d]">
                                 No games yet. Start your first expedition.
