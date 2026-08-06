@@ -23,6 +23,7 @@ import {
     Users,
 } from "lucide-react";
 import { Logo } from "../components/Logo";
+import { Footer } from "../components/Footer";
 import { API_URL, apiRequest } from "../api/client";
 import { LobbyPage } from "./LobbyPage";
 import { LobbyGamePage } from "./LobbyGamePage";
@@ -1102,6 +1103,7 @@ export function MainPage() {
                     )}
                 </AnimatePresence>
             </div>
+            <Footer />
         </main>
     );
     }
