@@ -102,7 +102,7 @@ function MainPageSkeleton() {
                 </div>
             </header>
 
-            <div className="mx-auto max-w-7xl px-4 py-3 sm:px-7 2xl:max-w-[1600px]">
+            <div className="mx-auto max-w-7xl px-4 py-2 sm:px-7 2xl:max-w-[1600px]">
                 <DashboardBodySkeleton />
             </div>
         </motion.main>
@@ -313,7 +313,7 @@ function GameCard({
     const thumbnailUrl = `${API_URL}/lobbies/${lobby.id}/thumbnail.png?w=320`;
 
     return (
-        <article className="rounded-lg border border-[#3f332d] bg-[#211a16]/88 p-3 shadow-xl shadow-black/20">
+        <article className="rounded-lg border border-[#3f332d] bg-[#211a16]/88 p-2.5 shadow-xl shadow-black/20">
             <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
                     <span
@@ -338,7 +338,7 @@ function GameCard({
 
             <div className="mt-2 grid grid-cols-[1fr_7.5rem] gap-3">
                 {lobby.status === "waiting" ? (
-                    <div className="relative flex aspect-[1321/900] w-full flex-col items-center justify-center gap-2 overflow-hidden rounded-md border border-dashed border-[#3f332d] bg-[#1b1612]">
+                    <div className="relative flex h-20 w-full flex-col items-center justify-center gap-1 overflow-hidden rounded-md border border-dashed border-[#3f332d] bg-[#1b1612]">
                         <span className="grid h-10 w-10 place-items-center rounded-full border border-[#4c3a31] bg-[#211a16] text-[#e6a15d]">
                             <Hourglass size={18} />
                         </span>
@@ -346,7 +346,7 @@ function GameCard({
                         <p className="text-[11px] text-[#756354]">{playerCount} seated</p>
                     </div>
                 ) : (
-                    <div className="relative aspect-[1321/900] w-full overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]">
+                    <div className="relative h-20 w-full overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]">
                         <img
                             src={thumbnailUrl}
                             alt=""
@@ -510,9 +510,9 @@ function MetricItem({
 }) {
     return (
         <div className="flex min-w-0 items-center gap-2.5 px-1.5">
-            <Icon size={20} style={{ color }} className="shrink-0" />
+            <Icon size={18} style={{ color }} className="shrink-0" />
             <div className="min-w-0">
-                <strong className="block text-lg text-[#f4e7d8]">{value}</strong>
+                <strong className="block text-base text-[#f4e7d8]">{value}</strong>
                 <p className="mt-0.5 truncate text-xs text-[#a8917d]" title={label}>
                     {label}
                 </p>
@@ -888,7 +888,7 @@ export function MainPage() {
 
     content = (
         <main className="min-h-screen bg-[#14110f] text-[#f4e7d8]">
-            <div className="mx-auto max-w-7xl px-4 py-3 sm:px-7 2xl:max-w-[1600px]">
+            <div className="mx-auto max-w-7xl px-4 py-2 sm:px-7 2xl:max-w-[1600px]">
                 <AnimatePresence mode="wait" initial={false}>
                     {isDashboardLoading ? (
                         <DashboardBodySkeleton />
@@ -900,9 +900,9 @@ export function MainPage() {
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.22, ease: "easeOut" }}
                         >
-                <section className="grid min-h-[9.5rem] grid-cols-1 gap-3 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-2xl shadow-black/30 sm:gap-5 lg:grid-cols-[13rem_minmax(0,1fr)_14rem]">
+                <section className="grid min-h-[8rem] grid-cols-1 gap-3 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-2.5 shadow-2xl shadow-black/30 sm:gap-5 lg:grid-cols-[13rem_minmax(0,1fr)_14rem]">
                     <div
-                        className="relative min-h-[7rem] overflow-hidden rounded-md border border-[#3f332d] bg-[#17120f]"
+                        className="relative min-h-[5rem] overflow-hidden rounded-md border border-[#3f332d] bg-[#17120f]"
                         style={{
                             backgroundImage: `linear-gradient(rgba(17,13,10,0.28), rgba(17,13,10,0.4)), url(${MAP_BG})`,
                             backgroundSize: "cover",
@@ -945,8 +945,8 @@ export function MainPage() {
                         <MapPreview />
                     </div>
 
-                    <aside className="rounded-lg border border-[#3f332d] bg-[#1c1613]/86 p-3">
-                        <div className="flex items-center gap-3 border-b border-[#3f332d] pb-3">
+                    <aside className="rounded-lg border border-[#3f332d] bg-[#1c1613]/86 p-2.5">
+                        <div className="flex items-center gap-3 border-b border-[#3f332d] pb-2">
                             <Flame size={26} className="text-[#e6a15d]" fill="currentColor" />
                             <div>
                                 <strong className="block text-xl leading-none">{dashboardData?.current_streak ?? 0}</strong>
@@ -955,7 +955,7 @@ export function MainPage() {
                                 </span>
                             </div>
                         </div>
-                        <div className="flex items-center gap-3 border-b border-[#3f332d] py-3">
+                        <div className="flex items-center gap-3 border-b border-[#3f332d] py-2">
                             <Crown size={25} className="text-[#f1c58e]" />
                             <div>
                                 <strong className="block text-xl leading-none">{dashboardData?.longest_streak ?? 0}</strong>
@@ -971,7 +971,7 @@ export function MainPage() {
                     </aside>
                 </section>
 
-                <section className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_23.5rem]">
+                <section className="mt-2 grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_23.5rem]">
                     <div className="rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 shadow-xl shadow-black/25">
                         <div className="mb-3 flex items-center justify-between">
                             <div className="flex items-start gap-3">
@@ -1016,7 +1016,7 @@ export function MainPage() {
                             </div>
                         )}
 
-                        <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-3 rounded-lg border border-[#3f332d] bg-[#1b1512]/88 px-3 py-2.5 md:grid-cols-4">
+                        <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-2 rounded-lg border border-[#3f332d] bg-[#1b1512]/88 px-3 py-1.5 md:grid-cols-4">
                             {metrics.map((metric) => (
                                 <MetricItem key={metric.label} icon={metric.icon} value={metric.value} label={metric.label} color={metric.color} />
                             ))}
@@ -1032,7 +1032,7 @@ export function MainPage() {
                             </div>
                         </div>
 
-                        <div className="grid max-h-[14.5rem] gap-1.5 overflow-y-auto pr-0.5">
+                        <div className="grid max-h-[10rem] gap-1.5 overflow-y-auto pr-0.5">
                             {friends.length > 0 ? (
                                 friends.slice(0, 5).map((friend, index) => (
                                     <FriendRow
