@@ -289,7 +289,7 @@ function FriendRow({
     onView,
     onRemove,
 }: {
-    friend: { name: string; streak: number; color: string; leetcodeUsername: string | null; friendshipId: number };
+    friend: FriendRowData;
     onView: (friend: FriendRowData) => void;
     onRemove: (friendshipId: number) => void;
 }) {
@@ -392,6 +392,7 @@ function FriendRow({
 type FriendRowData = {
     name: string;
     streak: number;
+    longestStreak: number;
     color: string;
     leetcodeUsername: string | null;
     friendshipId: number;
@@ -422,7 +423,7 @@ function MetricItem({
 }
 
 type NavState = {
-    screen: "lobby" | "game" | "profile" | "lobbies";
+    screen: "lobby" | "game" | "profile" | "lobbies" | "friendProfile";
     lobbyId: number;
     players?: LobbyPlayer[];
     factions?: Faction[];
@@ -433,7 +434,7 @@ export function MainPage() {
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [screen, setScreen] = useState<"dashboard" | "lobby" | "game" | "profile" | "lobbies">("dashboard");
+    const [screen, setScreen] = useState<"dashboard" | "lobby" | "game" | "profile" | "lobbies" | "friendProfile">("dashboard");
     const [activeLobbyId, setActiveLobbyId] = useState<number | null>(null);
     const [activePlayers, setActivePlayers] = useState<LobbyPlayer[]>([]);
     const [activeFactions, setActiveFactions] = useState<Faction[]>([]);
@@ -442,6 +443,7 @@ export function MainPage() {
     const [copyMessage, setCopyMessage] = useState<string | null>(null);
     const navDepthRef = useRef(0);
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+    const [selectedFriend, setSelectedFriend] = useState<FriendRowData | null>(null);
     const profileMenuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -480,13 +482,8 @@ export function MainPage() {
     }, [screen, loadDashboard]);
 
     const applyNavState = useCallback((state: NavState | null) => {
-        if (state && state.screen === "profile") {
-            setScreen("profile");
-            setActiveLobbyId(null);
-            setActivePlayers([]);
-            setActiveFactions([]);
-        } else if (state && state.screen === "lobbies") {
-            setScreen("lobbies");
+        if (state && (state.screen === "profile" || state.screen === "friendProfile" || state.screen === "lobbies")) {
+            setScreen(state.screen);
             setActiveLobbyId(null);
             setActivePlayers([]);
             setActiveFactions([]);
@@ -557,10 +554,13 @@ export function MainPage() {
         pushNav({ screen: "profile", lobbyId: 0 });
     }, [pushNav]);
 
-    const handleViewFriend = useCallback((friend: FriendRowData) => {
-        if (!friend.leetcodeUsername) return;
-        window.open(`https://leetcode.com/u/${encodeURIComponent(friend.leetcodeUsername)}/`, "_blank", "noopener");
-    }, []);
+    const handleViewFriend = useCallback(
+        (friend: FriendRowData) => {
+            setSelectedFriend(friend);
+            pushNav({ screen: "friendProfile", lobbyId: 0 });
+        },
+        [pushNav],
+    );
 
     const handleRemoveFriend = useCallback(async (friendshipId: number) => {
         setError(null);
@@ -672,6 +672,69 @@ export function MainPage() {
 
     if (screen === "profile") {
         content = <ProfilePage onBack={goDashboard} onLogout={handleLogout} />;
+    } else if (screen === "friendProfile" && selectedFriend) {
+        content = (
+            <main className="page-enter min-h-screen bg-[#14110f] text-[#f4e7d8]">
+                <div className="mx-auto max-w-3xl px-7 py-6">
+                    <button
+                        type="button"
+                        onClick={goDashboard}
+                        className="mb-6 grid h-9 w-9 place-items-center rounded-lg border border-[#3f332d] bg-[#24201c] text-[#d9c5ad] transition hover:border-[#7d4d32]"
+                        aria-label="Back"
+                    >
+                        <ChevronRight size={16} className="rotate-180" />
+                    </button>
+
+                    <div className="flex flex-col items-center gap-4 text-center">
+                        <span
+                            className="grid h-20 w-20 place-items-center rounded-full border-2 text-3xl font-black text-[#17110e]"
+                            style={{
+                                backgroundColor: `${selectedFriend.color}dd`,
+                                borderColor: selectedFriend.color,
+                            }}
+                        >
+                            {selectedFriend.name.slice(0, 1).toUpperCase()}
+                        </span>
+                        <div>
+                            <h1 className="text-2xl font-black">{selectedFriend.name}</h1>
+                            <p className="mt-1 text-sm text-[#a8917d]">
+                                {selectedFriend.leetcodeUsername ?? "No LeetCode profile linked"}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="mt-8 grid grid-cols-2 gap-3">
+                        <div className="rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-5">
+                            <p className="text-xs uppercase tracking-widest text-[#756354]">Current streak</p>
+                            <p className="mt-2 flex items-center gap-2 font-serif text-4xl font-black text-[#f1c58e]">
+                                <Flame size={26} fill="currentColor" />
+                                {selectedFriend.streak}
+                            </p>
+                        </div>
+                        <div className="rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-5">
+                            <p className="text-xs uppercase tracking-widest text-[#756354]">Longest streak</p>
+                            <p className="mt-2 font-serif text-4xl font-black text-[#f4e7d8]">{selectedFriend.longestStreak}</p>
+                        </div>
+                    </div>
+
+                    {selectedFriend.leetcodeUsername ? (
+                        <button
+                            type="button"
+                            onClick={() =>
+                                window.open(
+                                    `https://leetcode.com/u/${encodeURIComponent(selectedFriend.leetcodeUsername as string)}/`,
+                                    "_blank",
+                                    "noopener",
+                                )
+                            }
+                            className="mt-6 h-11 w-full rounded-lg border border-[#4c3a31] bg-[#2b211c] text-sm font-black text-[#e6a15d] transition hover:border-[#d87a38]"
+                        >
+                            Open LeetCode profile
+                        </button>
+                    ) : null}
+                </div>
+            </main>
+        );
     } else if (screen === "lobbies") {
         content = (
             <main className="page-enter min-h-screen bg-[#14110f] text-[#f4e7d8]">
@@ -962,6 +1025,7 @@ export function MainPage() {
                                         friend={{
                                             name: friend.friend.leetcode_username ?? `user #${friend.friend.id}`,
                                             streak: friend.streak.current_count ?? friend.streak.longest_count ?? 0,
+                                            longestStreak: friend.streak.longest_count ?? 0,
                                             color: FRIEND_COLORS[index % FRIEND_COLORS.length],
                                             leetcodeUsername: friend.friend.leetcode_username,
                                             friendshipId: friend.friendship_id,
