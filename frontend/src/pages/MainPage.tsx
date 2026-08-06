@@ -88,7 +88,7 @@ function MainPageSkeleton() {
             transition={{ duration: 0.2, ease: "easeOut" }}
         >
             <header className="sticky top-0 z-30 border-b border-[#2b231f] bg-[#11100e]/94 backdrop-blur">
-            <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-7 2xl:max-w-[1600px] min-[1920px]:max-w-[2000px]">
+            <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-7 2xl:max-w-[1920px] ">
                     <Logo className="text-[1.1rem]" />
                     <div className="hidden items-center gap-2 lg:flex">
                         <SkeletonBlock className="h-6 w-20" />
@@ -103,7 +103,7 @@ function MainPageSkeleton() {
                 </div>
             </header>
 
-            <div className="mx-auto max-w-7xl px-4 py-2 sm:px-7 2xl:max-w-[1600px] min-[1920px]:max-w-[2000px]">
+            <div className="mx-auto max-w-7xl px-4 py-2 sm:px-7 2xl:max-w-[1920px] ">
                 <DashboardBodySkeleton />
             </div>
         </motion.main>
@@ -209,7 +209,7 @@ function MainHeader({
 }) {
     return (
         <header className="sticky top-0 z-30 border-b border-[#2b231f] bg-[#11100e]/94 backdrop-blur">
-            <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-7 2xl:max-w-[1600px] min-[1920px]:max-w-[2000px]">
+            <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-7 2xl:max-w-[1920px] ">
                 <Logo className="text-[1.1rem]" />
 
                 <nav className="hidden items-center gap-2 lg:flex">
@@ -314,7 +314,7 @@ function GameCard({
     const thumbnailUrl = `${API_URL}/lobbies/${lobby.id}/thumbnail.png?w=320`;
 
     return (
-        <article className="rounded-lg border border-[#3f332d] bg-[#211a16]/88 p-2.5 shadow-xl shadow-black/20">
+        <article className="overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16]/88 p-2.5 shadow-xl shadow-black/20">
             <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
                     <span
@@ -347,15 +347,15 @@ function GameCard({
                         <p className="text-[11px] text-[#756354]">{playerCount} seated</p>
                     </div>
                 ) : (
-                    <div className="relative aspect-[1321/900] w-full overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]">
-                        <img
-                            src={thumbnailUrl}
-                            alt=""
-                            loading="lazy"
-                            decoding="async"
-                            className="absolute inset-0 h-full w-full object-cover"
-                        />
-                    </div>
+                <div className="w-full overflow-hidden rounded-md border border-[#3f332d] bg-[#191410]">
+                    <img
+                        src={thumbnailUrl}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="aspect-[1321/900] w-full object-cover"
+                    />
+                </div>
                 )}
                 <div className="rounded-md border border-[#3f332d] bg-[#1b1512]/88 p-2 text-xs text-[#a8917d]">
                     <p className="font-semibold text-[#d9c5ad]">{slotLabel}</p>
@@ -823,7 +823,7 @@ export function MainPage() {
     } else if (screen === "lobbies") {
         content = (
             <main className="page-enter min-h-screen bg-[#14110f] text-[#f4e7d8]">
-                <div className="mx-auto max-w-7xl px-4 py-4 sm:px-7 2xl:max-w-[1600px] min-[1920px]:max-w-[2000px]">
+                <div className="mx-auto max-w-7xl px-4 py-4 sm:px-7 2xl:max-w-[1920px] ">
                     <div className="mb-4 flex items-center gap-3">
                         <button
                             type="button"
@@ -840,7 +840,7 @@ export function MainPage() {
                     </div>
 
                     {lobbies.length > 0 ? (
-                        <div className="grid gap-3 md:grid-cols-2 min-[1600px]:grid-cols-3">
+                        <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
                             {lobbies.map((lobby, index) => (
                                 <GameCard key={lobby.id} lobby={lobby} index={index} onOpen={openLobby} />
                             ))}
@@ -889,7 +889,7 @@ export function MainPage() {
 
     content = (
         <main className="min-h-screen bg-[#14110f] text-[#f4e7d8]">
-            <div className="mx-auto max-w-7xl px-4 py-2 sm:px-7 2xl:max-w-[1600px] min-[1920px]:max-w-[2000px]">
+            <div className="mx-auto max-w-7xl px-4 py-2 sm:px-7 2xl:max-w-[1920px] ">
                 <AnimatePresence mode="wait" initial={false}>
                     {isDashboardLoading ? (
                         <DashboardBodySkeleton />
@@ -1006,7 +1006,7 @@ export function MainPage() {
                         </div>
 
                         {lobbies.length > 0 ? (
-                            <div className="grid gap-3 md:grid-cols-2 min-[1600px]:grid-cols-3">
+                            <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
                                 {lobbies.slice(0, 2).map((lobby, index) => (
                                     <GameCard key={lobby.id} lobby={lobby} index={index} onOpen={openLobby} />
                                 ))}
