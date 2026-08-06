@@ -215,7 +215,7 @@ export function MapChooserModal({
     return (
         <div className="fixed inset-0 z-50 bg-black/70 p-2 text-white sm:p-4" onMouseDown={onClose}>
             <div
-                className="mx-auto flex h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-lg border border-[#3f332d] bg-[#202020] shadow-2xl sm:h-[92vh]"
+                className="mx-auto flex h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16] shadow-2xl sm:h-[92vh]"
                 onMouseDown={(event) => event.stopPropagation()}
             >
                 <header className="flex items-center justify-between border-b border-white/10 px-3 py-2 sm:px-4 sm:py-3">
