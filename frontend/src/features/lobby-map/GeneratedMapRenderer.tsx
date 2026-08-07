@@ -168,79 +168,11 @@ function markerDisplayColor(color: string | null) {
     return mixHex(color, mapColors.marker.mixTarget, mapColors.marker.mixWeight);
 }
 
-function cssAttrValue(value: string) {
-    return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-}
-
-function provinceSelector(rendererId: string, provinceId: string) {
-    return `[data-generated-map-id="${cssAttrValue(rendererId)}"] [data-province-id="${cssAttrValue(provinceId)}"]`;
-}
-
-function dynamicProvinceStyles({
-    rendererId,
-    captured,
-    highlightedProvinces,
-}: {
-    rendererId: string;
-    captured: Map<string, string>;
-    highlightedProvinces: string[] | null;
-}) {
-    const blocks: string[] = [];
-
-    if (highlightedProvinces?.length) {
-        for (const provinceId of highlightedProvinces) {
-            blocks.push(`${provinceSelector(rendererId, provinceId)} {
-                fill-opacity: var(--generated-map-fill-opacity) !important;
-                opacity: var(--generated-map-layer-opacity) !important;
-                stroke-opacity: 0.72 !important;
-            }`);
-        }
-    }
-
-    for (const [provinceId, owner] of captured) {
-        const color = resolveCaptureColor(owner);
-        if (!color) continue;
-        const fill = captureFillColor(color);
-        const stroke = captureStrokeColor(color);
-        blocks.push(`${provinceSelector(rendererId, provinceId)} {
-            fill: ${fill} !important;
-            fill-opacity: var(--generated-map-capture-fill-opacity) !important;
-            opacity: 0.9 !important;
-            stroke: ${stroke} !important;
-            stroke-opacity: 0.9 !important;
-            stroke-width: 2.45 !important;
-            filter: none !important;
-        }`);
-    }
-
-    return blocks.join("\n");
-}
-
-function setSvgAttr(tag: string, name: string, value: string) {
-    const attrPattern = new RegExp(`\\s${name}="[^"]*"`);
-    if (attrPattern.test(tag)) return tag.replace(attrPattern, ` ${name}="${value}"`);
-    return tag.replace(/\/?>$/, (ending) => ` ${name}="${value}"${ending}`);
-}
-
 function resolveCaptureColor(owner: string | undefined): string | null {
     if (!owner) return null;
     if (owner === "player") return mapColors.player;
     if (owner === "enemy") return mapColors.enemy;
     return owner;
-}
-
-function maskStyle(path: string): CSSProperties {
-    const url = `url("${mapAssetUrl(path)}")`;
-    return {
-        maskImage: url,
-        maskRepeat: "no-repeat",
-        maskPosition: "center",
-        maskSize: "100% 100%",
-        WebkitMaskImage: url,
-        WebkitMaskRepeat: "no-repeat",
-        WebkitMaskPosition: "center",
-        WebkitMaskSize: "100% 100%",
-    };
 }
 
 function getAttr(tag: string, name: string) {
@@ -473,57 +405,6 @@ function islandMarkers({
             scale: clampNumber(islandBaseScale - densityPenalty - nearestPenalty, 0.56, 1.16),
         };
     });
-}
-
-export function renderGeneratedIslandSvg({
-    svgText,
-    island,
-    draft,
-}: {
-    svgText: string;
-    island: GeneratedMapIsland;
-    draft: GeneratedMapDraft;
-}) {
-    const provinceByPath = new Map(
-        draft.provinces
-            .filter((province) => province.islandId === island.islandId)
-            .map((province) => [province.pathIndex, province]),
-    );
-    const regionById = new Map(draft.regions.map((region) => [region.regionId, region]));
-    let pathIndex = 0;
-
-    return svgText
-        .replace(
-            /<svg\b([^>]*)>/,
-            '<svg$1 class="generated-map-svg" preserveAspectRatio="none" aria-hidden="true">',
-        )
-        .replace(/<path\b[^>]*>/g, (tag) => {
-            const province = provinceByPath.get(pathIndex);
-            const region = province ? regionById.get(province.regionId) : null;
-            const provinceId = province?.provinceId ?? `${island.islandId}-province-${String(pathIndex + 1).padStart(3, "0")}`;
-            const provinceName = province?.name ?? provinceId;
-            const regionColor = region?.color ?? mapColors.regionFallback;
-            const regionFill = mixHex(regionColor, mapColors.province.fillShade, mapColors.province.fillWeight);
-            const regionStroke = mixHex(regionColor, mapColors.province.strokeShade, mapColors.province.strokeWeight);
-            const inlineStyle = [
-                `--generated-map-region-color: ${regionFill}`,
-                `--generated-map-region-stroke-color: ${regionStroke}`,
-            ].join("; ");
-            pathIndex += 1;
-
-            let nextTag = tag;
-            nextTag = setSvgAttr(nextTag, "style", inlineStyle);
-            nextTag = setSvgAttr(nextTag, "id", provinceId);
-            nextTag = setSvgAttr(nextTag, "class", "generated-map-province");
-            nextTag = setSvgAttr(nextTag, "data-province-id", provinceId);
-            nextTag = setSvgAttr(nextTag, "data-province-name", provinceName);
-            nextTag = setSvgAttr(nextTag, "data-region-id", province?.regionId ?? "region-01");
-            nextTag = setSvgAttr(nextTag, "fill", regionColor);
-            nextTag = setSvgAttr(nextTag, "fill-opacity", "1");
-            nextTag = setSvgAttr(nextTag, "opacity", "1");
-            nextTag = setSvgAttr(nextTag, "stroke", regionColor);
-            return nextTag;
-        });
 }
 
 type CanvasProvincePath = {
@@ -887,7 +768,6 @@ export function GeneratedMapRenderer({
     const commitTimerRef = useRef<number | null>(null);
     const movingTimerRef = useRef<number | null>(null);
     const rendererId = useId().replace(/:/g, "-");
-    const castleSymbolId = `${rendererId}-castle`;
     const effectiveZoomable = zoomable && interactive;
     const canSelectProvince = interactive && Boolean(onSelect);
     const canUseCanvas = typeof Path2D !== "undefined";
@@ -1115,17 +995,6 @@ export function GeneratedMapRenderer({
         applyViewInstant();
     }, [draftSignature, initialZoom, maxZoom, minZoom]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const svgLayerStyle = useMemo(
-        () =>
-            ({
-                "--generated-map-fill-opacity": showFill ? "0.2" : "0",
-                "--generated-map-capture-fill-opacity": showFill ? "0.4" : "0",
-                "--generated-map-layer-opacity": String(Math.min(overlayOpacity, 0.58)),
-                "--generated-map-stroke-width": String(strokeWidth),
-            }) as CSSProperties,
-        [overlayOpacity, showFill, strokeWidth],
-    );
-
     const provinceNameById = useMemo(
         () => new Map(draft.provinces.map((province) => [province.provinceId, province.name])),
         [draft.provinces],
@@ -1172,23 +1041,6 @@ export function GeneratedMapRenderer({
         return map;
     }, [draft.islands, draft.roads, markersByIsland, showRoads]);
 
-    const islandSvgHtml = useMemo(() => {
-        const map = new Map<string, string>();
-        for (const island of draft.islands) {
-            const svgText = svgTexts[island.islandId];
-            if (!svgText) continue;
-            map.set(
-                island.islandId,
-                renderGeneratedIslandSvg({
-                    svgText,
-                    island,
-                    draft,
-                }),
-            );
-        }
-        return map;
-    }, [draft, svgTexts]);
-
     const canvasLayers = useMemo(() => {
         if (!canUseCanvas) return [];
         return draft.islands
@@ -1205,12 +1057,7 @@ export function GeneratedMapRenderer({
         [canvasLayers],
     );
 
-    const useCanvasRenderer = canUseCanvas && sortedCanvasLayers.length === draft.islands.length;
-
-    const provinceDynamicCss = useMemo(
-        () => dynamicProvinceStyles({ rendererId, captured, highlightedProvinces }),
-        [captured, highlightedProvinces, rendererId],
-    );
+    const useCanvasRenderer = canUseCanvas;
 
     useEffect(() => {
         if (!useCanvasRenderer) return;
@@ -1648,15 +1495,7 @@ export function GeneratedMapRenderer({
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
         >
-            {showMarkers && !useCanvasRenderer ? (
-                <svg className="absolute h-0 w-0" aria-hidden="true" focusable="false">
-                    <symbol id={castleSymbolId} viewBox="0 0 15 15">
-                        <path d="M11,4H4C3.4477,4,3,3.5523,3,3V0.5C3,0.2239,3.2239,0,3.5,0S4,0.2239,4,0.5V2h1V1c0-0.5523,0.4477-1,1-1s1,0.4477,1,1v1h1V1c0-0.5523,0.4477-1,1-1s1,0.4477,1,1v1h1V0.5C11,0.2239,11.2239,0,11.5,0S12,0.2239,12,0.5V3C12,3.5523,11.5523,4,11,4z M14,14.5c0,0.2761-0.2239,0.5-0.5,0.5h-12C1.2239,15,1,14.7761,1,14.5S1.2239,14,1.5,14H2c0.5523,0,1-0.4477,1-1c0,0,1-6,1-7c0-0.5523,0.4477-1,1-1h5c0.5523,0,1,0.4477,1,1c0,1,1,7,1,7c0,0.5523,0.4477,1,1,1h0.5c0.2723-0.0001,0.4946,0.2178,0.5,0.49V14.5z M9,10.5C9,9.6716,8.3284,9,7.5,9S6,9.6716,6,10.5V14h3V10.5z" />
-                    </symbol>
-                </svg>
-            ) : null}
             <GeneratedMapStyles />
-            {!useCanvasRenderer && provinceDynamicCss ? <style>{provinceDynamicCss}</style> : null}
             {effectiveZoomable ? (
                 <div className="absolute right-2 top-2 z-20 hidden items-center gap-1 rounded-md border border-white/10 bg-[#1b1b1b]/85 p-1 shadow-lg backdrop-blur sm:flex">
                     <button
@@ -1691,8 +1530,6 @@ export function GeneratedMapRenderer({
                 </div>
             ) : null}
             <div className="absolute inset-0" style={mapLayerStyle} ref={layerRef}>
-                {useCanvasRenderer ? (
-                    <>
                         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />
                         {showEffects && (bursts.size > 0 || fortified.size > 0)
                             ? draft.islands.map((island) => (
@@ -1763,155 +1600,6 @@ export function GeneratedMapRenderer({
                                   </div>
                               ))
                             : null}
-                    </>
-                ) : (
-                    <>
-                        <img
-                            src={mapAssetUrl(draft.seaBaseSrc)}
-                            alt=""
-                            className="absolute inset-0 h-full w-full object-fill"
-                            draggable={false}
-                            decoding="async"
-                        />
-                        {draft.seaSprites.map((sprite) => (
-                            <img
-                                key={`${sprite.id}-${sprite.left}-${sprite.top}`}
-                                src={mapAssetUrl(sprite.src)}
-                                alt=""
-                                className="pointer-events-none absolute object-contain"
-                                draggable={false}
-                                decoding="async"
-                                style={{
-                                    left: `${sprite.left}%`,
-                                    top: `${sprite.top}%`,
-                                    width: `${sprite.width}%`,
-                                    opacity: sprite.opacity,
-                                    transform: "none",
-                                }}
-                            />
-                        ))}
-                        {draft.islands.map((island) => {
-                            const svgText = svgTexts[island.islandId];
-                            return (
-                                <div
-                                    key={island.islandId}
-                                    className="absolute"
-                                    style={{
-                                        left: `${island.left}%`,
-                                        top: `${island.top}%`,
-                                        width: `${island.width}%`,
-                                        aspectRatio: island.aspectRatio,
-                                        zIndex: island.zIndex,
-                                        transform: `rotate(${island.rotation}deg)`,
-                                        transformOrigin: "center",
-                                    }}
-                                >
-                                    {showBack ? (
-                                        <img
-                                            src={mapAssetUrl(island.backPath)}
-                                            alt=""
-                                            className="generated-map-back absolute inset-0 h-full w-full object-fill"
-                                            draggable={false}
-                                            decoding="async"
-                                            style={maskStyle(island.svgPath)}
-                                        />
-                                    ) : null}
-                                    {svgText ? (
-                                        <div
-                                            className="absolute inset-0 z-[3]"
-                                            style={svgLayerStyle}
-                                            dangerouslySetInnerHTML={{
-                                                __html: islandSvgHtml.get(island.islandId) ?? "",
-                                            }}
-                                        />
-                                    ) : null}
-                                    {(roadsByIsland.get(island.islandId) ?? []).length > 0 ? (
-                                        <div
-                                            className="generated-map-road-layer absolute inset-0 z-[5]"
-                                            aria-hidden="true"
-                                            style={maskStyle(island.svgPath)}
-                                        >
-                                            <svg
-                                                className="h-full w-full overflow-visible"
-                                                viewBox="0 0 100 100"
-                                                preserveAspectRatio="none"
-                                            >
-                                                {(roadsByIsland.get(island.islandId) ?? []).map((road) => (
-                                                    <path
-                                                        key={road.id}
-                                                        className="generated-map-road"
-                                                        d={road.d}
-                                                        style={
-                                                            {
-                                                                "--generated-road-opacity": road.opacity,
-                                                                "--generated-road-dash-offset": road.dashOffset,
-                                                            } as CSSProperties
-                                                        }
-                                                    />
-                                                ))}
-                                            </svg>
-                                        </div>
-                                    ) : null}
-                                    {showMarkers ? (
-                                        <div className="pointer-events-none absolute inset-0 z-[6]">
-                                            {(markersByIsland.get(island.islandId) ?? []).map((marker) => {
-                                                const markerColor = resolveCaptureColor(captured.get(marker.provinceId));
-                                                return (
-                                                    <span
-                                                        key={marker.provinceId}
-                                                        className="generated-map-marker"
-                                                        data-captured={markerColor ? "true" : "false"}
-                                                        title={marker.provinceName}
-                                                        style={{
-                                                            left: `${marker.left}%`,
-                                                            top: `${marker.top}%`,
-                                                            "--generated-marker-color": markerDisplayColor(markerColor),
-                                                            "--generated-marker-counter-rotation": `${-island.rotation}deg`,
-                                                            "--generated-marker-scale": marker.scale,
-                                                        } as CSSProperties}
-                                                    >
-                                                        <span className="generated-map-marker-shell" aria-hidden="true">
-                                                            <svg className="generated-map-marker-castle" viewBox="0 0 15 15">
-                                                                <use href={`#${castleSymbolId}`} />
-                                                            </svg>
-                                                        </span>
-                                                        {showEffects && bursts?.has(marker.provinceId) ? (
-                                                            <span
-                                                                className="generated-map-capture-burst"
-                                                                style={
-                                                                    {
-                                                                        "--burst-color":
-                                                                            bursts.get(marker.provinceId) ?? markerColor ?? "#ffffff",
-                                                                    } as CSSProperties
-                                                                }
-                                                            />
-                                                        ) : null}
-                                                        {showEffects && fortified?.has(marker.provinceId) ? (
-                                                            <span className="generated-map-fortify" aria-label="fortified">
-                                                                <svg
-                                                                    viewBox="0 0 24 24"
-                                                                    width="100%"
-                                                                    height="100%"
-                                                                    fill="none"
-                                                                    aria-hidden="true"
-                                                                >
-                                                                    <path
-                                                                        d="M11.302 21.6149C11.5234 21.744 11.6341 21.8086 11.7903 21.8421C11.9116 21.8681 12.0884 21.8681 12.2097 21.8421C12.3659 21.8086 12.4766 21.744 12.698 21.6149C14.646 20.4784 20 16.9084 20 12V6.6C20 6.04207 20 5.7631 19.8926 5.55048C19.7974 5.36198 19.6487 5.21152 19.4613 5.11409C19.25 5.00419 18.9663 5.00084 18.3988 4.99413C15.4272 4.95899 13.7136 4.71361 12 3C10.2864 4.71361 8.57279 4.95899 5.6012 4.99413C5.03373 5.00084 4.74999 5.00419 4.53865 5.11409C4.35129 5.21152 4.20259 5.36198 4.10739 5.55048C4 5.7631 4 6.04207 4 6.6V12C4 16.9084 9.35396 20.4784 11.302 21.6149Z"
-                                                                        fill="currentColor"
-                                                                    />
-                                                                </svg>
-                                                            </span>
-                                                        ) : null}
-                                                    </span>
-                                                );
-                                            })}
-                                        </div>
-                                    ) : null}
-                                </div>
-                            );
-                        })}
-                    </>
-                )}
             </div>
             {loadError ? (
                 <div className="absolute inset-x-4 top-4 rounded-md border border-red-500/30 bg-red-950/70 px-3 py-2 text-sm text-red-200">
