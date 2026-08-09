@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class FriendUserResponse(BaseModel):
@@ -45,3 +45,29 @@ class FriendResponse(BaseModel):
     friendship_id: int
     friend: FriendUserResponse
     streak: FriendStreakResponse
+
+
+class FriendSearchResponse(BaseModel):
+    id: int
+    leetcode_username: str | None = None
+    display_name: str | None = None
+    relation: Literal["none", "friend", "incoming", "outgoing"] = "none"
+    request_id: int | None = None
+
+
+class FriendRequestResponse(BaseModel):
+    id: int
+    requester: FriendUserResponse
+    recipient: FriendUserResponse
+    status: Literal["pending", "accepted", "declined", "cancelled"]
+    created_at: datetime
+
+
+class NotificationResponse(BaseModel):
+    id: int
+    notification_type: str
+    actor: FriendUserResponse | None = None
+    request_id: int | None = None
+    payload: dict = Field(default_factory=dict)
+    created_at: datetime
+    read_at: datetime | None = None
