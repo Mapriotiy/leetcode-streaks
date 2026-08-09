@@ -28,6 +28,7 @@ import { AdminPage } from "./AdminPage";
 import { FriendsPage } from "./FriendsPage";
 import { QuestsPage } from "./QuestsPage";
 import { NotificationBell } from "../components/NotificationBell";
+import { LeetCodeLinkModal } from "../components/LeetCodeLinkModal";
 import { LanguageIcon } from "../components/LanguageIcon";
 import { CreateLobbyModal } from "../components/CreateLobbyModal";
 import type { DashboardData, DashboardLobby, Faction, LobbyPlayer } from "../types/dashboard";
@@ -126,40 +127,39 @@ function DashboardBodySkeleton() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
         >
-            <section className="grid min-h-[9.5rem] grid-cols-1 gap-3 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 lg:grid-cols-[13rem_minmax(0,1fr)_14rem] lg:gap-5 2xl:grid-cols-[16rem_minmax(0,1fr)_17rem] min-[2200px]:grid-cols-[18rem_minmax(0,1fr)_19rem]">
-                <SkeletonBlock className="hidden h-full min-h-[8rem] lg:block" />
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)] lg:gap-5">
-                    <div className="flex flex-col justify-center px-1">
-                        <SkeletonBlock className="h-7 w-full max-w-56" />
-                        <SkeletonBlock className="mt-3 h-4 w-full max-w-72" />
-                        <SkeletonBlock className="mt-5 h-12 w-full" />
-                        <SkeletonBlock className="mt-3 h-2 w-full" />
+            <section className="relative grid min-h-[12rem] grid-cols-1 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 sm:min-h-[13.5rem] sm:p-4">
+                <SkeletonBlock className="pointer-events-none absolute right-0 top-0 h-full w-2/5 rounded-none opacity-60" />
+                <div className="relative flex min-w-0 flex-col justify-center px-1 py-1 sm:py-3">
+                    <SkeletonBlock className="h-3 w-28" />
+                    <SkeletonBlock className="mt-3 h-8 w-full max-w-80" />
+                    <div className="mt-4 flex items-center gap-3">
+                        <SkeletonBlock className="h-11 w-11 shrink-0 rounded-full" />
+                        <div className="min-w-0 flex-1">
+                            <SkeletonBlock className="h-4 w-48 max-w-full" />
+                            <SkeletonBlock className="mt-2 h-3 w-28" />
+                            <SkeletonBlock className="mt-3 h-9 w-32" />
+                        </div>
                     </div>
-                    <SkeletonBlock className="h-full min-h-[8rem]" />
-                </div>
-                <div className="rounded-lg border border-[#3f332d] bg-[#1c1613]/86 p-3">
-                    <SkeletonBlock className="h-10 w-full" />
-                    <SkeletonBlock className="mt-3 h-10 w-full" />
-                    <SkeletonBlock className="mt-3 h-10 w-full" />
                 </div>
             </section>
 
-            <section className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_19rem] 2xl:grid-cols-[minmax(0,1fr)_21rem] min-[2200px]:grid-cols-[minmax(0,1fr)_23rem]">
-                <div className="rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3">
-                    <SkeletonBlock className="h-8 w-52" />
-                    <div className="mt-3 grid gap-3 md:grid-cols-2">
-                        <SkeletonBlock className="h-52" />
-                        <SkeletonBlock className="h-52" />
+            <section className="mt-8 grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_19rem] 2xl:grid-cols-[minmax(0,1fr)_21rem] min-[2200px]:grid-cols-[minmax(0,1fr)_23rem]">
+                <div className="min-w-0 rounded-xl border border-[#332b25] p-5 sm:p-6">
+                    <div className="flex items-center justify-between">
+                        <SkeletonBlock className="h-6 w-36" />
+                        <SkeletonBlock className="h-9 w-28" />
                     </div>
-                    <SkeletonBlock className="mt-2 h-[4.5rem]" />
+                    <div className="mt-6 grid gap-6 md:grid-cols-2">
+                        <SkeletonBlock className="h-64" />
+                        <SkeletonBlock className="h-64" />
+                    </div>
                 </div>
 
-                <aside className="rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3">
-                    <SkeletonBlock className="h-8 w-44" />
-                    <SkeletonBlock className="mt-3 h-12 w-full" />
+                <aside className="min-w-0 border-t border-[#332b25] pt-5 xl:border-l xl:border-t-0 xl:pl-6 xl:pt-0">
+                    <SkeletonBlock className="h-6 w-32" />
+                    <SkeletonBlock className="mt-5 h-12 w-full" />
                     <SkeletonBlock className="mt-2 h-12 w-full" />
-                    <SkeletonBlock className="mt-2 h-12 w-full" />
-                    <SkeletonBlock className="mt-2 h-10 w-full" />
+                    <SkeletonBlock className="mt-4 h-10 w-full" />
                 </aside>
             </section>
         </motion.div>
@@ -554,6 +554,7 @@ export function MainPage() {
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
     const [selectedFriend, setSelectedFriend] = useState<FriendRowData | null>(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showLinkModal, setShowLinkModal] = useState(false);
     const [friendPreviewLimit, setFriendPreviewLimit] = useState(getFriendPreviewLimit);
     const profileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -578,6 +579,18 @@ export function MainPage() {
             .then(setUser)
             .catch(() => setUser(null))
             .finally(() => setLoading(false));
+    }, []);
+
+    useEffect(() => {
+        if (user && user.leetcode_verified_at == null) setShowLinkModal(true);
+    }, [user]);
+
+    const refreshUser = useCallback(async () => {
+        try {
+            setUser(await apiRequest<User>("/auth/me"));
+        } catch {
+            // Keep the current session state if the refresh is unavailable.
+        }
     }, []);
 
     const loadDashboard = useCallback(async () => {
@@ -936,12 +949,21 @@ export function MainPage() {
                             exit={{ opacity: 0, y: -8 }}
                             transition={{ duration: 0.22, ease: "easeOut" }}
                         >
+                {user.leetcode_verified_at == null ? (
+                    <section className="mb-3 flex flex-col gap-3 rounded-lg border border-[#d9b887]/35 bg-[#d9b887]/[0.07] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p className="text-sm font-semibold text-[#f4e7d8]">Link your LeetCode account</p>
+                            <p className="mt-1 text-xs text-[#bda98f]">Verify ownership to sync solves and start battles.</p>
+                        </div>
+                        <button type="button" onClick={() => setShowLinkModal(true)} className="h-9 shrink-0 rounded-md border border-[#d9b887] px-3 text-xs font-semibold text-[#d9b887] transition hover:bg-[#d9b887]/10">Verify account</button>
+                    </section>
+                ) : null}
                 <section
                     className="relative grid min-h-[12rem] grid-cols-1 overflow-hidden rounded-lg border border-[#3f332d] bg-[#211a16]/92 p-3 sm:min-h-[13.5rem] sm:p-4"
                     style={{
                         backgroundImage: `linear-gradient(90deg, rgba(20,17,15,0.96), rgba(20,17,15,0.72) 38%, rgba(20,17,15,0.26) 78%, rgba(20,17,15,0.58)), linear-gradient(180deg, rgba(20,17,15,0.1), transparent 42%, rgba(20,17,15,0.68)), url(${heroMapBackground})`,
-                        backgroundSize: "cover, cover, 82% auto",
-                        backgroundPosition: "center",
+                        backgroundSize: "cover, cover, 112% auto",
+                        backgroundPosition: "center 48%",
                         backgroundRepeat: "no-repeat",
                     }}
                 >
@@ -1153,6 +1175,15 @@ export function MainPage() {
                     friends={dashboardData?.friends ?? []}
                     onClose={() => setShowCreateModal(false)}
                     onCreated={handleLobbyCreated}
+                />
+            ) : null}
+            {showLinkModal ? (
+                <LeetCodeLinkModal
+                    onClose={() => setShowLinkModal(false)}
+                    onChanged={() => {
+                        setShowLinkModal(false);
+                        void refreshUser();
+                    }}
                 />
             ) : null}
         </div>

@@ -73,6 +73,7 @@ export function LeetCodeLinkModal({ onClose, onChanged }: LeetCodeLinkModalProps
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [editingUsername, setEditingUsername] = useState(false);
     const now = useNow();
     const pollRef = useRef<number | null>(null);
 
@@ -152,6 +153,7 @@ export function LeetCodeLinkModal({ onClose, onChanged }: LeetCodeLinkModalProps
             setStatus((current) =>
                 current ? { ...current, verification } : current,
             );
+            setEditingUsername(false);
         } catch (e) {
             setError(e instanceof Error ? e.message : "Failed to start verification");
         } finally {
@@ -200,8 +202,8 @@ export function LeetCodeLinkModal({ onClose, onChanged }: LeetCodeLinkModalProps
 
     if (loading && !status) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-                <div className="w-full max-w-md rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 text-center text-sm text-[#8a8a8a] shadow-2xl">
+            <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[#0d0b09]/75 p-4 backdrop-blur-sm">
+                <div className="w-full max-w-md rounded-xl border border-[#4c3a31] bg-[#211a16] p-6 text-center text-sm text-[#8f8278] shadow-2xl shadow-black/40">
                     Loading...
                 </div>
             </div>
@@ -215,22 +217,22 @@ export function LeetCodeLinkModal({ onClose, onChanged }: LeetCodeLinkModalProps
     const expiresLeft = verification ? secondsUntil(now, verification.expires_at) : 0;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-[#0d0b09]/75 p-4 backdrop-blur-sm">
             <div
-                className="w-full max-w-md rounded-lg border border-[#3a3a3a] bg-[#262626] p-6 shadow-2xl"
+                className="w-full max-w-md rounded-xl border border-[#4c3a31] bg-[#211a16] p-6 shadow-2xl shadow-black/40"
                 onClick={(event) => event.stopPropagation()}
             >
                 <div className="mb-4 flex items-start justify-between">
                     <div className="flex items-center gap-2">
-                        <Link2 size={18} className="text-[#c86f3c]" />
-                        <h2 className="text-lg font-semibold text-white">
+                        <Link2 size={18} className="text-[#e6a15d]" />
+                        <h2 className="text-lg font-semibold text-[#f4e7d8]">
                             {linked ? "LeetCode account" : "Link LeetCode account"}
                         </h2>
                     </div>
                     <button
                         type="button"
                         onClick={onClose}
-                        className="grid h-8 w-8 place-items-center rounded-md text-[#8a8a8a] transition hover:bg-[#333] hover:text-white"
+                        className="grid h-8 w-8 place-items-center rounded-md text-[#8f8278] transition hover:bg-[#2b211c] hover:text-[#f4e7d8]"
                         aria-label="Close"
                     >
                         <X size={16} />
@@ -239,15 +241,15 @@ export function LeetCodeLinkModal({ onClose, onChanged }: LeetCodeLinkModalProps
 
                 {linked && verification?.status === "verified" && status?.leetcode_username ? (
                     <div className="grid gap-4">
-                        <div className="rounded-md border border-[#27d980]/30 bg-[#27d980]/10 px-3 py-2 text-sm text-[#7fe6a4]">
+                            <div className="rounded-md border border-[#7fbf8e]/30 bg-[#7fbf8e]/10 px-3 py-2 text-sm text-[#b8e0b1]">
                             Linked to{" "}
-                            <strong className="text-white">{status.leetcode_username}</strong>
+                                <strong className="text-[#f4e7d8]">{status.leetcode_username}</strong>
                         </div>
                         <button
                             type="button"
                             onClick={handleUnlink}
                             disabled={busy}
-                            className="flex w-full items-center justify-center gap-2 rounded-md border border-[#4a4a4a] bg-[#333] px-4 py-2 text-sm font-medium text-[#d7d7d7] transition hover:border-red-400/60 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="flex w-full items-center justify-center gap-2 rounded-md border border-[#4c3a31] bg-transparent px-4 py-2 text-sm font-medium text-[#d9c5ad] transition hover:border-red-400/60 hover:bg-red-500/10 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             <Unlink size={15} />
                             {busy ? "Unlinking..." : "Unlink account"}
@@ -265,15 +267,15 @@ export function LeetCodeLinkModal({ onClose, onChanged }: LeetCodeLinkModalProps
                             <input
                                 value={username}
                                 onChange={(event) => setUsername(event.target.value)}
-                                disabled={verification?.status === "pending"}
+                                disabled={verification?.status === "pending" && !editingUsername}
                                 type="text"
                                 autoComplete="off"
                                 placeholder="your-leetcode-username"
-                                className="rounded-md border border-[#3a3a3a] bg-[#1a1a1a] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#777777] focus:border-[#c86f3c] focus:ring-2 focus:ring-[#c86f3c]/20 disabled:cursor-not-allowed disabled:opacity-60"
+                                className="rounded-md border border-[#3f332d] bg-[#191410] px-3 py-2 text-sm text-[#f4e7d8] outline-none transition placeholder:text-[#756354] focus:border-[#e6a15d] focus:ring-2 focus:ring-[#e6a15d]/20 disabled:cursor-not-allowed disabled:opacity-60"
                             />
                         </label>
 
-                        {!verification || verification.status === "expired" || verification.status === "failed" ? (
+                        {!verification || verification.status === "expired" || verification.status === "failed" || (verification.status === "pending" && editingUsername) ? (
                             <>
                                 {verification ? (
                                     <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
@@ -283,13 +285,13 @@ export function LeetCodeLinkModal({ onClose, onChanged }: LeetCodeLinkModalProps
                                         Start a new one.
                                     </p>
                                 ) : (
-                                    <p className="text-sm text-[#b3b3b3]">
-                                        Submit an <strong className="text-white">Accepted</strong> solution for{" "}
+                                    <p className="text-sm text-[#a8917d]">
+                                        Submit an <strong className="text-[#f4e7d8]">Accepted</strong> solution for{" "}
                                         <a
                                             href={problemUrl("two-sum")}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="inline-flex items-center gap-1 text-[#c86f3c] hover:text-[#d9823f]"
+                                            className="inline-flex items-center gap-1 text-[#e6a15d] hover:text-[#d87a38]"
                                         >
                                             Two Sum <ExternalLink size={12} />
                                         </a>{" "}
@@ -301,30 +303,30 @@ export function LeetCodeLinkModal({ onClose, onChanged }: LeetCodeLinkModalProps
                                     type="button"
                                     onClick={handleStart}
                                     disabled={busy}
-                                    className="w-full rounded-md bg-[#c86f3c] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#d9823f] disabled:cursor-not-allowed disabled:bg-[#3a3a3a] disabled:text-[#777]"
+                                    className="w-full rounded-md bg-[#e6a15d] px-4 py-2.5 text-sm font-semibold text-[#1d120c] transition hover:bg-[#d87a38] disabled:cursor-not-allowed disabled:bg-[#3f332d] disabled:text-[#756354]"
                                 >
                                     {busy ? "Starting..." : "Start verification"}
                                 </button>
                             </>
                         ) : null}
 
-                        {verification?.status === "pending" ? (
+                        {verification?.status === "pending" && !editingUsername ? (
                             <>
-                                <div className="rounded-md border border-[#3a3a3a] bg-[#1f1f1f] p-3 text-sm text-[#b3b3b3]">
+                                <div className="rounded-md border border-[#3f332d] bg-[#1b1512] p-3 text-sm text-[#a8917d]">
                                     <p>
                                         Solve{" "}
                                         <a
                                             href={problemUrl(verification.problem_slug)}
                                             target="_blank"
                                             rel="noreferrer"
-                                            className="inline-flex items-center gap-1 font-medium text-[#c86f3c] hover:text-[#d9823f]"
+                                            className="inline-flex items-center gap-1 font-medium text-[#e6a15d] hover:text-[#d87a38]"
                                         >
                                             Two Sum <ExternalLink size={12} />
                                         </a>{" "}
-                                        on <strong className="text-white">{verification.leetcode_username}</strong> and
-                                        get an <strong className="text-white">Accepted</strong> verdict, then verify.
+                                        on <strong className="text-[#f4e7d8]">{verification.leetcode_username}</strong> and
+                                        get an <strong className="text-[#f4e7d8]">Accepted</strong> verdict, then verify.
                                     </p>
-                                    <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-[#8a8a8a]">
+                                    <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-[#8f8278]">
                                         <li>Submission must be made after verification started.</li>
                                         <li>Verification window: {formatClock(expiresLeft)} remaining.</li>
                                     </ul>
@@ -334,7 +336,7 @@ export function LeetCodeLinkModal({ onClose, onChanged }: LeetCodeLinkModalProps
                                     type="button"
                                     onClick={handleVerify}
                                     disabled={busy || cooldownLeft > 0}
-                                    className="w-full rounded-md bg-[#c86f3c] px-4 py-2.5 text-sm font-semibold text-[#111] transition hover:bg-[#d9823f] disabled:cursor-not-allowed disabled:bg-[#3a3a3a] disabled:text-[#777]"
+                                    className="w-full rounded-md bg-[#e6a15d] px-4 py-2.5 text-sm font-semibold text-[#1d120c] transition hover:bg-[#d87a38] disabled:cursor-not-allowed disabled:bg-[#3f332d] disabled:text-[#756354]"
                                 >
                                     <RefreshCw size={15} className="inline-block mr-2" />
                                     {cooldownLeft > 0
@@ -343,11 +345,22 @@ export function LeetCodeLinkModal({ onClose, onChanged }: LeetCodeLinkModalProps
                                           ? "Checking..."
                                           : `Verify (attempt ${verification.attempts}/${verification.max_attempts})`}
                                 </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setEditingUsername(true);
+                                        setError(null);
+                                    }}
+                                    disabled={busy}
+                                    className="w-full rounded-md border border-[#4c3a31] bg-transparent px-4 py-2 text-sm font-medium text-[#d9c5ad] transition hover:border-[#d9b887] hover:text-[#f4e7d8] disabled:opacity-50"
+                                >
+                                    Change username
+                                </button>
                             </>
                         ) : null}
 
                         {success ? (
-                            <p className="rounded-md border border-[#27d980]/30 bg-[#27d980]/10 px-3 py-2 text-sm text-[#7fe6a4]">
+                            <p className="rounded-md border border-[#7fbf8e]/30 bg-[#7fbf8e]/10 px-3 py-2 text-sm text-[#b8e0b1]">
                                 <Check size={15} className="inline-block mr-1" />
                                 LeetCode account verified!
                             </p>
