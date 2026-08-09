@@ -86,6 +86,11 @@ def _record_debug_event(
 ) -> None:
     slug = province.problem_title_slug
     problem = db.query(LeetCodeProblem).filter_by(title_slug=slug).first()
+    lobby_player = (
+        db.query(LobbyPlayer)
+        .filter_by(lobby_id=lobby_id, user_id=user.id)
+        .first()
+    )
     db.add(
         LobbyEvent(
             lobby_id=lobby_id,
@@ -95,6 +100,7 @@ def _record_debug_event(
             event_type=event_type,
             actor_user_id=user.id,
             actor_username=_display_name(user),
+            actor_faction_id=lobby_player.faction_id if lobby_player else None,
             problem_title_slug=slug,
             problem_title=problem.title if problem else None,
             problem_difficulty=problem.difficulty if problem else None,

@@ -67,33 +67,6 @@ function sourceSize(source: HTMLCanvasElement | HTMLImageElement) {
     };
 }
 
-function drawImageContain(
-    ctx: CanvasRenderingContext2D,
-    source: HTMLCanvasElement | HTMLImageElement,
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    padding = 0,
-) {
-    const size = sourceSize(source);
-    if (size.width <= 0 || size.height <= 0) return;
-
-    const availableWidth = Math.max(1, width - padding * 2);
-    const availableHeight = Math.max(1, height - padding * 2);
-    const scale = Math.min(availableWidth / size.width, availableHeight / size.height);
-    const drawWidth = size.width * scale;
-    const drawHeight = size.height * scale;
-
-    ctx.drawImage(
-        source,
-        x + (width - drawWidth) / 2,
-        y + (height - drawHeight) / 2,
-        drawWidth,
-        drawHeight,
-    );
-}
-
 function drawImageCover(
     ctx: CanvasRenderingContext2D,
     source: HTMLCanvasElement | HTMLImageElement,
@@ -283,7 +256,17 @@ async function drawGeneratedMap(
     const rootY = y + (height - rootHeight) / 2;
 
     const sea = await loadImage(mapAssetUrl(draft.seaBaseSrc));
-    drawImageCover(ctx, sea, x, y, width, height);
+    const defaultFullIsland =
+        draft.islands.length === 1 &&
+        draft.islands[0].left === 0 &&
+        draft.islands[0].top === 0 &&
+        draft.islands[0].width === 100 &&
+        draft.islands[0].backPath === draft.seaBaseSrc;
+    if (defaultFullIsland) {
+        ctx.drawImage(sea, rootX, rootY, rootWidth, rootHeight);
+    } else {
+        drawImageCover(ctx, sea, x, y, width, height);
+    }
 
     for (const sprite of draft.seaSprites) {
         const img = await loadImage(mapAssetUrl(sprite.src));
@@ -323,7 +306,7 @@ async function drawGeneratedMap(
             ctx.save();
             ctx.clip(islandMaskPath(rawSvg, islandW, islandH));
             ctx.globalAlpha = 0.82;
-            drawImageContain(ctx, back, -islandW / 2, -islandH / 2, islandW, islandH);
+            ctx.drawImage(back, -islandW / 2, -islandH / 2, islandW, islandH);
             ctx.restore();
 
             const paths = islandProvincePaths({ svgText: rawSvg, island, draft, capturedColors });

@@ -9,7 +9,7 @@ export const mapColors = {
     // and the DB.
     regions: {
         isle1: "#2fb55f",
-        isle2: "#2f80ed",
+        isle2: "#4b6cb7",
         isle3: "#c7429b",
         region1: "#7ac142",
         region2: "#5b6cf0",
@@ -26,7 +26,7 @@ export const mapColors = {
     // Cycled through when a generated map needs more colors than the regions above.
     regionFallbackColors: [
         "#c86f3c",
-        "#2f80ed",
+        "#4b6cb7",
         "#eb5757",
         "#27ae60",
         "#9b51e0",
@@ -83,6 +83,7 @@ export const mapColors = {
     capture: {
         fillShade: "#272323",
         fillWeight: 0.72,
+        fillAlpha: 0.68,
         strokeShade: "#3a2528",
         strokeWeight: 0.72,
     },

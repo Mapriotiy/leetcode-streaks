@@ -334,12 +334,11 @@ function GameCard({
         : `${playerCount} / ${lobby.max_players} players`;
     const statusLabel = lobby.status === "active" ? "In progress" : lobby.status === "finished" ? "Finished" : "Waiting";
     const progress = lobby.faction_mode ? 45 : Math.min(100, Math.round((playerCount / Math.max(1, lobby.max_players)) * 100));
-    const thumbnailUrl = `${API_URL}/lobbies/${lobby.id}/thumbnail.png?w=640`;
+    const thumbnailUrl = `${API_URL}/lobbies/${lobby.id}/thumbnail.png?w=640&fmt=webp&q=82`;
     const thumbnailSrcSet = [
-        `${API_URL}/lobbies/${lobby.id}/thumbnail.png?w=480 480w`,
-        `${API_URL}/lobbies/${lobby.id}/thumbnail.png?w=640 640w`,
-        `${API_URL}/lobbies/${lobby.id}/thumbnail.png?w=960 960w`,
-        `${API_URL}/lobbies/${lobby.id}/thumbnail.png?w=1280 1280w`,
+        `${API_URL}/lobbies/${lobby.id}/thumbnail.png?w=320&fmt=webp&q=82 320w`,
+        `${API_URL}/lobbies/${lobby.id}/thumbnail.png?w=480&fmt=webp&q=82 480w`,
+        `${API_URL}/lobbies/${lobby.id}/thumbnail.png?w=640&fmt=webp&q=82 640w`,
     ].join(", ");
 
     return (
@@ -385,7 +384,7 @@ function GameCard({
                     <img
                         src={thumbnailUrl}
                         srcSet={thumbnailSrcSet}
-                        sizes="(min-width: 3000px) 780px, (min-width: 2200px) 680px, (min-width: 1536px) 520px, (min-width: 768px) 36vw, 92vw"
+                        sizes="(min-width: 1536px) 520px, (min-width: 768px) 36vw, 92vw"
                         alt=""
                         loading="lazy"
                         decoding="async"

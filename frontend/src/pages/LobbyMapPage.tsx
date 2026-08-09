@@ -209,9 +209,9 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
         [mapSelection],
     );
 
-    const ownerColor = useCallback((userId: number | null): string | undefined => {
+    const ownerColor = useCallback((userId: number | null, factionId?: number | null): string | undefined => {
         if (!userId) return undefined;
-        const fid = factionByPlayer.get(userId) ?? 0;
+        const fid = factionId ?? factionByPlayer.get(userId) ?? 0;
         const faction = factionById.get(fid);
         if (faction) return faction.color;
         if (fid > 0 && fid <= FACTION_COLORS.length) return FACTION_COLORS[fid - 1];
@@ -220,14 +220,12 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
 
     // Live captures pushed over SSE are applied on top of the server-derived
     // state so the map reacts instantly; the next poll reconciles anyway.
-    const [liveCaptures, setLiveCaptures] = useState<Map<string, string>>(new Map());
     const appliedEventIdsRef = useRef<Set<number>>(new Set());
+    const mapRequestIdRef = useRef(0);
 
-    const displayCaptured = useMemo(() => {
-        const map = new Map(captured);
-        for (const [id, color] of liveCaptures) map.set(id, color);
-        return map;
-    }, [captured, liveCaptures]);
+    // The map snapshot is authoritative. SSE drives only transient effects;
+    // painting from an optimistic event can color an actually-free province.
+    const displayCaptured = captured;
 
     const { events } = useLobbyEvents(lobbyId, syncTick);
 
@@ -236,21 +234,20 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
             if (appliedEventIdsRef.current.has(event.id)) continue;
             if (!event.province_id) continue;
 
+            if (event.event_type === 'defense') {
+                appliedEventIdsRef.current.add(event.id);
+                continue;
+            }
+
             if (
                 event.event_type === 'capture' ||
                 event.event_type === 'recapture' ||
-                event.event_type === 'defense' ||
                 event.event_type === 'debug_capture'
             ) {
                 appliedEventIdsRef.current.add(event.id);
-                const color = ownerColor(event.actor_user_id);
+                const color = ownerColor(event.actor_user_id, event.actor_faction_id);
                 if (!color) continue;
                 const provinceId = event.province_id;
-                setLiveCaptures((prev) => {
-                    const next = new Map(prev);
-                    next.set(provinceId, color);
-                    return next;
-                });
                 setBursts((prev) => {
                     const next = new Map(prev);
                     next.set(provinceId, color);
@@ -267,12 +264,6 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
 
             if (event.event_type === 'debug_uncapture') {
                 appliedEventIdsRef.current.add(event.id);
-                const provinceId = event.province_id;
-                setLiveCaptures((prev) => {
-                    const next = new Map(prev);
-                    next.delete(provinceId);
-                    return next;
-                });
             }
         }
     }, [events, ownerColor]);
@@ -321,8 +312,10 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     }, [lobbyId, ownerColor]);
 
     const loadMap = useCallback(async () => {
+        const requestId = ++mapRequestIdRef.current;
         try {
             const data = await apiRequest<MapApiResponse>(`/lobbies/${lobbyId}/map`);
+            if (requestId !== mapRequestIdRef.current) return;
             applyMapData(data);
         } catch (e) {
             console.error(e);
@@ -330,10 +323,12 @@ export function LobbyMapPage({ lobbyId, currentUserId, players, factions, isAdmi
     }, [lobbyId, applyMapData]);
 
     const sync = useCallback(async () => {
+        const requestId = ++mapRequestIdRef.current;
         try {
             const data = await apiRequest<SyncApiResponse>(
                 `/lobbies/${lobbyId}/map/sync`, { method: 'POST' }
             );
+            if (requestId !== mapRequestIdRef.current) return;
             applyMapData(data);
             setSyncTick((tick) => tick + 1);
         } catch (e) {

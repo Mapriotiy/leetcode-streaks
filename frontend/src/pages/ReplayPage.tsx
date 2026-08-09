@@ -174,7 +174,7 @@ export function ReplayPage({ lobbyId }: { lobbyId: number }) {
                 <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4">
                         <a
-                            href="/"
+                            href={window.location.pathname}
                             className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
                         >
                             <ArrowLeft size={20} />

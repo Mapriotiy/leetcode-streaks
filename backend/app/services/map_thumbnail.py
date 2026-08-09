@@ -12,15 +12,18 @@ from __future__ import annotations
 
 import io
 import re
+from collections import OrderedDict
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
+from sqlalchemy import func
 
 from app.db.session import SessionLocal
 from app.models.lobby import Lobby
 from app.models.lobby_map import LobbyMap
 from app.models.lobby_map_province import LobbyMapProvince
 from app.models.lobby_player import LobbyPlayer
+from app.models.lobby_event import LobbyEvent
 
 PUBLIC_DIR = Path(__file__).resolve().parents[3] / "frontend" / "public"
 
@@ -37,6 +40,10 @@ _PATH_TAG = re.compile(r"<path\b([^>]*)>")
 _D_ATTR = re.compile(r'\bd="([^"]+)"')
 
 _svg_cache: dict[str, tuple[list[float], list[str]]] = {}
+_sample_cache: dict[str, list[list[tuple[float, float]]]] = {}
+_image_cache: dict[str, Image.Image] = {}
+_thumbnail_cache: OrderedDict[tuple[str, int, int, int, str], bytes] = OrderedDict()
+_THUMBNAIL_CACHE_LIMIT = 96
 
 
 def _asset(path: str) -> Path:
@@ -44,7 +51,21 @@ def _asset(path: str) -> Path:
 
 
 def _load_image(path: str) -> Image.Image:
-    return Image.open(_asset(path)).convert("RGBA")
+    cached = _image_cache.get(path)
+    if cached is not None:
+        return cached
+    image = Image.open(_asset(path)).convert("RGBA")
+    _image_cache[path] = image
+    return image
+
+
+def _sampled_path(d: str) -> list[list[tuple[float, float]]]:
+    cached = _sample_cache.get(d)
+    if cached is not None:
+        return cached
+    polygons = _sample_path(d)
+    _sample_cache[d] = polygons
+    return polygons
 
 
 def _sample_path(d: str, samples: int = 18) -> list[list[tuple[float, float]]]:
@@ -224,7 +245,29 @@ def _render_draft(
     height = max(1, round(MAP_H * scale))
     sea_src = draft.get("seaBaseSrc") or "maps/leet_background.webp"
 
-    img = _load_image(sea_src).resize((width, height))
+    img = _load_image(sea_src).resize((width, height), Image.Resampling.LANCZOS)
+
+    # The browser draws sea sprites before island art. Keep the same order.
+    for sprite in draft.get("seaSprites") or []:
+        if not isinstance(sprite, dict) or not sprite.get("src"):
+            continue
+        try:
+            sprite_image = _load_image(str(sprite["src"]))
+            sprite_width = max(1, round(float(sprite.get("width", 0)) / 100 * width))
+            sprite_height = max(1, round(sprite_width * sprite_image.height / max(1, sprite_image.width)))
+            sprite_image = sprite_image.resize((sprite_width, sprite_height), Image.Resampling.LANCZOS)
+            if float(sprite.get("opacity", 1)) < 1:
+                sprite_image = sprite_image.copy()
+                sprite_image.putalpha(sprite_image.getchannel("A").point(lambda value: round(value * float(sprite.get("opacity", 1)))))
+            img.alpha_composite(
+                sprite_image,
+                (
+                    round(float(sprite.get("left", 0)) / 100 * width),
+                    round(float(sprite.get("top", 0)) / 100 * height),
+                ),
+            )
+        except (FileNotFoundError, OSError, TypeError, ValueError):
+            continue
 
     regions = {
         str(region.get("regionId")): str(region.get("color") or "#8f7458")
@@ -247,9 +290,11 @@ def _render_draft(
                 continue
         return by_path
 
-    for island in draft.get("islands") or []:
-        if not isinstance(island, dict):
-            continue
+    islands = sorted(
+        (island for island in (draft.get("islands") or []) if isinstance(island, dict)),
+        key=lambda island: float(island.get("zIndex", 0) or 0),
+    )
+    for island in islands:
         svg_path = island.get("svgPath")
         back_path = island.get("backPath")
         if not svg_path or not back_path:
@@ -272,19 +317,22 @@ def _render_draft(
         mask = Image.new("L", (box_w, box_h), 0)
         md = ImageDraw.Draw(mask)
         for d in path_ds:
-            for pts in _transform(_sample_path(d), viewbox, box_w, box_h):
+            for pts in _transform(_sampled_path(d), viewbox, box_w, box_h):
                 md.polygon(pts, fill=255)
 
-        # Island art, clipped to the silhouette.
-        back = _load_image(back_path).resize((box_w, box_h))
-        layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-        layer.paste(back, (left, top), mask)
-        img = Image.alpha_composite(img, layer)
+        island_layer = Image.new("RGBA", (box_w, box_h), (0, 0, 0, 0))
+        # The default map uses the sea image as both the base and island back.
+        # Drawing it twice makes that map visibly darker than the browser map.
+        if back_path != sea_src:
+            back = _load_image(back_path).resize((box_w, box_h), Image.Resampling.LANCZOS)
+            island_layer.paste(back, (0, 0), mask)
 
         # Provinces: region tint, overridden by capture (faction) color.
         # Matches the frontend renderer's darkened fills/strokes.
         fill_layer = Image.new("RGBA", (box_w, box_h), (0, 0, 0, 0))
         fd = ImageDraw.Draw(fill_layer)
+        glow_layer = Image.new("RGBA", (box_w, box_h), (0, 0, 0, 0))
+        gd = ImageDraw.Draw(glow_layer)
         for index, d in enumerate(path_ds):
             province = island_provinces.get(index)
             if not province:
@@ -294,23 +342,77 @@ def _render_draft(
             capture_hex = capture_color_by_province.get(province_id)
             if capture_hex:
                 base_rgb = _hex_rgb(capture_hex)
-                fill_rgb = _blend(base_rgb, (39, 35, 35), 0.46)
+                fill_rgb = _blend(base_rgb, (39, 35, 35), 0.72)
                 stroke_rgb = _blend(base_rgb, (58, 37, 40), 0.72)
-                fill_alpha = 85
-                stroke_alpha = 205
+                fill_alpha = round(0.68 * 0.98 * 255)
+                stroke_alpha = round(0.9 * 0.98 * 255)
                 stroke_width = max(2, round(scale * 2.8))
             else:
                 fill_rgb = _blend(region_rgb, (36, 40, 39), 0.4)
                 stroke_rgb = _blend(region_rgb, (48, 51, 50), 0.7)
-                fill_alpha = 178
-                stroke_alpha = 185
+                fill_alpha = round(0.7 * 0.58 * 255)
+                stroke_alpha = round(0.72 * 0.58 * 255)
                 stroke_width = max(1, round(scale * 1.2))
-            for pts in _transform(_sample_path(d), viewbox, box_w, box_h):
+            for pts in _transform(_sampled_path(d), viewbox, box_w, box_h):
+                if capture_hex:
+                    gd.line(
+                        pts + [pts[0]],
+                        fill=stroke_rgb + (round(0.22 * 255),),
+                        width=max(2, round(scale * 4.5)),
+                        joint="curve",
+                    )
                 fd.polygon(pts, fill=fill_rgb + (fill_alpha,))
                 fd.line(pts + [pts[0]], fill=stroke_rgb + (stroke_alpha,), width=stroke_width)
-        layer2 = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-        layer2.paste(fill_layer, (left, top), mask)
-        img = Image.alpha_composite(img, layer2)
+        island_layer = Image.alpha_composite(
+            island_layer,
+            glow_layer.filter(ImageFilter.GaussianBlur(max(1, round(scale * 5)))),
+        )
+        island_layer = Image.alpha_composite(island_layer, fill_layer)
+
+        # Roads and province markers are part of the interactive Canvas map,
+        # so keep them in the same island layer before applying rotation.
+        road_draw = ImageDraw.Draw(island_layer)
+        for road in draft.get("roads") or []:
+            if not isinstance(road, dict) or str(road.get("islandId") or "") != str(island.get("islandId") or ""):
+                continue
+            path = str(road.get("d") or "")
+            if not path:
+                continue
+            opacity = max(0.0, min(1.0, float(road.get("opacity", 1) or 0)))
+            for points in _transform(_sampled_path(path), [0.0, 0.0, 100.0, 100.0], box_w, box_h):
+                road_draw.line(
+                    points,
+                    fill=_hex_rgb("#efa35f") + (round(opacity * 255),),
+                    width=max(1, round(scale * 1.18)),
+                    joint="curve",
+                )
+
+        for marker in draft.get("markers") or []:
+            if not isinstance(marker, dict) or str(marker.get("islandId") or "") != str(island.get("islandId") or ""):
+                continue
+            marker_id = str(marker.get("provinceId") or "")
+            marker_color = _hex_rgb(capture_color_by_province.get(marker_id) or "#9d9487")
+            if marker_id in capture_color_by_province:
+                marker_color = _blend(marker_color, _hex_rgb("#fff0cc"), 0.64)
+            marker_x = round(float(marker.get("left", 0) or 0) / 100 * box_w)
+            marker_y = round(float(marker.get("top", 0) or 0) / 100 * box_h)
+            marker_size = max(4, round(max(11, min(18, width * 0.016)) * float(marker.get("scale", 1) or 1) * scale))
+            half = max(2, marker_size // 2)
+            road_draw.line((marker_x, marker_y - half, marker_x, marker_y + half), fill=marker_color + (230,), width=max(1, round(scale)))
+            road_draw.polygon(
+                [(marker_x, marker_y - half), (marker_x + half, marker_y - half + max(2, half // 3)), (marker_x, marker_y - half + max(4, half // 2))],
+                fill=marker_color + (230,),
+            )
+            road_draw.ellipse((marker_x - half // 2, marker_y + half // 3, marker_x + half // 2, marker_y + half), fill=marker_color + (230,))
+
+        rotation = float(island.get("rotation", 0) or 0)
+        if rotation:
+            island_layer = island_layer.rotate(-rotation, expand=True, resample=Image.Resampling.BICUBIC)
+            paste_left = round(left + box_w / 2 - island_layer.width / 2)
+            paste_top = round(top + box_h / 2 - island_layer.height / 2)
+        else:
+            paste_left, paste_top = left, top
+        img.alpha_composite(island_layer, (paste_left, paste_top))
 
     return img
 
@@ -337,6 +439,17 @@ def render_lobby_map_thumbnail(
         draft = selection.get("draft") if isinstance(selection, dict) else None
         if not isinstance(draft, dict):
             return None
+
+        max_event_id = db.query(func.max(LobbyEvent.id)).filter(LobbyEvent.lobby_id == lobby_id).scalar() or 0
+        max_captured_at = db.query(func.max(LobbyMapProvince.captured_at)).filter(
+            LobbyMapProvince.lobby_map_id == lmap.id,
+        ).scalar()
+        database_key = str(db.get_bind().url)
+        cache_key = (f"{database_key}:{lobby_id}:{lmap.id}:{max_event_id}:{max_captured_at}", width, quality, 1 if fmt == "webp" else 0, fmt)
+        cached = _thumbnail_cache.get(cache_key)
+        if cached is not None:
+            _thumbnail_cache.move_to_end(cache_key)
+            return cached
 
         players = db.query(LobbyPlayer).filter_by(lobby_id=lobby_id).all()
         faction_color = {
@@ -377,7 +490,12 @@ def render_lobby_map_thumbnail(
             img.convert("RGB").save(buf, format="WEBP", quality=quality)
         else:
             img.convert("RGB").save(buf, format="PNG")
-        return buf.getvalue()
+        result = buf.getvalue()
+        _thumbnail_cache[cache_key] = result
+        _thumbnail_cache.move_to_end(cache_key)
+        while len(_thumbnail_cache) > _THUMBNAIL_CACHE_LIMIT:
+            _thumbnail_cache.popitem(last=False)
+        return result
     finally:
         if owns_db:
             db.close()

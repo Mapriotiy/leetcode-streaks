@@ -2,13 +2,14 @@
 these routes dispatch on lobby.game_mode via the mode registry."""
 
 import asyncio
+import hashlib
 import json
 import logging
 import secrets
 from typing import Any
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from starlette.responses import Response, StreamingResponse
 from jwt.exceptions import InvalidTokenError
 from sqlalchemy.orm import Session
@@ -786,6 +787,7 @@ def lobby_og_image(lobby_id: int, db: Session = Depends(get_db)):
 @router.get("/{lobby_id}/thumbnail.png")
 def lobby_map_thumbnail(
     lobby_id: int,
+    request: Request,
     w: int = Query(320, ge=64, le=1600),
     q: int = Query(82, ge=30, le=100),
     fmt: str = Query("png", pattern="^(png|webp)$"),
@@ -800,10 +802,16 @@ def lobby_map_thumbnail(
     if png is None:
         raise HTTPException(404, "Lobby map not found")
     media = "image/webp" if fmt == "webp" else "image/png"
+    etag = f'"{hashlib.sha1(png).hexdigest()}"'
+    if request is not None and request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers={"ETag": etag, "Cache-Control": "public, max-age=300, stale-while-revalidate=86400"})
     return Response(
         content=png,
         media_type=media,
-        headers={"Cache-Control": "public, max-age=60, must-revalidate"},
+        headers={
+            "Cache-Control": "public, max-age=300, stale-while-revalidate=86400",
+            "ETag": etag,
+        },
     )
 
 

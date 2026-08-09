@@ -564,7 +564,7 @@ function drawCanvasProvinces({
         const fill = capturedColor ? captureFillColor(capturedColor) : province.regionFill;
         const stroke = capturedColor ? captureStrokeColor(capturedColor) : province.regionStroke;
         const fillAlpha = capturedColor
-            ? showFill ? 0.58 : 0
+            ? showFill ? mapColors.capture.fillAlpha : 0
             : muted
               ? 0.04
               : showFill ? mapColors.province.fillAlpha : 0;
@@ -584,12 +584,16 @@ function drawCanvasProvinces({
         ctx.lineCap = "round";
         ctx.lineJoin = "round";
         if (showEffects && capturedColor) {
+            ctx.save();
+            ctx.clip(province.path);
             ctx.shadowColor = stroke;
             ctx.shadowBlur = 4 / strokeScale;
+            ctx.stroke(province.path);
+            ctx.restore();
         } else {
             ctx.shadowBlur = 0;
+            ctx.stroke(province.path);
         }
-        ctx.stroke(province.path);
     }
 
     if (showEffects) {
@@ -598,6 +602,7 @@ function drawCanvasProvinces({
             if (!capturedColor) continue;
             const stroke = captureStrokeColor(capturedColor);
             ctx.save();
+            ctx.clip(province.path);
             ctx.globalCompositeOperation = "lighter";
             ctx.strokeStyle = stroke;
             ctx.lineCap = "round";

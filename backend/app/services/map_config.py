@@ -43,7 +43,7 @@ REGION_NAMES: dict[str, str] = {
 
 REGION_COLORS: dict[str, str] = {
     "isle1": "#2fb55f",
-    "isle2": "#2f80ed",
+    "isle2": "#4b6cb7",
     "isle3": "#c7429b",
     "region1": "#7ac142",
     "region2": "#5b6cf0",
