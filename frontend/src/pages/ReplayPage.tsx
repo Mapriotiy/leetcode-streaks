@@ -154,8 +154,8 @@ export function ReplayPage({ replayToken }: { replayToken: string }) {
 
     if (error) {
         return (
-            <main className="min-h-screen bg-transparent p-6 text-white">
-                <p className="mx-auto max-w-md rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-center text-sm text-red-300">
+            <main className="min-h-screen bg-[#14110f] p-6 text-[#f4e7d8]">
+                <p className="mx-auto max-w-md rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-center text-sm text-red-200">
                     {error}
                 </p>
             </main>
@@ -163,38 +163,38 @@ export function ReplayPage({ replayToken }: { replayToken: string }) {
     }
 
     if (!data) {
-        return <main className="min-h-screen bg-transparent p-6 text-center text-[#8a8a8a]">Loading replay…</main>;
+        return <main className="min-h-screen bg-[#14110f] p-6 text-center text-[#8f8278]">Loading replay…</main>;
     }
 
     const progress = playableEvents.length > 0 ? step / playableEvents.length : 1;
 
     return (
-        <main className="min-h-screen bg-transparent p-4 text-white sm:p-6">
-            <div className="mx-auto max-w-5xl">
-                <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <main className="min-h-screen bg-[#14110f] p-4 text-[#f4e7d8] sm:p-6">
+            <div className="mx-auto max-w-6xl">
+                <header className="flex flex-col gap-4 border-b border-[#332b25] pb-5 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-4">
                         <a
                             href={window.location.pathname}
-                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3a3a3a] bg-[#262626] text-[#b3b3b3] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
+                            className="grid h-10 w-10 place-items-center rounded-md border border-[#3f332d] text-[#a8917d] transition hover:border-[#d9b887] hover:text-[#f4e7d8]"
                         >
                             <ArrowLeft size={20} />
                         </a>
                         <div>
-                            <h1 className="text-2xl font-semibold tracking-tight">Match replay</h1>
-                            <p className="mt-1 text-sm text-[#8a8a8a]">Public capture timeline</p>
+                            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#d9b887]">Replay</p>
+                            <h1 className="mt-1 text-2xl font-semibold tracking-tight">Match replay</h1>
                         </div>
                     </div>
                     <button
                         type="button"
                         onClick={() => void handleCopy()}
-                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#3a3a3a] bg-[#262626] px-4 text-sm font-medium text-[#d7d7d7] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
+                        className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#4c4238] bg-transparent px-4 text-sm font-medium text-[#d9c5ad] transition hover:border-[#d9b887] hover:text-[#f4e7d8]"
                     >
                         <Copy size={16} />
                         {copied ? "Copied!" : "Copy replay link"}
                     </button>
                 </header>
 
-                <section className="relative mt-6 overflow-hidden rounded-lg border border-[#3a3a3a] bg-[#262626] p-4 shadow-xl shadow-black/20">
+                <section className="relative mt-6 overflow-hidden rounded-xl border border-[#3f332d] bg-[#211a16] p-3 sm:p-4">
                     <GeneratedMapRenderer
                         draft={mapSelection.draft}
                         captured={captured}
@@ -204,7 +204,7 @@ export function ReplayPage({ replayToken }: { replayToken: string }) {
 
                     <div className="mt-4 border-t border-[#2a2a2a] pt-3">
                         <div
-                            className="group h-1.5 cursor-pointer overflow-hidden rounded-full bg-[#333]"
+                            className="group h-1.5 cursor-pointer overflow-hidden rounded-full bg-[#332b25]"
                             onClick={(e) => {
                                 const rect = e.currentTarget.getBoundingClientRect();
                                 const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -214,7 +214,7 @@ export function ReplayPage({ replayToken }: { replayToken: string }) {
                             }}
                         >
                             <div
-                                className="h-full rounded-full bg-[#c86f3c] transition-all"
+                                className="h-full rounded-full bg-[#d9b887] transition-all"
                                 style={{ width: `${progress * 100}%` }}
                             />
                         </div>
@@ -228,7 +228,7 @@ export function ReplayPage({ replayToken }: { replayToken: string }) {
                                     }
                                     setPlaying((value) => !value);
                                 }}
-                                className="grid h-9 w-9 place-items-center rounded-md border border-[#3a3a3a] bg-[#1f1f1f] text-[#d7d7d7] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
+                                className="grid h-9 w-9 place-items-center rounded-md border border-[#4c4238] bg-transparent text-[#d9c5ad] transition hover:border-[#d9b887] hover:text-[#f4e7d8]"
                                 aria-label={playing ? "Pause" : "Play"}
                             >
                                 {playing ? <Pause size={16} /> : <Play size={16} />}
@@ -240,12 +240,12 @@ export function ReplayPage({ replayToken }: { replayToken: string }) {
                                     setStep(0);
                                     setCaptured(new Map());
                                 }}
-                                className="grid h-9 w-9 place-items-center rounded-md border border-[#3a3a3a] bg-[#1f1f1f] text-[#d7d7d7] transition hover:border-[#c86f3c]/60 hover:text-[#c86f3c]"
+                                className="grid h-9 w-9 place-items-center rounded-md border border-[#4c4238] bg-transparent text-[#d9c5ad] transition hover:border-[#d9b887] hover:text-[#f4e7d8]"
                                 aria-label="Restart"
                             >
                                 <RotateCcw size={15} />
                             </button>
-                            <span className="text-xs tabular-nums text-[#8a8a8a]">
+                            <span className="text-xs tabular-nums text-[#8f8278]">
                                 {playableEvents.length > 0 ? `${step}/${playableEvents.length} captures` : "No capture events"}
                             </span>
                         </div>

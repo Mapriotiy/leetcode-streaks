@@ -59,6 +59,10 @@ export type DashboardLobby = {
     programming_language: string;
     creator_id: number;
     players: LobbyPlayer[];
+    winner_id?: number | null;
+    winner_faction_id?: number | null;
+    finished_at?: string | null;
+    replay_token?: string | null;
 };
 
 export type CreateInviteResponse = {

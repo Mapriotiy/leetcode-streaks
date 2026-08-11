@@ -47,6 +47,10 @@ class DashboardLobbyResponse(BaseModel):
     programming_language: str = "python3"
     creator_id: int
     players: list[DashboardLobbyPlayerResponse] = Field(default_factory=list)
+    winner_id: int | None = None
+    winner_faction_id: int | None = None
+    finished_at: datetime | None = None
+    replay_token: str | None = None
 
 
 class PlayerStatsResponse(BaseModel):

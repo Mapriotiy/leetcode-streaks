@@ -1,3 +1,4 @@
+import secrets
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends
@@ -103,13 +104,13 @@ def build_activity_calendar(
     ]
 
 
-def build_user_lobbies(current_user: User, db: Session) -> list[DashboardLobbyResponse]:
+def build_user_lobbies(current_user: User, db: Session, include_finished: bool = False) -> list[DashboardLobbyResponse]:
     memberships = (
         db.query(LobbyPlayer, Lobby)
         .join(Lobby, LobbyPlayer.lobby_id == Lobby.id)
         .filter(
             LobbyPlayer.user_id == current_user.id,
-            Lobby.status != "finished",
+            Lobby.status == "finished" if include_finished else Lobby.status != "finished",
         )
         .order_by(Lobby.created_at.desc())
         .all()
@@ -128,8 +129,12 @@ def build_user_lobbies(current_user: User, db: Session) -> list[DashboardLobbyRe
             player_rows_by_lobby.setdefault(player.lobby_id, []).append((player, user))
 
     responses: list[DashboardLobbyResponse] = []
+    changed = False
     for _, lobby in memberships:
         player_rows = player_rows_by_lobby.get(lobby.id, [])
+        if include_finished and lobby.replay_token is None:
+            lobby.replay_token = secrets.token_urlsafe(32)
+            changed = True
         responses.append(
             DashboardLobbyResponse(
                 id=lobby.id,
@@ -152,8 +157,14 @@ def build_user_lobbies(current_user: User, db: Session) -> list[DashboardLobbyRe
                     )
                     for player, user in player_rows
                 ],
+                winner_id=lobby.winner_id,
+                winner_faction_id=lobby.winner_faction_id,
+                finished_at=lobby.finished_at,
+                replay_token=lobby.replay_token,
             )
         )
+    if changed:
+        db.commit()
     return responses
 
 
@@ -377,3 +388,8 @@ async def get_dashboard(
         friends=friends,
         stats=build_player_stats(current_user, db),
     )
+
+
+@router.get("/history", response_model=list[DashboardLobbyResponse])
+def get_lobby_history(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return build_user_lobbies(current_user, db, include_finished=True)

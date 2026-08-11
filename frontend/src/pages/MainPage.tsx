@@ -356,7 +356,7 @@ function GameCard({
             <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
                     <div className="min-w-0">
-                        <h3 className="truncate text-sm font-semibold text-[#f4e7d8]">{lobby.name}</h3>
+                        <h3 className="truncate text-sm font-medium text-[#f4e7d8]">{lobby.name}</h3>
                     </div>
                 </div>
                 <button
@@ -364,7 +364,7 @@ function GameCard({
                     onClick={() => onOpen(lobby)}
                     className="h-9 shrink-0 rounded-md border border-[#4c3a31] px-3 text-xs font-semibold text-[#d9b887] transition hover:border-[#d9b887] hover:text-[#f4e7d8]"
                 >
-                    {lobby.status === "active" ? "Open map" : "Continue"}
+                    {lobby.status === "active" ? "Open map" : lobby.status === "finished" ? "Replay" : "Continue"}
                 </button>
             </div>
 
@@ -541,6 +541,7 @@ type NavState = {
 export function MainPage() {
     const [user, setUser] = useState<User | null>(null);
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+    const [lobbyHistory, setLobbyHistory] = useState<DashboardLobby[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [screen, setScreen] = useState<"dashboard" | "lobby" | "game" | "profile" | "friends" | "quests" | "friendProfile" | "lobbies" | "admin">("dashboard");
@@ -554,6 +555,7 @@ export function MainPage() {
     const [profileMenuOpen, setProfileMenuOpen] = useState(false);
     const [selectedFriend, setSelectedFriend] = useState<FriendRowData | null>(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [lobbyView, setLobbyView] = useState<"active" | "completed">("active");
     const [showLinkModal, setShowLinkModal] = useState(false);
     const [friendPreviewLimit, setFriendPreviewLimit] = useState(getFriendPreviewLimit);
     const profileMenuRef = useRef<HTMLDivElement>(null);
@@ -611,6 +613,13 @@ export function MainPage() {
             void loadDashboard();
         }
     }, [screen, loadDashboard]);
+
+    useEffect(() => {
+        if (screen !== "lobbies") return;
+        void apiRequest<DashboardLobby[]>("/dashboard/history")
+            .then(setLobbyHistory)
+            .catch(() => setLobbyHistory([]));
+    }, [screen]);
 
     const applyNavState = useCallback((state: NavState | null) => {
         if (state && (state.screen === "profile" || state.screen === "friendProfile" || state.screen === "friends" || state.screen === "quests" || state.screen === "lobbies" || state.screen === "admin")) {
@@ -678,6 +687,11 @@ export function MainPage() {
         [pushNav],
     );
 
+    const openReplay = useCallback((lobby: DashboardLobby) => {
+        if (!lobby.replay_token) return;
+        window.location.href = `${window.location.pathname}?replay=${encodeURIComponent(lobby.replay_token)}`;
+    }, []);
+
     const handleGameStarted = useCallback(
         (lobbyId: number, players: LobbyPlayer[], factions: Faction[]) => {
             pushNav({ screen: "game", lobbyId, players, factions });
@@ -686,6 +700,7 @@ export function MainPage() {
     );
 
     const openLobbies = useCallback(() => {
+        setLobbyView("active");
         pushNav({ screen: "lobbies", lobbyId: 0 });
     }, [pushNav]);
 
@@ -794,6 +809,7 @@ export function MainPage() {
 
     const lobbies = dashboardData?.lobbies ?? [];
     const friends = dashboardData?.friends ?? [];
+    const displayedLobbies = lobbyView === "completed" ? lobbyHistory : lobbies;
     const activeLobby = lobbies.find((lobby) => lobby.status === "active") ?? null;
     const heroMapBackground = activeLobby
         ? `${API_URL}/lobbies/${activeLobby.id}/thumbnail.png?w=1280&fmt=webp&q=94`
@@ -885,21 +901,31 @@ export function MainPage() {
                         >
                             <ChevronRight size={16} className="rotate-180" />
                         </button>
-                        <div>
-                            <h1 className="text-xl font-black">All lobbies</h1>
-                            <p className="mt-0.5 text-sm text-[#a8917d]">{lobbies.length} total</p>
+                        <div className="min-w-0"><h1 className="text-xl font-black">Lobbies</h1><p className="mt-0.5 text-sm text-[#a8917d]">{lobbies.length} active · {lobbyHistory.length} completed</p></div>
+                        <div className="ml-auto flex rounded-lg border border-[#3f332d] p-1">
+                            <button type="button" onClick={() => setLobbyView("active")} className={`rounded-md px-3 py-1.5 text-xs font-semibold ${lobbyView === "active" ? "bg-[#2b211c] text-[#f4e7d8]" : "text-[#8f8278]"}`}>Active</button>
+                            <button type="button" onClick={() => setLobbyView("completed")} className={`rounded-md px-3 py-1.5 text-xs font-semibold ${lobbyView === "completed" ? "bg-[#2b211c] text-[#f4e7d8]" : "text-[#8f8278]"}`}>Completed</button>
                         </div>
                     </div>
 
-                    {lobbies.length > 0 ? (
+                    {displayedLobbies.length > 0 ? (
+                        <>
+                        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-[#8f8278]">{lobbyView === "active" ? "Active and waiting" : "Completed battles"}</h2>
                         <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3 min-[2200px]:grid-cols-4">
-                            {lobbies.map((lobby, index) => (
-                                <GameCard key={lobby.id} lobby={lobby} index={index} onOpen={openLobby} />
+                            {displayedLobbies.map((lobby, index) => (
+                                <div key={lobby.id} className="relative">
+                                    <GameCard lobby={lobby} index={index} onOpen={lobby.status === "finished" ? openReplay : openLobby} />
+                                    {lobby.status === "finished" ? (() => {
+                                        const won = lobby.winner_id === user.id || lobby.winner_faction_id != null && lobby.players.some((player) => player.user_id === user.id && player.faction_id === lobby.winner_faction_id);
+                                        return <span className={`absolute right-4 top-16 rounded-full px-2 py-1 text-[10px] font-semibold ${won ? "bg-[#7fbf8e]/15 text-[#b8e0b1]" : lobby.winner_id == null && lobby.winner_faction_id == null ? "bg-[#8f8278]/15 text-[#bda98f]" : "bg-[#ef8f8f]/15 text-[#efb0b0]"}`}>{won ? "Victory" : lobby.winner_id == null && lobby.winner_faction_id == null ? "Draw" : "Defeat"}</span>;
+                                    })() : null}
+                                </div>
                             ))}
                         </div>
+                        </>
                     ) : (
                         <div className="rounded-md border border-dashed border-[#3f332d] bg-[#1b1512]/88 p-8 text-center text-sm text-[#a8917d]">
-                            No lobbies yet.
+                            {lobbyView === "active" ? "No active lobbies yet." : "No completed battles yet."}
                         </div>
                     )}
                 </div>
@@ -1011,7 +1037,7 @@ export function MainPage() {
                             <div className="flex items-start gap-3">
                                 <Users size={21} className="mt-0.5 text-[#bda98f]" />
                                 <div>
-                                    <h2 className="text-lg font-semibold">Active games</h2>
+                        <h2 className="text-lg font-medium tracking-tight">Active games</h2>
                                 </div>
                                 <span className="grid h-6 min-w-6 place-items-center rounded-full bg-[#2b2621] px-2 text-xs font-semibold text-[#bda98f]">
                                     {lobbies.length}
@@ -1060,7 +1086,7 @@ export function MainPage() {
                         <div className="mb-3 flex items-start gap-3">
                             <Flame size={19} className="mt-0.5 text-[#bda98f]" fill="currentColor" />
                             <div>
-                                <h2 className="text-base font-semibold">Friend streaks</h2>
+                                <h2 className="text-base font-medium tracking-tight">Friend streaks</h2>
                             </div>
                         </div>
 
