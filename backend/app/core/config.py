@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
     # Where Google redirects after consent. Defaults to
     # "{frontend_url}/auth/callback"; set explicitly when the app is served
-    # under a sub-path (e.g. ".../leetcode-streaks/auth/callback").
+    # under a sub-path (e.g. ".../cinnamon-code/auth/callback").
     google_redirect_uri: str = ""
 
     # LeetCode account verification.

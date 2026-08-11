@@ -54,7 +54,7 @@ Add to `backend/.env`:
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 # Only needed if the frontend is served under a sub-path:
-GOOGLE_REDIRECT_URI=https://host/leetcode-streaks/auth/callback
+GOOGLE_REDIRECT_URI=https://host/cinnamon-code/auth/callback
 ```
 
 Register an OAuth 2.0 Web client in Google Cloud Console with the redirect URI
