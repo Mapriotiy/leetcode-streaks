@@ -26,6 +26,7 @@ from app.models.lobby_player import LobbyPlayer
 from app.models.lobby_event import LobbyEvent
 
 PUBLIC_DIR = Path(__file__).resolve().parents[3] / "frontend" / "public"
+ALLOWED_ASSET_SUFFIXES = {".svg", ".webp", ".png", ".jpg", ".jpeg"}
 
 # Default canvas (matches the renderer's aspect ratio).
 MAP_W, MAP_H = 1321, 900
@@ -47,7 +48,16 @@ _THUMBNAIL_CACHE_LIMIT = 96
 
 
 def _asset(path: str) -> Path:
-    return PUBLIC_DIR / path
+    if not isinstance(path, str) or not path or "\\" in path:
+        raise ValueError("Invalid map asset path")
+    candidate = (PUBLIC_DIR / path).resolve()
+    try:
+        candidate.relative_to(PUBLIC_DIR.resolve())
+    except ValueError as exc:
+        raise ValueError("Map asset path escapes public assets") from exc
+    if candidate.suffix.lower() not in ALLOWED_ASSET_SUFFIXES:
+        raise ValueError("Unsupported map asset type")
+    return candidate
 
 
 def _load_image(path: str) -> Image.Image:

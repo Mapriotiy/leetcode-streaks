@@ -1,7 +1,7 @@
 import asyncio
 import json
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import jwt
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
@@ -32,10 +32,12 @@ from app.schemas.friends import (
 
 from app.services.activity_sync import get_utc_today
 from app.services.leetcode_sync import sync_user_daily_activity_by_id
+from app.services.rate_limit import enforce_rate_limit
 from app.services.streaks import calculate_friend_streak, get_active_dates
 from jwt.exceptions import InvalidTokenError
 
 router = APIRouter()
+INVITE_TTL = timedelta(days=7)
 
 
 def _notification_response(notification: Notification, db: Session) -> NotificationResponse:
@@ -63,6 +65,18 @@ def _request_response(friend_request: FriendRequest, db: Session) -> FriendReque
     )
 
 
+def _invite_expires_at(invite: FriendInvite) -> datetime:
+    return invite.expires_at or (invite.created_at + INVITE_TTL)
+
+
+def _ensure_invite_active(invite: FriendInvite) -> None:
+    if invite.status != "pending":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Invite is no longer available")
+    if _invite_expires_at(invite) <= datetime.now(timezone.utc).replace(tzinfo=None):
+        invite.status = "expired"
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail="Invite expired")
+
+
 def normalize_friend_pair(user_id: int, friend_id: int) -> tuple[int, int]:
     return (min(user_id, friend_id), max(user_id, friend_id))
 
@@ -81,15 +95,18 @@ def build_invite_url(token: str) -> str:
 
 @router.post("/invites", response_model=CreateInviteResponse)
 def create_invite(
+        request: Request,
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db),
 ):
+    enforce_rate_limit(request, "friend-invite", 10, 3600, str(current_user.id))
     token = secrets.token_urlsafe(24)
 
     invite = FriendInvite(
         inviter_user_id=current_user.id,
         token=token,
         status="pending",
+        expires_at=datetime.now(timezone.utc).replace(tzinfo=None) + INVITE_TTL,
     )
 
     db.add(invite)
@@ -126,6 +143,7 @@ def get_invite(
         status=invite.status,
         inviter=user_to_friend_response(inviter),
         created_at=invite.created_at,
+        expires_at=_invite_expires_at(invite),
     )
 
 
@@ -142,11 +160,7 @@ def accept_invite(
             detail="Invite not found",
         )
 
-    if invite.status != "pending":
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Invite is no longer available",
-        )
+    _ensure_invite_active(invite)
 
     if invite.inviter_user_id == current_user.id:
         raise HTTPException(
@@ -284,11 +298,13 @@ async def list_friends(
 
 @router.get("/search", response_model=list[FriendSearchResponse])
 def search_users(
+        request: Request,
         q: str = Query("", min_length=0, max_length=64),
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db),
 ):
     query = q.strip()
+    enforce_rate_limit(request, "friend-search", 60, 60, str(current_user.id))
     if len(query) < 3:
         return []
 
@@ -318,6 +334,8 @@ def search_users(
         .limit(20)
         .all()
     )
+
+
     result: list[FriendSearchResponse] = []
     for user in users:
         if user.id in friend_ids:
@@ -340,6 +358,21 @@ def search_users(
     return result
 
 
+@router.delete("/invites/{token}", status_code=status.HTTP_204_NO_CONTENT)
+def revoke_invite(
+        token: str,
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db),
+):
+    invite = db.query(FriendInvite).filter_by(token=token, inviter_user_id=current_user.id).first()
+    if invite is None:
+        raise HTTPException(404, "Invite not found")
+    if invite.status == "accepted":
+        raise HTTPException(409, "Accepted invite cannot be revoked")
+    invite.status = "revoked"
+    db.commit()
+
+
 @router.get("/requests", response_model=list[FriendRequestResponse])
 def list_friend_requests(
         current_user: User = Depends(get_current_user),
@@ -355,9 +388,11 @@ def list_friend_requests(
 @router.post("/requests/{user_id}", response_model=FriendRequestResponse, status_code=status.HTTP_201_CREATED)
 def create_friend_request(
         user_id: int,
+        request: Request,
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db),
 ):
+    enforce_rate_limit(request, "friend-request", 20, 3600, str(current_user.id))
     if user_id == current_user.id:
         raise HTTPException(400, "You cannot add yourself")
     recipient = db.get(User, user_id)
@@ -493,6 +528,8 @@ async def stream_notifications(
 ):
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[ALGORITHM])
+        if payload.get("scope") != "sse":
+            raise InvalidTokenError("Invalid stream scope")
         user_id = int(payload.get("sub"))
     except (InvalidTokenError, TypeError, ValueError):
         raise HTTPException(401, "Invalid token")

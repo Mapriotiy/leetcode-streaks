@@ -27,6 +27,7 @@ def _normalize_sqlite_url(database_url: str) -> str:
 class Settings(BaseSettings):
     database_url: str = f"{SQLITE_FILE_PREFIX}{(BACKEND_DIR / 'leetcode_streaks.local.db').as_posix()}"
     secret_key: str = "dev-secret-key"
+    environment: str = "development"
     access_token_expire_minutes: int = 60 * 24
     frontend_url: str = "http://localhost:5173"
     # Test seam: path to a JSON file of fake recent submissions per username.
@@ -67,6 +68,10 @@ class Settings(BaseSettings):
             )
         else:
             self.database_url = _normalize_sqlite_url(self.database_url)
+
+        production = self.environment.lower() in {"production", "prod"} or self.database_url.startswith("postgresql")
+        if production and (self.secret_key == "dev-secret-key" or len(self.secret_key) < 32):
+            raise ValueError("SECRET_KEY must be a random value of at least 32 characters in production")
 
 
 settings = Settings()

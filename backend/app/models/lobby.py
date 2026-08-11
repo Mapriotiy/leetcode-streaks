@@ -29,6 +29,7 @@ class Lobby(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    replay_token: Mapped[str | None] = mapped_column(String, nullable=True, unique=True, index=True)
     winner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     winner_faction_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
     last_synced_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

@@ -32,4 +32,5 @@ class FriendInvite(Base):
     )
     status: Mapped[str] = mapped_column(String, nullable=False, default="pending")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     accepted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

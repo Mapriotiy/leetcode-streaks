@@ -19,6 +19,7 @@ class InviteResponse(BaseModel):
     status: str
     inviter: FriendUserResponse
     created_at: datetime
+    expires_at: datetime | None = None
 
 
 class AcceptInviteResponse(BaseModel):

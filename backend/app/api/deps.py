@@ -1,5 +1,5 @@
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Cookie, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt.exceptions import InvalidTokenError
 from sqlalchemy.orm import Session
@@ -9,11 +9,12 @@ from app.core.security import ALGORITHM
 from app.db.session import get_db
 from app.models.user import User
 
-bearer_scheme = HTTPBearer()
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
-        credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+        credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+        access_token: str | None = Cookie(default=None, alias="access_token"),
         db: Session = Depends(get_db),
 ) -> User:
     credentials_exception = HTTPException(
@@ -22,9 +23,13 @@ def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
+    token = credentials.credentials if credentials else access_token
+    if not token:
+        raise credentials_exception
+
     try:
         payload = jwt.decode(
-            credentials.credentials,
+            token,
             settings.secret_key,
             algorithms=[ALGORITHM],
         )

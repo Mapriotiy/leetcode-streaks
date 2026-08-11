@@ -104,6 +104,15 @@ def _require_lobby_member(lobby: Lobby, user_id: int, db: Session) -> None:
         raise HTTPException(403, "Not a lobby member")
 
 
+def _validate_asset_path(value: Any, field: str) -> None:
+    if not isinstance(value, str) or not value or "\\" in value or value.startswith("/") or ".." in value.split("/"):
+        raise HTTPException(400, f"Invalid generated map {field}")
+    if not value.startswith(("maps/", "map-test/")):
+        raise HTTPException(400, f"Unsupported generated map {field}")
+    if not value.lower().endswith((".svg", ".webp", ".png", ".jpg", ".jpeg")):
+        raise HTTPException(400, f"Unsupported generated map {field} type")
+
+
 def _validate_generated_draft(draft: Any) -> dict[str, Any]:
     if not isinstance(draft, dict):
         raise HTTPException(400, "Generated map draft is required")
@@ -121,6 +130,21 @@ def _validate_generated_draft(draft: Any) -> dict[str, Any]:
         raise HTTPException(400, "Generated map must contain provinces")
     if not isinstance(regions, list) or not regions:
         raise HTTPException(400, "Generated map must contain regions")
+
+    if draft.get("seaBaseSrc") is not None:
+        _validate_asset_path(draft.get("seaBaseSrc"), "seaBaseSrc")
+    for island in islands:
+        if not isinstance(island, dict):
+            raise HTTPException(400, "Generated map island is invalid")
+        if island.get("svgPath") is not None:
+            _validate_asset_path(island.get("svgPath"), "svgPath")
+        if island.get("backPath") is not None:
+            _validate_asset_path(island.get("backPath"), "backPath")
+    for sprite in draft.get("seaSprites") or []:
+        if not isinstance(sprite, dict):
+            raise HTTPException(400, "Generated map sprite is invalid")
+        if sprite.get("src") is not None:
+            _validate_asset_path(sprite.get("src"), "sprite path")
 
     region_ids = {
         str(region.get("regionId"))
@@ -277,6 +301,7 @@ def get_lobby(lobby_id: int, current_user: User = Depends(get_current_user), db:
     lobby = db.get(Lobby, lobby_id)
     if not lobby:
         raise HTTPException(404, "Lobby not found")
+    _require_lobby_member(lobby, current_user.id, db)
     invite = db.query(LobbyInvite).filter_by(lobby_id=lobby.id).first()
     url = _invite_url(invite.token) if invite else None
     return _to_lobby_response(lobby, db, url)
@@ -709,20 +734,12 @@ def get_events(
     lobby = db.get(Lobby, lobby_id)
     if not lobby:
         raise HTTPException(404, "Lobby not found")
+    _require_lobby_member(lobby, current_user.id, db)
     limit = max(1, min(limit, 200))
     return get_lobby_events(lobby_id, after_id, limit, db)
 
 
-@router.get("/{lobby_id}/replay")
-def lobby_replay(lobby_id: int, db: Session = Depends(get_db)):
-    """Public replay payload for a finished lobby (used by shareable links).
-
-    Only exposes finished games so live lobby data is never leaked; the map,
-    events, and factions let the client reconstruct the capture timeline.
-    """
-    lobby = db.get(Lobby, lobby_id)
-    if not lobby:
-        raise HTTPException(404, "Lobby not found")
+def _replay_payload(lobby: Lobby, db: Session) -> dict:
     if lobby.status != "finished":
         raise HTTPException(403, "Replay becomes available once the game ends")
 
@@ -730,7 +747,7 @@ def lobby_replay(lobby_id: int, db: Session = Depends(get_db)):
     state = get_mode(lobby.game_mode).get_state(lobby, players, db)
     events = [
         LobbyEventResponse.model_validate(event).model_dump(mode="json")
-        for event in get_lobby_events(lobby_id, 0, limit=10000, db=db)
+        for event in get_lobby_events(lobby.id, 0, limit=10000, db=db)
     ]
     players_out = [
         {
@@ -749,12 +766,47 @@ def lobby_replay(lobby_id: int, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/{lobby_id}/og.png")
-def lobby_og_image(lobby_id: int, db: Session = Depends(get_db)):
-    """1200x630 PNG for social link previews (finished lobbies only)."""
+@router.get("/{lobby_id}/replay-token")
+def lobby_replay_token(
+    lobby_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     lobby = db.get(Lobby, lobby_id)
     if not lobby:
         raise HTTPException(404, "Lobby not found")
+    _require_lobby_member(lobby, current_user.id, db)
+    if lobby.status != "finished":
+        raise HTTPException(403, "Replay becomes available once the game ends")
+    if not lobby.replay_token:
+        lobby.replay_token = secrets.token_urlsafe(32)
+        db.commit()
+    return {"token": lobby.replay_token}
+
+
+@router.get("/replay/{token}")
+def lobby_replay_by_token(token: str, db: Session = Depends(get_db)):
+    lobby = db.query(Lobby).filter_by(replay_token=token).first()
+    if not lobby:
+        raise HTTPException(404, "Replay not found")
+    return _replay_payload(lobby, db)
+
+
+@router.get("/{lobby_id}/replay")
+def lobby_replay_legacy(
+    lobby_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Legacy member-only replay endpoint; public links use opaque tokens."""
+    lobby = db.get(Lobby, lobby_id)
+    if not lobby:
+        raise HTTPException(404, "Lobby not found")
+    _require_lobby_member(lobby, current_user.id, db)
+    return _replay_payload(lobby, db)
+
+
+def _render_lobby_og(lobby: Lobby, db: Session) -> bytes:
     if lobby.status != "finished":
         raise HTTPException(403, "Image is available once the game ends")
 
@@ -768,7 +820,7 @@ def lobby_og_image(lobby_id: int, db: Session = Depends(get_db)):
     winner = state.get("winner") or {}
     label = winner.get("label")
 
-    png = render_og_card(
+    return render_og_card(
         OgCardData(
             title="VICTORY" if label else "MATCH COMPLETE",
             name=label or (top.label if top else "MapCode"),
@@ -777,11 +829,28 @@ def lobby_og_image(lobby_id: int, db: Session = Depends(get_db)):
             provinces=top.provinces if top else 0,
         )
     )
-    return Response(
-        content=png,
-        media_type="image/png",
-        headers={"Cache-Control": "public, max-age=3600"},
-    )
+
+
+@router.get("/share/{token}/og.png")
+def shared_lobby_og_image(token: str, db: Session = Depends(get_db)):
+    lobby = db.query(Lobby).filter_by(replay_token=token).first()
+    if not lobby:
+        raise HTTPException(404, "Share not found")
+    return Response(content=_render_lobby_og(lobby, db), media_type="image/png", headers={"Cache-Control": "public, max-age=3600"})
+
+
+@router.get("/{lobby_id}/og.png")
+def lobby_og_image(
+    lobby_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Legacy member-only OG endpoint; public shares use opaque tokens."""
+    lobby = db.get(Lobby, lobby_id)
+    if not lobby:
+        raise HTTPException(404, "Lobby not found")
+    _require_lobby_member(lobby, current_user.id, db)
+    return Response(content=_render_lobby_og(lobby, db), media_type="image/png", headers={"Cache-Control": "public, max-age=3600"})
 
 
 @router.get("/{lobby_id}/thumbnail.png")
@@ -835,6 +904,8 @@ async def stream_lobby_events(
     """
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[ALGORITHM])
+        if payload.get("scope") != "sse":
+            raise InvalidTokenError("Invalid stream scope")
         user_id = int(payload.get("sub"))
     except (InvalidTokenError, TypeError, ValueError):
         raise HTTPException(401, "Invalid token")
