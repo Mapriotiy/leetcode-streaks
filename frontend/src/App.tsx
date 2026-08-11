@@ -42,7 +42,7 @@ export default function App() {
             {isMapTest ? (
                 <MapTestPage />
             ) : replayParam ? (
-                <ReplayPage lobbyId={Number(replayParam)} />
+                <ReplayPage replayToken={replayParam} />
             ) : (
                 <MainApp />
             )}
@@ -159,11 +159,10 @@ function MainApp() {
             if (code && state && !processedOAuthStates.has(state)) {
                 processedOAuthStates.add(state);
                 try {
-                    const res = await apiRequest<{ access_token: string }>("/auth/google/code", {
+                    await apiRequest<{ access_token: string }>("/auth/google/code", {
                         method: "POST",
                         body: JSON.stringify({ code, state }),
                     });
-                    localStorage.setItem("accessToken", res.access_token);
                     clearUrlParam("code");
                     clearUrlParam("state");
                     setAuthError(null);
@@ -173,7 +172,7 @@ function MainApp() {
                     if (pendingInviteToken) setInviteToken(pendingInviteToken);
                     return;
                 } catch (e) {
-                    localStorage.removeItem("accessToken");
+                    void apiRequest("/auth/logout", { method: "POST" });
                     clearUrlParam("code");
                     clearUrlParam("state");
                     setAuthError(
@@ -186,7 +185,7 @@ function MainApp() {
                 const me = await apiRequest<User>("/auth/me");
                 setUser(me);
             } catch {
-                localStorage.removeItem("accessToken");
+            void apiRequest("/auth/logout", { method: "POST" });
                 clearCache();
                 setUser(null);
             }
@@ -306,7 +305,7 @@ function MainApp() {
             <AdminPage
                 onBack={goBack}
                 onLogout={() => {
-                    localStorage.removeItem("accessToken");
+                    void apiRequest("/auth/logout", { method: "POST" });
                     clearCache();
                     setUser(null);
                     setShowAdmin(false);
@@ -319,7 +318,7 @@ function MainApp() {
             <ProfilePage
                 onBack={goBack}
                 onLogout={() => {
-                    localStorage.removeItem("accessToken");
+                    void apiRequest("/auth/logout", { method: "POST" });
                     clearCache();
                     setUser(null);
                     setShowProfile(false);

@@ -661,11 +661,9 @@ export function MainPage() {
     }, [applyNavState]);
 
     const goDashboard = useCallback(() => {
-        if (navDepthRef.current > 0) {
-            window.history.back();
-        } else {
-            applyNavState(null);
-        }
+        navDepthRef.current = 0;
+        window.history.replaceState({ __mp: null }, "", window.location.pathname);
+        applyNavState(null);
     }, [applyNavState]);
 
     const openLobby = useCallback(
@@ -732,7 +730,7 @@ export function MainPage() {
     }, []);
 
     const handleLogout = useCallback(() => {
-        localStorage.removeItem("accessToken");
+        void apiRequest("/auth/logout", { method: "POST" });
         setUser(null);
         setDashboardData(null);
         setScreen("dashboard");
@@ -917,7 +915,10 @@ export function MainPage() {
                 isAdmin={Boolean(user.is_admin)}
                 onBack={goDashboard}
                 onReplay={() => {
-                    window.location.href = `${window.location.pathname}?replay=${activeLobbyId}`;
+                    void apiRequest<{ token: string }>(`/lobbies/${activeLobbyId}/replay-token`)
+                        .then(({ token }) => {
+                            window.location.href = `${window.location.pathname}?replay=${encodeURIComponent(token)}`;
+                        });
                 }}
                 onLeft={goDashboard}
             />

@@ -26,9 +26,8 @@ export function NotificationBell() {
     }, []);
 
     useEffect(() => {
-        const token = localStorage.getItem("accessToken");
-        if (!token) return;
-        const source = new EventSource(`${API_URL}/friends/notifications/stream?token=${encodeURIComponent(token)}&after_id=${lastId.current}`);
+        let cancelled = false;
+        let source: EventSource | null = null;
         const onNotification = (event: MessageEvent) => {
             try {
                 const item = JSON.parse(event.data) as Notification;
@@ -38,8 +37,17 @@ export function NotificationBell() {
                 // Ignore malformed frames.
             }
         };
-        source.addEventListener("notification", onNotification);
-        return () => source.close();
+        void apiRequest<{ access_token: string }>("/auth/stream-token")
+            .then(({ access_token }) => {
+                if (cancelled) return;
+                source = new EventSource(`${API_URL}/friends/notifications/stream?token=${encodeURIComponent(access_token)}&after_id=${lastId.current}`);
+                source.addEventListener("notification", onNotification);
+            })
+            .catch(() => {});
+        return () => {
+            cancelled = true;
+            source?.close();
+        };
     }, []);
 
     const unread = items.filter((item) => !item.read_at).length;

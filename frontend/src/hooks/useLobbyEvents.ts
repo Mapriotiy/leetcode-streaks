@@ -17,16 +17,8 @@ export function useLobbyEvents(lobbyId: number, syncTick: number) {
     // Live push over SSE: new events arrive the moment the sync writes them,
     // without touching the (rate-limited) LeetCode sync at all.
     useEffect(() => {
-        const token = localStorage.getItem('accessToken');
-        if (!token) return;
+        let cancelled = false;
         let es: EventSource | null = null;
-        try {
-            es = new EventSource(
-                `${API_URL}/lobbies/${lobbyId}/events/stream?token=${encodeURIComponent(token)}&after_id=0`,
-            );
-        } catch {
-            return;
-        }
         const onEvent = (msg: MessageEvent) => {
             try {
                 const event = JSON.parse(msg.data) as GameEventApiData;
@@ -40,8 +32,19 @@ export function useLobbyEvents(lobbyId: number, syncTick: number) {
                 // ignore malformed frames; polling remains the fallback
             }
         };
-        es.addEventListener('event', onEvent);
-        return () => es?.close();
+        void apiRequest<{ access_token: string }>('/auth/stream-token')
+            .then(({ access_token }) => {
+                if (cancelled) return;
+                es = new EventSource(
+                    `${API_URL}/lobbies/${lobbyId}/events/stream?token=${encodeURIComponent(access_token)}&after_id=0`,
+                );
+                es.addEventListener('event', onEvent);
+            })
+            .catch(() => {});
+        return () => {
+            cancelled = true;
+            es?.close();
+        };
     }, [lobbyId]);
 
     const fetchEvents = useCallback(async () => {

@@ -55,7 +55,7 @@ function colorForPlayer(userId: number, factions: ReplayFaction[], players: Repl
     return PLAYER_COLORS[index >= 0 ? index % PLAYER_COLORS.length : 0];
 }
 
-export function ReplayPage({ lobbyId }: { lobbyId: number }) {
+export function ReplayPage({ replayToken }: { replayToken: string }) {
     const [data, setData] = useState<ReplayData | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
@@ -64,10 +64,10 @@ export function ReplayPage({ lobbyId }: { lobbyId: number }) {
     const [step, setStep] = useState(0);
 
     useEffect(() => {
-        apiRequest<ReplayData>(`/lobbies/${lobbyId}/replay`)
+        apiRequest<ReplayData>(`/lobbies/replay/${encodeURIComponent(replayToken)}`)
             .then(setData)
             .catch((e) => setError(e instanceof Error ? e.message : "Failed to load replay"));
-    }, [lobbyId]);
+    }, [replayToken]);
 
     const factions = data?.factions ?? [];
     const players = data?.players ?? [];
@@ -181,7 +181,7 @@ export function ReplayPage({ lobbyId }: { lobbyId: number }) {
                         </a>
                         <div>
                             <h1 className="text-2xl font-semibold tracking-tight">Match replay</h1>
-                            <p className="mt-1 text-sm text-[#8a8a8a]">Lobby #{lobbyId} · capture timeline</p>
+                            <p className="mt-1 text-sm text-[#8a8a8a]">Public capture timeline</p>
                         </div>
                     </div>
                     <button

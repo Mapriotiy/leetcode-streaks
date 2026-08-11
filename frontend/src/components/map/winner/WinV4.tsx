@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Share2 } from "lucide-react";
+import { apiRequest } from "../../../api/client";
 import { EpicParticles, SideBeams } from "./EpicEffects";
 import { ShareCardModal } from "./ShareCardModal";
 import type { WinVariantProps } from "./types";
@@ -18,15 +19,22 @@ export function WinV4({
     background,
 }: WinVariantProps) {
     const [shareOpen, setShareOpen] = useState(false);
+    const [replayToken, setReplayToken] = useState<string | null>(null);
     const [ambientEffectsActive, setAmbientEffectsActive] = useState(true);
     const title = youWon ? "VICTORY" : "SYSTEM FAILURE";
-    const replayUrl = `${window.location.origin}${window.location.pathname}?replay=${lobbyId}`;
+    const replayUrl = replayToken ? `${window.location.origin}${window.location.pathname}?replay=${encodeURIComponent(replayToken)}` : "";
     const showAmbientEffects = ambientEffectsActive && !shareOpen;
 
     useEffect(() => {
         const timer = window.setTimeout(() => setAmbientEffectsActive(false), 3500);
         return () => window.clearTimeout(timer);
     }, []);
+
+    useEffect(() => {
+        void apiRequest<{ token: string }>(`/lobbies/${lobbyId}/replay-token`)
+            .then(({ token }) => setReplayToken(token))
+            .catch(() => {});
+    }, [lobbyId]);
 
     return (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-[#0a0a0c]">
